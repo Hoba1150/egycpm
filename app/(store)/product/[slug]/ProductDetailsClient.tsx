@@ -112,16 +112,25 @@ export default function ProductDetailsClient({ product, user }: ProductDetailsCl
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
       {/* Right Column: Multi-Image Gallery */}
       <div className="lg:col-span-7 space-y-3">
-        {/* Main Display Image */}
-        <div className="relative aspect-[16/10] rounded-2xl bg-[#0f1218] border border-gray-800 overflow-hidden shadow-xl group card-drift-accent">
+        {/* Main Display Image - Clean Responsive Height on Mobile & Desktop */}
+        <div className="relative w-full h-[240px] sm:h-[340px] md:h-[420px] rounded-2xl bg-[#08080b] border border-gray-800 overflow-hidden shadow-2xl group card-drift-accent">
+          {/* Subtle ambient backdrop for luxury feel */}
+          <img
+            src={currentImage}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover blur-xl opacity-25 pointer-events-none"
+          />
+
+          {/* Primary crisp image (object-contain ensures never stretched or cropped on mobile) */}
           <img
             src={currentImage}
             alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-102 transition duration-300"
+            className="relative z-10 w-full h-full object-contain p-1.5 sm:p-3 group-hover:scale-102 transition duration-300"
           />
 
           {/* Badges */}
-          <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-end z-10">
+          <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-end z-20">
             {product.discountPercent > 0 && (
               <span className="px-2.5 py-1 rounded-lg bg-red-600 text-white font-black text-xs shadow flex items-center gap-1 font-mono">
                 <Flame className="w-3.5 h-3.5" />
@@ -129,7 +138,7 @@ export default function ProductDetailsClient({ product, user }: ProductDetailsCl
               </span>
             )}
             {product.isFeatured && (
-              <span className="px-2.5 py-1 rounded-lg bg-orange-500 text-black font-black text-xs shadow">
+              <span className="px-2.5 py-1 rounded-lg bg-red-600 text-white font-black text-xs shadow">
                 مميز ⭐
               </span>
             )}
@@ -138,7 +147,7 @@ export default function ProductDetailsClient({ product, user }: ProductDetailsCl
           {/* Share Button */}
           <button
             onClick={handleShare}
-            className="absolute top-3 left-3 p-2 rounded-xl bg-black/60 hover:bg-black/80 text-white border border-gray-700 transition"
+            className="absolute top-3 left-3 z-20 p-2 rounded-xl bg-black/70 hover:bg-black/90 text-white border border-gray-700 transition"
             title="مشاركة المنتج"
             aria-label="مشاركة"
           >
@@ -150,14 +159,14 @@ export default function ProductDetailsClient({ product, user }: ProductDetailsCl
             <>
               <button
                 onClick={prevImage}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white transition border border-gray-700"
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/70 hover:bg-black/90 text-white transition border border-gray-700 shadow-md"
                 aria-label="الصورة السابقة"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
               <button
                 onClick={nextImage}
-                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white transition border border-gray-700"
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/70 hover:bg-black/90 text-white transition border border-gray-700 shadow-md"
                 aria-label="الصورة التالية"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -166,16 +175,16 @@ export default function ProductDetailsClient({ product, user }: ProductDetailsCl
           )}
         </div>
 
-        {/* Gallery Thumbnails */}
+        {/* Gallery Thumbnails (Strict sizing so mobile never overflows) */}
         {images.length > 1 && (
-          <div className="flex items-center gap-2.5 overflow-x-auto pb-2">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-1 scrollbar-thin">
             {images.map((img: string, idx: number) => (
               <button
                 key={idx}
                 onClick={() => setActiveImageIndex(idx)}
-                className={`relative w-18 h-18 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 shrink-0 transition ${
+                className={`relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 min-w-[56px] min-h-[56px] rounded-xl overflow-hidden border-2 shrink-0 transition-all ${
                   activeImageIndex === idx
-                    ? "border-orange-500 shadow-[0_0_10px_rgba(255,102,0,0.3)] scale-105"
+                    ? "border-red-600 shadow-[0_0_12px_rgba(220,38,38,0.5)] scale-105"
                     : "border-gray-800 opacity-60 hover:opacity-100"
                 }`}
               >

@@ -16,70 +16,78 @@ interface CPM2PageProps {
 }
 
 export default async function CPM2Page({ searchParams }: CPM2PageProps) {
-  // Fetch all CPM2 categories from database dynamically
-  const allCategories = await prisma.category.findMany({
-    where: {
-      isActive: true,
-      OR: [
-        { slug: { contains: "cpm" } },
-        { name: { contains: "CPM" } },
-        { name: { contains: "cpm" } },
-      ],
-    },
-    orderBy: { order: "asc" },
-    include: { _count: { select: { products: true } } },
-  });
+  let allCategories: any[] = [];
+  try {
+    allCategories = await prisma.category.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          { slug: { contains: "cpm" } },
+          { name: { contains: "CPM" } },
+          { name: { contains: "cpm" } },
+        ],
+      },
+      orderBy: { order: "asc" },
+      include: { _count: { select: { products: true } } },
+    });
+  } catch (err) {
+    console.error("CPM2 allCategories error:", err);
+  }
 
   // Fetch products: by selected category or all CPM2 products
   let products: any[] = [];
 
-  if (searchParams.cat) {
-    // Show products of selected category
-    const res = await getProducts({
-      categorySlug: searchParams.cat,
-      isCpm2: true,
-      sortBy: searchParams.sortBy || "newest",
-      search: searchParams.search,
-      limit: 60,
-    });
-    products = res.items;
-  } else {
-    // Show ALL CPM2 products across all CPM categories + productType=CPM2
-    const cpmCategoryIds = allCategories.map((c) => c.id);
+  try {
+    if (searchParams.cat) {
+      // Show products of selected category
+      const res = await getProducts({
+        categorySlug: searchParams.cat,
+        isCpm2: true,
+        sortBy: searchParams.sortBy || "newest",
+        search: searchParams.search,
+        limit: 60,
+      });
+      products = res.items;
+    } else {
+      // Show ALL CPM2 products across all CPM categories + productType=CPM2
+      const cpmCategoryIds = allCategories.map((c) => c.id);
 
-    const allCpmProducts = await prisma.product.findMany({
-      where: {
-        isActive: true,
-        OR: [
-          { productType: "CPM2" },
-          ...(cpmCategoryIds.length > 0
-            ? [{ categoryId: { in: cpmCategoryIds } }]
-            : []),
-        ],
-      },
-      orderBy:
-        searchParams.sortBy === "price_asc"
-          ? { price: "asc" }
-          : searchParams.sortBy === "price_desc"
-          ? { price: "desc" }
-          : searchParams.sortBy === "sales"
-          ? { totalSales: "desc" }
-          : { createdAt: "desc" },
-      include: { category: true },
-      take: 60,
-    });
+      const allCpmProducts = await prisma.product.findMany({
+        where: {
+          isActive: true,
+          OR: [
+            { productType: "CPM2" },
+            ...(cpmCategoryIds.length > 0
+              ? [{ categoryId: { in: cpmCategoryIds } }]
+              : []),
+          ],
+        },
+        orderBy:
+          searchParams.sortBy === "price_asc"
+            ? { price: "asc" }
+            : searchParams.sortBy === "price_desc"
+            ? { price: "desc" }
+            : searchParams.sortBy === "sales"
+            ? { totalSales: "desc" }
+            : { createdAt: "desc" },
+        include: { category: true },
+        take: 60,
+      });
 
-    // Parse images for each product
-    products = allCpmProducts.map((p) => {
-      let imagesArray: string[] = [];
-      try {
-        imagesArray = JSON.parse(p.images || "[]");
-        if (!Array.isArray(imagesArray)) imagesArray = [p.images];
-      } catch {
-        imagesArray = [p.images];
-      }
-      return { ...p, imagesArray };
-    });
+      // Parse images for each product
+      products = allCpmProducts.map((p) => {
+        let imagesArray: string[] = [];
+        try {
+          imagesArray = JSON.parse(p.images || "[]");
+          if (!Array.isArray(imagesArray)) imagesArray = [p.images];
+        } catch {
+          imagesArray = [p.images];
+        }
+        return { ...p, imagesArray };
+      });
+    }
+  } catch (err) {
+    console.error("CPM2 products fetch error:", err);
   }
 
   return (
