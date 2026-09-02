@@ -4,7 +4,7 @@ import ProductCard from "@/components/store/ProductCard";
 import Link from "next/link";
 import { Search, Car, Zap, Key, Flame, Sparkles, Filter, RefreshCw } from "lucide-react";
 
-import ModernCategoryBar from "@/components/store/ModernCategoryBar";
+import ModernCategoryNav from "@/components/store/ModernCategoryNav";
 
 export const revalidate = 30; // Fast Edge CDN Caching (Zero Latency & 98% Bandwidth Savings)
 
@@ -152,21 +152,13 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
         </form>
       </div>
 
-      {/* Modern Interactive Category Navigation Bar */}
+      {/* Modern Interactive Category Navigation Bar (Cockpit HUD Style - No Images) */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between px-1">
-          <span className="text-xs font-bold text-white flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-red-500" />
-            <span>تصفح حسب تصنيف المنتج:</span>
-          </span>
-          <span className="text-[11px] text-gray-500 font-mono">
-            {categories.length} أقسام
-          </span>
-        </div>
-        <ModernCategoryBar 
+        <ModernCategoryNav 
           categories={categories}
           activeCategory={activeCategory}
           activeType={activeType}
+          totalProductsCount={productsRes.totalCount}
         />
       </div>
 

@@ -17,7 +17,6 @@ interface CategoryShowcaseProps {
     id: string;
     name: string;
     slug: string;
-    image?: string | null;
     description?: string | null;
     _count?: { products: number };
   }>;
@@ -30,24 +29,24 @@ function getCleanName(name: string) {
 function getCategoryIcon(name: string, slug: string) {
   const lower = (name + " " + slug).toLowerCase();
   if (lower.includes("modified") || lower.includes("تعديل") || lower.includes("سرعة") || lower.includes("1695")) {
-    return { icon: Car, accent: "from-red-600 to-red-950", badge: "W16 Tuning" };
+    return { icon: Car, border: "hover:border-red-500/80", accent: "text-red-500 bg-red-950/20 border-red-500/30" };
   }
   if (lower.includes("drawn") || lower.includes("رسم") || lower.includes("فينيل")) {
-    return { icon: Palette, accent: "from-rose-600 to-rose-950", badge: "Custom Vinyls" };
+    return { icon: Palette, border: "hover:border-rose-500/80", accent: "text-rose-500 bg-rose-950/20 border-rose-500/30" };
   }
   if (lower.includes("realistic") || lower.includes("واقعية") || lower.includes("لوجو") || lower.includes("ماركات")) {
-    return { icon: Sparkles, accent: "from-red-700 to-black", badge: "Hyper Realistic" };
+    return { icon: Sparkles, border: "hover:border-red-400/80", accent: "text-red-400 bg-red-950/20 border-red-500/30" };
   }
   if (lower.includes("limited") || lower.includes("نادرة") || lower.includes("محدودة")) {
-    return { icon: Flame, accent: "from-amber-600 to-red-950", badge: "1 of 1 Edition" };
+    return { icon: Flame, border: "hover:border-amber-500/80", accent: "text-amber-500 bg-amber-950/20 border-amber-500/30" };
   }
   if (lower.includes("service") || lower.includes("شحن") || lower.includes("تطوير")) {
-    return { icon: Zap, accent: "from-yellow-600 to-amber-950", badge: "Instant Delivery" };
+    return { icon: Zap, border: "hover:border-yellow-500/80", accent: "text-yellow-500 bg-yellow-950/20 border-yellow-500/30" };
   }
   if (lower.includes("account") || lower.includes("حسابات") || lower.includes("جاهزة")) {
-    return { icon: Key, accent: "from-red-800 to-black", badge: "VIP Accounts" };
+    return { icon: Key, border: "hover:border-red-600/80", accent: "text-red-500 bg-red-950/20 border-red-500/30" };
   }
-  return { icon: Layers, accent: "from-gray-800 to-black", badge: "Category" };
+  return { icon: Layers, border: "hover:border-red-500/80", accent: "text-red-400 bg-red-950/20 border-red-500/30" };
 }
 
 export default function HomeCategoryShowcase({ categories }: CategoryShowcaseProps) {
@@ -66,54 +65,47 @@ export default function HomeCategoryShowcase({ categories }: CategoryShowcasePro
         </Link>
         <div className="text-right">
           <span className="text-xs text-red-500 font-mono font-bold uppercase tracking-wider block">
-            التصنيفات الرئيسية
+            التصنيفات المعتمدة
           </span>
           <h2 className="text-lg sm:text-2xl font-black text-white">
-            أقسام المتجر المتخصصة
+            أقسام المتجر المتاحة
           </h2>
         </div>
       </div>
 
-      {/* Grid of Interactive Category Cards */}
+      {/* Grid of Cockpit Gaming Tiles (No Images) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-3.5">
         {categories.map((cat) => {
           const cleanName = getCleanName(cat.name);
-          const { icon: Icon, accent, badge } = getCategoryIcon(cat.name, cat.slug);
+          const { icon: Icon, border, accent } = getCategoryIcon(cat.name, cat.slug);
           const productCount = cat._count?.products ?? 0;
 
           return (
             <Link
               key={cat.id}
               href={`/shop?category=${cat.slug}`}
-              className="group relative overflow-hidden rounded-2xl bg-[#0b0d13] border border-gray-800/80 hover:border-red-500/60 p-3.5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_25px_-5px_rgba(220,38,38,0.3)] min-h-[140px]"
+              className={`group relative rounded-2xl bg-[#0b0d13] border border-gray-800/90 ${border} p-4 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_25px_-5px_rgba(220,38,38,0.3)] min-h-[125px]`}
             >
-              {/* Background Glow / Image */}
-              {cat.image ? (
-                <div className="absolute inset-0 opacity-15 group-hover:opacity-30 transition-opacity">
-                  <img src={cat.image} alt={cleanName} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0b0d13] via-[#0b0d13]/80 to-transparent" />
-                </div>
-              ) : (
-                <div className={`absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-gradient-to-br ${accent} opacity-20 blur-xl group-hover:opacity-40 transition-opacity`} />
-              )}
+              {/* Subtle Red Ambient Glow behind Icon */}
+              <div className="absolute top-0 right-0 w-24 h-24 bg-red-600/5 rounded-full blur-xl group-hover:bg-red-600/15 transition-all" />
 
-              {/* Top Row: Icon + Badge */}
+              {/* Top Row: Icon + Count */}
               <div className="relative z-10 flex items-center justify-between">
-                <div className="w-8 h-8 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 flex items-center justify-center group-hover:bg-red-600 group-hover:text-white group-hover:border-red-500 transition-all duration-300">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all duration-300 group-hover:scale-110 group-hover:bg-red-600 group-hover:text-white group-hover:border-red-500 ${accent}`}>
                   <Icon className="w-4 h-4" />
                 </div>
-                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-black/50 border border-gray-800 text-gray-400">
-                  {productCount} عنصر
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[#141824] border border-gray-800 text-gray-400 group-hover:text-red-400 group-hover:border-red-500/30 transition-colors">
+                  {productCount} سيارة
                 </span>
               </div>
 
               {/* Bottom: Name & Action */}
-              <div className="relative z-10 text-right space-y-0.5 pt-4">
+              <div className="relative z-10 text-right space-y-0.5 pt-3">
                 <h3 className="text-xs sm:text-sm font-black text-white group-hover:text-red-400 transition-colors line-clamp-1">
                   {cleanName}
                 </h3>
-                <span className="text-[10px] text-gray-500 font-medium block flex items-center justify-end gap-1 group-hover:text-gray-300 transition-colors">
-                  <span>تصفح القسم</span>
+                <span className="text-[10px] text-gray-500 font-medium flex items-center justify-end gap-1 group-hover:text-gray-300 transition-colors">
+                  <span>فتح القسم</span>
                   <ChevronLeft className="w-3 h-3 text-red-500 group-hover:-translate-x-0.5 transition-transform" />
                 </span>
               </div>
