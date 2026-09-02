@@ -25,13 +25,48 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import NotificationsDropdown from "@/components/shared/NotificationsDropdown";
 import AuthModal from "@/components/shared/AuthModal";
-import Logo from "@/components/shared/Logo";
 import { toast } from "sonner";
 import { useSettings } from "@/lib/context/SettingsContext";
 
+/** Inline logo emblem — rendered inside the flush header slot */
+function LogoEmblem() {
+  const settings = useSettings();
+  const storeName = settings.store_name || "EGY CPM";
+  const customLogoUrl = settings.store_logo_url;
+
+  return (
+    <div className="flex items-center gap-2.5 select-none">
+      {/* Icon / Image */}
+      {customLogoUrl ? (
+        <img
+          src={customLogoUrl}
+          alt={storeName}
+          className="h-8 sm:h-9 w-auto max-w-[110px] object-contain"
+        />
+      ) : (
+        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gradient-to-br from-[var(--red-hi)] to-[var(--red)] flex items-center justify-center border border-white/10 shadow-[0_0_12px_rgba(192,18,26,0.5)] shrink-0 group-hover:shadow-[0_0_18px_rgba(192,18,26,0.7)] transition-shadow">
+          <Car className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+        </div>
+      )}
+
+      {/* Name */}
+      <div className="text-right leading-none">
+        <span className="text-sm sm:text-base font-black text-white tracking-tight block group-hover:text-[var(--red-hi)] transition-colors">
+          {storeName}
+        </span>
+        <span className="text-[9px] font-mono text-[var(--red)] uppercase tracking-[0.12em] block mt-0.5 font-bold opacity-80">
+          Car Parking
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function Header() {
+
   const pathname = usePathname();
   const router = useRouter();
+
   const { getItemCount, setIsOpen: setCartOpen } = useCartStore();
   const itemCount = getItemCount();
 
@@ -99,25 +134,38 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-gray-800 bg-[#08090d]/95 backdrop-blur-md">
+      <header className="sticky top-0 z-40 w-full border-b border-[var(--border)] bg-[#07080c]/95 backdrop-blur-md">
         {/* Main Navbar */}
-        <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14 sm:h-16 gap-1.5 sm:gap-4">
-            {/* Right: Mobile Hamburger + Logo */}
-            <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between h-14 sm:h-16 gap-0">
+
+            {/* ── Logo Slot: flush embedded rectangle ── */}
+            {/* Sits flush top & bottom with the bar, side borders only, inset shadow = carved-in feel */}
+            <div className="flex items-center h-full">
+              {/* Mobile hamburger — separate, before logo slot */}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="lg:hidden p-1.5 rounded-lg bg-[#12161f] border border-gray-800 text-white hover:text-orange-500 focus:outline-none"
+                className="lg:hidden h-full px-3 text-gray-400 hover:text-white hover:bg-white/[0.04] border-r border-[var(--border)] transition"
                 aria-label="القائمة الجانبية"
               >
                 {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
               </button>
 
-              <Logo size="sm" />
+              {/* Logo Slot — flush, no radius, part of the bar */}
+              <Link
+                href="/"
+                className="flex items-center h-full px-4 sm:px-5 border-r border-[var(--border)] bg-[var(--surface)] hover:bg-[#0c0d12] transition-colors group relative"
+                style={{ boxShadow: "inset -1px 0 0 rgba(192,18,26,0.18), inset 1px 0 0 rgba(192,18,26,0.08)" }}
+              >
+                {/* Subtle top accent line — red hairline */}
+                <span className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--red)] to-transparent opacity-70" />
+
+                <LogoEmblem />
+              </Link>
             </div>
 
             {/* Desktop Navigation Links */}
-            <nav className="hidden lg:flex items-center gap-1">
+            <nav className="hidden lg:flex items-center gap-0.5 flex-1 px-4">
               {navLinks.map((link) => {
                 const isActive = pathname === link.href;
                 return (
@@ -126,8 +174,8 @@ export default function Header() {
                     href={link.href}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
                       isActive
-                        ? "text-orange-500 bg-orange-500/10 border border-orange-500/30"
-                        : "text-gray-300 hover:text-orange-500 hover:bg-gray-800/40"
+                        ? "text-[var(--red-hi)] bg-[var(--red-soft)] border border-[var(--red)]/25"
+                        : "text-gray-300 hover:text-white hover:bg-white/[0.05]"
                     }`}
                   >
                     {link.name}
@@ -137,7 +185,7 @@ export default function Header() {
             </nav>
 
             {/* Left: Actions */}
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4">
               {/* Search Form (Desktop) */}
               <form onSubmit={handleSearch} className="hidden md:flex relative items-center">
                 <input
@@ -145,9 +193,9 @@ export default function Header() {
                   placeholder="ابحث عن سيارة أو خدمة..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-36 lg:w-48 pl-3 pr-7 py-1.5 rounded-lg bg-[#12161f] border border-gray-800 focus:border-orange-500 text-xs text-white placeholder-gray-500 text-right"
+                  className="w-36 lg:w-44 pl-3 pr-7 py-1.5 rounded-lg bg-[var(--card-hi)] border border-[var(--border)] focus:border-[var(--red)] focus:outline-none text-xs text-white placeholder-gray-500 text-right transition cpm-input"
                 />
-                <button type="submit" className="absolute right-2 text-gray-400 hover:text-orange-500" aria-label="بحث">
+                <button type="submit" className="absolute right-2 text-gray-400 hover:text-[var(--red-hi)] transition" aria-label="بحث">
                   <Search className="w-3 h-3" />
                 </button>
               </form>
