@@ -1,21 +1,14 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 import Logo from "@/components/shared/Logo";
+import { useSettings } from "@/lib/context/SettingsContext";
 
 export default function Footer() {
-  const [settings, setSettings] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    fetch("/api/settings", { cache: "no-store" })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.settings) setSettings(data.settings);
-      })
-      .catch(() => {});
-  }, []);
+  // Read from server-injected Context — no FOUC, no extra API call
+  const settings = useSettings();
 
   const storeName = settings.store_name || "EGY CPM";
   const cashPhone = settings.vodafone_cash || settings.announcement_cash_phone || "01288212101";

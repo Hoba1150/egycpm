@@ -4,20 +4,35 @@ import Footer from "@/components/shared/Footer";
 import MobileBottomNav from "@/components/shared/MobileBottomNav";
 import CartDrawer from "@/components/store/CartDrawer";
 import CyberBackground from "@/components/shared/CyberBackground";
+import { getStoreSettings } from "@/lib/actions/settings";
+import { SettingsProvider } from "@/lib/context/SettingsContext";
 
-export default function StoreLayout({
+// Revalidate every 60 seconds so changes from admin panel appear quickly
+export const revalidate = 60;
+
+export default async function StoreLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Fetch settings ONCE on the server — eliminates FOUC entirely
+  let settings: Record<string, string> = {};
+  try {
+    settings = await getStoreSettings();
+  } catch {
+    // Use empty object on error, components use their own fallbacks
+  }
+
   return (
-    <div className="relative min-h-screen flex flex-col justify-between">
-      <CyberBackground />
-      <Header />
-      <main className="flex-1 pb-20 md:pb-0">{children}</main>
-      <CartDrawer />
-      <MobileBottomNav />
-      <Footer />
-    </div>
+    <SettingsProvider settings={settings}>
+      <div className="relative min-h-screen flex flex-col justify-between">
+        <CyberBackground />
+        <Header />
+        <main className="flex-1 pb-20 md:pb-0">{children}</main>
+        <CartDrawer />
+        <MobileBottomNav />
+        <Footer />
+      </div>
+    </SettingsProvider>
   );
 }

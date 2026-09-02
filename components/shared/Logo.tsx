@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { Car } from "lucide-react";
+import { useSettings } from "@/lib/context/SettingsContext";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg";
@@ -10,16 +11,8 @@ interface LogoProps {
 }
 
 export default function Logo({ size = "md", showText = true }: LogoProps) {
-  const [settings, setSettings] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    fetch("/api/settings", { cache: "no-store" })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.settings) setSettings(data.settings);
-      })
-      .catch(() => {});
-  }, []);
+  // Read from server-injected Context — no FOUC, no extra API call
+  const settings = useSettings();
 
   const storeName = settings.store_name || "EGY CPM";
   const storeSlogan = settings.store_slogan || "Car Parking Marketplace";
@@ -76,4 +69,3 @@ export default function Logo({ size = "md", showText = true }: LogoProps) {
     </Link>
   );
 }
-

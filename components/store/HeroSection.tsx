@@ -15,16 +15,19 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { useSettings } from "@/lib/context/SettingsContext";
 
 interface HeroSectionProps {
   user?: any;
   products?: any[];
+  // Keep prop for backward compat but now we use Context
   initialSettings?: Record<string, string>;
 }
 
-export default function HeroSection({ user: initialUser, initialSettings = {} }: HeroSectionProps) {
+export default function HeroSection({ user: initialUser }: HeroSectionProps) {
   const [currentUser, setCurrentUser] = useState(initialUser);
-  const [settings, setSettings] = useState<Record<string, string>>(initialSettings);
+  // Read settings from server-injected Context — no FOUC
+  const settings = useSettings();
   const [activeSlide, setActiveSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const touchStartX = useRef<number | null>(null);

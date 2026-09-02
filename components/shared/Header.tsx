@@ -27,6 +27,7 @@ import NotificationsDropdown from "@/components/shared/NotificationsDropdown";
 import AuthModal from "@/components/shared/AuthModal";
 import Logo from "@/components/shared/Logo";
 import { toast } from "sonner";
+import { useSettings } from "@/lib/context/SettingsContext";
 
 export default function Header() {
   const pathname = usePathname();
@@ -34,26 +35,21 @@ export default function Header() {
   const { getItemCount, setIsOpen: setCartOpen } = useCartStore();
   const itemCount = getItemCount();
 
+  // Read settings from server-injected Context (no FOUC, no extra API call)
+  const settings = useSettings();
+
   const [user, setUser] = useState<any>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [userDropdown, setUserDropdown] = useState(false);
-  const [settings, setSettings] = useState<Record<string, string>>({});
 
   const fetchSession = async () => {
     try {
-      const [resAuth, resSettings] = await Promise.all([
-        fetch("/api/auth/me", { cache: "no-store" }),
-        fetch("/api/settings", { cache: "no-store" }),
-      ]);
+      const resAuth = await fetch("/api/auth/me", { cache: "no-store" });
       if (resAuth.ok) {
         const data = await resAuth.json();
         setUser(data.user);
-      }
-      if (resSettings.ok) {
-        const data = await resSettings.json();
-        if (data.settings) setSettings(data.settings);
       }
     } catch {
       // ignore
