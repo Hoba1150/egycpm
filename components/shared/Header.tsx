@@ -35,7 +35,6 @@ export default function Header() {
   const { getItemCount, setIsOpen: setCartOpen } = useCartStore();
   const itemCount = getItemCount();
 
-  // Read settings from server-injected Context (no FOUC, no extra API call)
   const settings = useSettings();
 
   const [user, setUser] = useState<any>(null);
@@ -99,35 +98,35 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-gray-800 bg-[#08090d]/95 backdrop-blur-md">
-        {/* Main Navbar */}
-        <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14 sm:h-16 gap-1.5 sm:gap-4">
-            {/* Right: Mobile Hamburger + Logo */}
-            <div className="flex items-center gap-1.5 sm:gap-2">
+      {/* Fixed Sticky Ultra-Glass Header (iOS 17 Style) */}
+      <header className="sticky top-0 z-40 w-full border-b border-white/[0.08] bg-[#030406]/75 backdrop-blur-2xl backdrop-saturate-200 shadow-[0_4px_30px_rgba(0,0,0,0.5)] transition-all duration-300">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 sm:h-20 gap-2 sm:gap-4">
+            {/* Right: Logo (Enlarged and highlighted) & Mobile Menu Toggle */}
+            <div className="flex items-center gap-2 sm:gap-3">
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="lg:hidden p-1.5 rounded-lg bg-[#12161f] border border-gray-800 text-white hover:text-orange-500 focus:outline-none"
+                className="lg:hidden p-2 rounded-xl bg-white/[0.04] border border-white/10 text-gray-300 hover:text-white hover:bg-white/[0.08] active:scale-95 transition backdrop-blur-md"
                 aria-label="القائمة الجانبية"
               >
-                {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
 
-              <Logo size="sm" />
+              <Logo size="md" />
             </div>
 
-            {/* Desktop Navigation Links */}
-            <nav className="hidden lg:flex items-center gap-1">
+            {/* Desktop Navigation Links (iOS Segmented Glass Bar) */}
+            <nav className="hidden lg:flex items-center p-1.5 rounded-2xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-xl shadow-inner gap-1">
               {navLinks.map((link) => {
                 const isActive = pathname === link.href;
                 return (
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 ${
                       isActive
-                        ? "text-orange-500 bg-orange-500/10 border border-orange-500/30"
-                        : "text-gray-300 hover:text-orange-500 hover:bg-gray-800/40"
+                        ? "bg-red-600 text-white shadow-[0_2px_12px_rgba(220,38,38,0.4),inset_0_1px_0_rgba(255,255,255,0.25)]"
+                        : "text-gray-300 hover:text-white hover:bg-white/[0.06]"
                     }`}
                   >
                     {link.name}
@@ -136,31 +135,31 @@ export default function Header() {
               })}
             </nav>
 
-            {/* Left: Actions */}
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Left: Actions (Search, Cart, User) */}
+            <div className="flex items-center gap-2 sm:gap-3">
               {/* Search Form (Desktop) */}
               <form onSubmit={handleSearch} className="hidden md:flex relative items-center">
                 <input
                   type="text"
-                  placeholder="ابحث عن سيارة أو خدمة..."
+                  placeholder="بحث سريع..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-36 lg:w-48 pl-3 pr-7 py-1.5 rounded-lg bg-[#12161f] border border-gray-800 focus:border-orange-500 text-xs text-white placeholder-gray-500 text-right"
+                  className="w-36 lg:w-48 pl-3 pr-8 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] focus:border-red-500/60 focus:bg-white/[0.07] text-xs text-white placeholder-gray-500 text-right backdrop-blur-md transition-all outline-none"
                 />
-                <button type="submit" className="absolute right-2 text-gray-400 hover:text-orange-500" aria-label="بحث">
-                  <Search className="w-3 h-3" />
+                <button type="submit" className="absolute right-2.5 text-gray-400 hover:text-red-400 transition" aria-label="بحث">
+                  <Search className="w-3.5 h-3.5" />
                 </button>
               </form>
 
-              {/* Shopping Cart Button */}
+              {/* Shopping Cart Glass Button */}
               <button
                 onClick={() => setCartOpen(true)}
-                className="relative p-1.5 sm:p-2 rounded-lg bg-[#12161f] border border-gray-800 text-gray-300 hover:text-orange-500 transition"
+                className="relative p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-gray-200 hover:text-white hover:border-red-500/40 hover:bg-white/[0.08] active:scale-95 transition backdrop-blur-md"
                 aria-label="سلة المشتريات"
               >
-                <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <ShoppingCart className="w-4 h-4" />
                 {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-3.5 px-0.5 rounded-full bg-orange-500 text-black text-[8px] sm:text-[9px] font-black font-mono">
+                  <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[9px] font-black font-mono shadow-[0_2px_8px_rgba(220,38,38,0.7)] border border-white/20 animate-in zoom-in-50 duration-200">
                     {itemCount}
                   </span>
                 )}
@@ -174,63 +173,61 @@ export default function Header() {
                 <div className="relative">
                   <button
                     onClick={() => setUserDropdown(!userDropdown)}
-                    className="flex items-center gap-1 p-1 sm:px-2.5 sm:py-1.5 rounded-lg bg-[#12161f] border border-orange-500/30 text-right"
+                    className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-gray-200 hover:text-white hover:border-white/20 active:scale-95 transition backdrop-blur-md"
                   >
-                    <div className="flex flex-col text-right leading-tight">
-                      <span className="text-[11px] sm:text-xs font-bold text-white max-w-[70px] sm:max-w-[80px] truncate">
-                        {user.name || "الحساب"}
-                      </span>
-                      <span className="text-[9px] sm:text-[10px] text-orange-500 font-mono font-bold">
-                        {formatCurrency(user.wallet?.totalAvailable || 0)}
-                      </span>
+                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-red-600 to-red-800 text-white flex items-center justify-center text-xs font-black shadow-sm">
+                      {user.name ? user.name[0].toUpperCase() : "U"}
                     </div>
-                    <ChevronDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-400" />
+                    <span className="hidden sm:inline text-xs font-bold truncate max-w-[100px]">
+                      {user.name}
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
                   </button>
 
-                  {/* Dropdown Menu */}
+                  {/* Dropdown Menu Glass Panel */}
                   {userDropdown && (
-                    <div
-                      className="absolute left-0 mt-1.5 w-48 sm:w-52 rounded-xl bg-[#0f1218] border border-gray-800 shadow-xl p-2 z-50 text-right space-y-1"
-                      onClick={() => setUserDropdown(false)}
-                    >
-                      <div className="p-1.5 border-b border-gray-800 mb-1">
-                        <p className="text-xs font-bold text-white truncate">{user.name}</p>
-                        <p className="text-[10px] text-orange-500 font-mono font-bold">
-                          {formatCurrency(user.wallet?.totalAvailable || 0)}
-                        </p>
+                    <div className="absolute left-0 mt-2 w-52 rounded-2xl bg-[#0b0e14]/90 border border-white/10 shadow-[0_16px_40px_rgba(0,0,0,0.8)] backdrop-blur-2xl p-1.5 z-50 text-right animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="px-3 py-2 border-b border-white/[0.08] mb-1">
+                        <span className="text-[11px] text-gray-400 block font-medium">الرصيد المتاح</span>
+                        <span className="text-sm font-black text-red-400 font-mono">
+                          {formatCurrency(user.wallet?.totalAvailable ?? 0)}
+                        </span>
                       </div>
-
-                      <Link
-                        href="/wallet"
-                        className="flex items-center gap-2 p-1.5 rounded-lg text-xs text-gray-300 hover:bg-gray-800/40 hover:text-orange-500 transition"
-                      >
-                        <Wallet className="w-3.5 h-3.5 text-orange-500" />
-                        <span>محفظتي وشحن الرصيد</span>
-                      </Link>
-
-                      <Link
-                        href="/orders"
-                        className="flex items-center gap-2 p-1.5 rounded-lg text-xs text-gray-300 hover:bg-gray-800/40 hover:text-orange-500 transition"
-                      >
-                        <Car className="w-3.5 h-3.5 text-orange-500" />
-                        <span>طلباتي ومشترياتي</span>
-                      </Link>
 
                       {isAdmin && (
                         <Link
-                          href="/admin/login"
-                          className="flex items-center gap-2 p-1.5 rounded-lg text-xs text-orange-400 bg-orange-500/10 border border-orange-500/30 transition"
+                          href="/admin"
+                          onClick={() => setUserDropdown(false)}
+                          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-red-400 hover:bg-red-600/10 transition"
                         >
-                          <ShieldAlert className="w-3.5 h-3.5" />
-                          <span>لوحة التحكم الإدارية</span>
+                          <ShieldAlert className="w-4 h-4" />
+                          <span>لوحة التحكم (Admin)</span>
                         </Link>
                       )}
 
+                      <Link
+                        href="/profile"
+                        onClick={() => setUserDropdown(false)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-gray-200 hover:bg-white/[0.06] transition"
+                      >
+                        <User className="w-4 h-4 text-gray-400" />
+                        <span>الملف الشخصي</span>
+                      </Link>
+
+                      <Link
+                        href="/wallet"
+                        onClick={() => setUserDropdown(false)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-gray-200 hover:bg-white/[0.06] transition"
+                      >
+                        <Wallet className="w-4 h-4 text-gray-400" />
+                        <span>محفظتي ورصيدي</span>
+                      </Link>
+
                       <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-2 p-1.5 rounded-lg text-xs text-red-400 hover:bg-red-500/10 transition"
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-red-400 hover:bg-red-600/10 transition text-right"
                       >
-                        <LogOut className="w-3.5 h-3.5" />
+                        <LogOut className="w-4 h-4" />
                         <span>تسجيل الخروج</span>
                       </button>
                     </div>
@@ -239,33 +236,30 @@ export default function Header() {
               ) : (
                 <button
                   onClick={() => setIsAuthOpen(true)}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-black font-extrabold text-[11px] sm:text-xs transition shadow-sm"
+                  className="px-4 py-2 rounded-xl glass-button-primary text-xs font-black tracking-wide shrink-0"
                 >
-                  <User className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                  <span>دخول</span>
+                  تسجيل الدخول
                 </button>
               )}
             </div>
           </div>
         </div>
 
-        {/* Mobile Slide-Out Drawer Menu */}
+        {/* Mobile Navigation Drawer */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden fixed inset-x-0 top-[calc(100%+1px)] bg-[#0c0f15] border-b border-gray-800 shadow-2xl p-3 z-50 text-right space-y-3">
-            {/* Search Input in Mobile Drawer */}
+          <div className="lg:hidden border-t border-white/[0.08] bg-[#05070a]/95 backdrop-blur-3xl px-4 py-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
             <form onSubmit={handleSearch} className="relative">
               <input
                 type="text"
                 placeholder="ابحث عن سيارة أو خدمة..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-3 pr-8 py-2 rounded-lg bg-[#161b24] border border-gray-700 text-xs text-white placeholder-gray-400 text-right"
+                className="w-full pl-3 pr-9 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-white placeholder-gray-500 text-right outline-none focus:border-red-500"
               />
-              <Search className="w-3.5 h-3.5 absolute right-2.5 top-2.5 text-gray-400" />
+              <Search className="w-4 h-4 absolute right-3 top-3 text-gray-400" />
             </form>
 
-            {/* Quick Links List */}
-            <div className="grid grid-cols-1 divide-y divide-gray-800">
+            <div className="grid grid-cols-2 gap-1.5 pt-1">
               {navLinks.map((link) => {
                 const Icon = link.icon;
                 const isActive = pathname === link.href;
@@ -274,14 +268,14 @@ export default function Header() {
                     key={link.href}
                     href={link.href}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className={`flex items-center justify-between py-2.5 px-2 text-xs font-bold transition ${
-                      isActive ? "text-orange-500 bg-orange-500/10 rounded-lg" : "text-gray-200 hover:text-orange-500"
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition ${
+                      isActive
+                        ? "bg-red-600 text-white shadow-sm"
+                        : "bg-white/[0.03] text-gray-300 hover:text-white"
                     }`}
                   >
-                    <div className="flex items-center gap-2.5">
-                      <Icon className={`w-4 h-4 ${isActive ? "text-orange-500" : "text-gray-400"}`} />
-                      <span>{link.name}</span>
-                    </div>
+                    <Icon className="w-4 h-4" />
+                    <span>{link.name}</span>
                   </Link>
                 );
               })}
