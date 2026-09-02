@@ -120,8 +120,30 @@ export async function getProducts(params: ProductFilterParams = {}) {
     const [products, totalCount] = await Promise.all([
       prisma.product.findMany({
         where,
-        include: {
-          category: true,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          price: true,
+          originalPrice: true,
+          discountPercent: true,
+          productType: true,
+          stockType: true,
+          stockQuantity: true,
+          isActive: true,
+          isFeatured: true,
+          isBestSeller: true,
+          isLimited: true,
+          images: true,
+          totalSales: true,
+          createdAt: true,
+          category: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
           reviews: {
             where: { isApproved: true, isHidden: false },
             select: { rating: true },
@@ -138,16 +160,22 @@ export async function getProducts(params: ProductFilterParams = {}) {
       const ratings = prod.reviews.map((r) => r.rating);
       const avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 5;
 
-      let imagesArray: string[] = [];
+      let primaryImage = "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=500";
       try {
-        imagesArray = JSON.parse(prod.images || "[]");
+        const parsed = JSON.parse(prod.images || "[]");
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          primaryImage = parsed[0];
+        } else if (typeof parsed === "string" && parsed) {
+          primaryImage = parsed;
+        }
       } catch {
-        imagesArray = [prod.images];
+        if (prod.images) primaryImage = prod.images;
       }
 
       return {
         ...prod,
-        imagesArray,
+        images: primaryImage,
+        imagesArray: [primaryImage],
         avgRating: Number(avgRating.toFixed(1)),
         reviewCount: ratings.length,
       };
@@ -180,35 +208,56 @@ export async function getRandomProducts(count: number = 5) {
           { category: { name: { contains: "cpm" } } },
         ],
       },
-      include: {
-        category: true,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        price: true,
+        originalPrice: true,
+        discountPercent: true,
+        productType: true,
+        images: true,
+        category: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
         reviews: {
           where: { isApproved: true, isHidden: false },
           select: { rating: true },
         },
       },
+      take: count * 3,
     });
 
     if (allActiveProducts.length === 0) return [];
 
-    // Shuffle randomly
-    const shuffled = [...allActiveProducts].sort(() => 0.5 - Math.random());
+    // Shuffle array and take count
+    const shuffled = allActiveProducts.sort(() => 0.5 - Math.random());
     const selected = shuffled.slice(0, count);
 
     return selected.map((prod) => {
       const ratings = prod.reviews.map((r) => r.rating);
       const avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 5;
 
-      let imagesArray: string[] = [];
+      let primaryImage = "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=500";
       try {
-        imagesArray = JSON.parse(prod.images || "[]");
+        const parsed = JSON.parse(prod.images || "[]");
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          primaryImage = parsed[0];
+        } else if (typeof parsed === "string" && parsed) {
+          primaryImage = parsed;
+        }
       } catch {
-        imagesArray = [prod.images];
+        if (prod.images) primaryImage = prod.images;
       }
 
       return {
         ...prod,
-        imagesArray,
+        images: primaryImage,
+        imagesArray: [primaryImage],
         avgRating: Number(avgRating.toFixed(1)),
         reviewCount: ratings.length,
       };
@@ -218,6 +267,7 @@ export async function getRandomProducts(count: number = 5) {
     return [];
   }
 }
+
 
 /**
  * Get Single Product by Slug (Supports encoded slugs, IDs, and masked game account preview)
