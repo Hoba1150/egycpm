@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, FolderTree, X, Loader2, Image as ImageIcon, Sparkles } from "lucide-react";
+import { Plus, Edit2, Trash2, FolderTree, X, Loader2, Image as ImageIcon, Sparkles, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { createCategory, updateCategory, deleteCategory } from "@/lib/actions/product";
@@ -18,6 +18,7 @@ export default function CategoriesManagerClient({ initialCategories }: { initial
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Form Fields
   const [name, setName] = useState("");
@@ -200,25 +201,71 @@ export default function CategoriesManagerClient({ initialCategories }: { initial
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-medium text-gray-300 mb-1">رابط صورة القسم (Image URL)</label>
-                  <input
-                    type="url"
-                    value={image}
-                    onChange={(e) => setImage(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#12161f] border border-gray-700 rounded-xl text-xs text-white text-right dir-ltr font-mono"
-                  />
+              <div className="space-y-2 p-3 rounded-xl bg-[#0a0d13] border border-gray-800">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-gray-200">صورة أو أيقونة القسم (Cloudinary CDN)</label>
+                  <label className={`px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold cursor-pointer transition flex items-center gap-1.5 shrink-0 ${isUploading ? "opacity-60 pointer-events-none" : ""}`}>
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>{isUploading ? "جاري الرفع لـ CDN..." : "رفع صورة من جهازك"}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={isUploading}
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (file.size > 10 * 1024 * 1024) {
+                          toast.error("حجم الصورة كبير، الحد الأقصى 10 ميجابايت.");
+                          return;
+                        }
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        setIsUploading(true);
+                        try {
+                          const res = await fetch("/api/upload", { method: "POST", body: formData });
+                          const data = await res.json();
+                          if (!res.ok || !data.url) throw new Error(data.message || "فشل الرفع.");
+                          setImage(data.url);
+                          toast.success("تم رفع صورة القسم إلى Cloudinary CDN بنجاح! 🚀");
+                        } catch (err: any) {
+                          toast.error(err.message || "فشل رفع الصورة.");
+                        } finally {
+                          setIsUploading(false);
+                          e.target.value = "";
+                        }
+                      }}
+                    />
+                  </label>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1">ترتيب العرض</label>
-                  <input
-                    type="number"
-                    value={order}
-                    onChange={(e) => setOrder(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-[#12161f] border border-gray-700 rounded-xl text-xs text-white text-right font-mono"
-                  />
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl border border-gray-700 overflow-hidden bg-black/50 shrink-0 flex items-center justify-center">
+                    {image ? (
+                      <img src={image} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <ImageIcon className="w-5 h-5 text-gray-600" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      type="url"
+                      placeholder="أو ضع رابط صورة مباشر..."
+                      value={image}
+                      onChange={(e) => setImage(e.target.value)}
+                      className="w-full px-3 py-2 bg-[#12161f] border border-gray-700 rounded-xl text-xs text-white text-left dir-ltr font-mono"
+                    />
+                  </div>
+                  <div className="w-24">
+                    <input
+                      type="number"
+                      placeholder="الترتيب"
+                      value={order}
+                      onChange={(e) => setOrder(Number(e.target.value))}
+                      className="w-full px-3 py-2 bg-[#12161f] border border-gray-700 rounded-xl text-xs text-white text-center font-mono"
+                      title="ترتيب ظهور القسم"
+                    />
+                  </div>
                 </div>
               </div>
 

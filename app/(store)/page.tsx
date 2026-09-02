@@ -1,10 +1,11 @@
 import React from "react";
 import { getCurrentUser } from "@/lib/auth";
-import { getProducts } from "@/lib/actions/product";
+import { getProducts, getCategories } from "@/lib/actions/product";
 import { getStoreSettings } from "@/lib/actions/settings";
 import HeroSection from "@/components/store/HeroSection";
 import ProductCard from "@/components/store/ProductCard";
 import LiveStatsTicker from "@/components/store/LiveStatsTicker";
+import HomeCategoryShowcase from "@/components/store/HomeCategoryShowcase";
 import WhyChooseUs from "@/components/store/WhyChooseUs";
 import HowItWorks from "@/components/store/HowItWorks";
 import FAQSection from "@/components/store/FAQSection";
@@ -17,12 +18,14 @@ export default async function HomePage() {
   let user = null;
   let featuredProducts: any[] = [];
   let settings: Record<string, string> = {};
+  let categories: any[] = [];
 
   try {
     const results = await Promise.allSettled([
       getCurrentUser(),
       getProducts({ limit: 8, sortBy: "sales" }),
       getStoreSettings(),
+      getCategories(),
     ]);
 
     if (results[0].status === "fulfilled") user = results[0].value;
@@ -31,6 +34,9 @@ export default async function HomePage() {
     }
     if (results[2].status === "fulfilled" && results[2].value) {
       settings = results[2].value;
+    }
+    if (results[3].status === "fulfilled" && results[3].value) {
+      categories = results[3].value;
     }
   } catch (err) {
     console.error("HomePage fetch error:", err);
@@ -44,7 +50,12 @@ export default async function HomePage() {
       {/* 2. Live Numbers & Trust Metrics */}
       <LiveStatsTicker settings={settings} />
 
-      {/* 3. Featured / Top Selling Products Grid */}
+      {/* 3. Modern Interactive Categories Grid Showcase */}
+      {categories.length > 0 && (
+        <HomeCategoryShowcase categories={categories} />
+      )}
+
+      {/* 4. Featured / Top Selling Products Grid */}
       {featuredProducts.length > 0 && (
         <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-4">
           <div className="flex items-center justify-between">

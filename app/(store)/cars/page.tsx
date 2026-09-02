@@ -50,15 +50,15 @@ export default async function CarsPage() {
             <Link
               key={i}
               href={c.href}
-              className="p-4 rounded-2xl bg-[#0f1218] border border-gray-800 hover:border-orange-500/50 transition group flex flex-col justify-between shadow-sm"
+              className="p-4 rounded-2xl bg-[#0b0d13] border border-gray-800/80 hover:border-red-500/60 hover:shadow-[0_8px_20px_-4px_rgba(220,38,38,0.25)] transition-all duration-300 group flex flex-col justify-between shadow-sm"
             >
               <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] text-gray-400 font-mono">{c.count} سيارة</span>
-                <div className={`p-2.5 rounded-xl border border-gray-800 border-gray-800 ${c.color}`}>
+                <span className="text-[11px] text-gray-500 font-mono">{c.count} سيارة</span>
+                <div className="p-2.5 rounded-xl border border-red-500/20 bg-red-500/10 text-red-500 group-hover:bg-red-600 group-hover:text-white group-hover:border-red-500 transition-all duration-300">
                   <Icon className="w-4 h-4" />
                 </div>
               </div>
-              <h3 className="text-xs sm:text-sm font-extrabold text-white group-hover:text-orange-500 transition">
+              <h3 className="text-xs sm:text-sm font-extrabold text-white group-hover:text-red-400 transition">
                 {c.title}
               </h3>
             </Link>
