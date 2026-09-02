@@ -48,6 +48,7 @@ export default function ProductManagerClient({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Product Type Selector: "REGULAR" vs "GAME_ACCOUNT"
   const [productTypeKind, setProductTypeKind] = useState<"REGULAR" | "GAME_ACCOUNT">("REGULAR");
@@ -724,31 +725,45 @@ export default function ProductManagerClient({
                       accept="image/*"
                       id="multi-product-image-file"
                       className="hidden"
-                      onChange={(e) => {
+                      disabled={isUploadingImage}
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          if (file.size > 2 * 1024 * 1024) {
-                            toast.error("حجم الصورة كبير، يفضل اختيار صورة أقل من 2 ميجابايت.");
+                          if (file.size > 10 * 1024 * 1024) {
+                            toast.error("حجم الصورة كبير، الحد الأقصى 10 ميجابايت.");
                             return;
                           }
-                          const reader = new FileReader();
-                          reader.onload = (event) => {
-                            const result = event.target?.result as string;
-                            if (result) {
-                              setImagesList([...imagesList, result]);
-                              toast.success("تمت إضافة الصورة إلى المعرض.");
+                          const formData = new FormData();
+                          formData.append("file", file);
+                          setIsUploadingImage(true);
+                          try {
+                            const res = await fetch("/api/upload", {
+                              method: "POST",
+                              body: formData,
+                            });
+                            const data = await res.json();
+                            if (!res.ok || !data.url) {
+                              throw new Error(data.message || "فشل رفع الصورة إلى السيرفر.");
                             }
-                          };
-                          reader.readAsDataURL(file);
+                            setImagesList([...imagesList, data.url]);
+                            toast.success("تم رفع الصورة مباشرة إلى Cloudinary CDN بنجاح! 🚀");
+                          } catch (err: any) {
+                            toast.error(err.message || "فشل رفع الصورة.");
+                          } finally {
+                            setIsUploadingImage(false);
+                            e.target.value = "";
+                          }
                         }
                       }}
                     />
                     <label
                       htmlFor="multi-product-image-file"
-                      className="px-3 py-2 bg-orange-500 hover:bg-orange-600 text-black font-bold text-xs rounded-xl cursor-pointer transition flex items-center gap-1.5 shrink-0"
+                      className={`px-3 py-2 bg-orange-500 hover:bg-orange-600 text-black font-bold text-xs rounded-xl cursor-pointer transition flex items-center gap-1.5 shrink-0 ${
+                        isUploadingImage ? "opacity-60 pointer-events-none" : ""
+                      }`}
                     >
                       <Upload className="w-3.5 h-3.5" />
-                      <span>رفع صورة من جهازك</span>
+                      <span>{isUploadingImage ? "جاري الرفع إلى CDN..." : "رفع صورة من جهازك"}</span>
                     </label>
 
                     <div className="flex-1 flex gap-1">

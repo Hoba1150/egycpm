@@ -47,6 +47,7 @@ export default function Cpm2AdminClient({
   const [imagesList, setImagesList] = useState<string[]>(["https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?w=800"]);
   const [newImageUrl, setNewImageUrl] = useState("");
   const [isFeatured, setIsFeatured] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Category form fields
   const [catName, setCatName] = useState("");
@@ -532,6 +533,39 @@ export default function Cpm2AdminClient({
                     <button type="button" onClick={() => { if (newImageUrl.trim()) { setImagesList([...imagesList, newImageUrl.trim()]); setNewImageUrl(""); } }} className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold">
                       <Plus className="w-3.5 h-3.5" />
                     </button>
+                    <label className={`px-3 py-2 bg-orange-500 hover:bg-orange-600 text-black font-bold text-xs rounded-xl cursor-pointer transition flex items-center gap-1.5 shrink-0 ${isUploadingImage ? "opacity-60 pointer-events-none" : ""}`}>
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{isUploadingImage ? "جاري الرفع..." : "رفع من الجهاز"}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        disabled={isUploadingImage}
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          if (file.size > 10 * 1024 * 1024) {
+                            toast.error("حجم الصورة كبير جداً (الحد الأقصى 10 ميجابايت).");
+                            return;
+                          }
+                          const formData = new FormData();
+                          formData.append("file", file);
+                          setIsUploadingImage(true);
+                          try {
+                            const res = await fetch("/api/upload", { method: "POST", body: formData });
+                            const data = await res.json();
+                            if (!res.ok || !data.url) throw new Error(data.message || "فشل رفع الصورة.");
+                            setImagesList([...imagesList, data.url]);
+                            toast.success("تم رفع الصورة مباشرة إلى Cloudinary CDN بنجاح! 🚀");
+                          } catch (err: any) {
+                            toast.error(err.message || "فشل رفع الصورة.");
+                          } finally {
+                            setIsUploadingImage(false);
+                            e.target.value = "";
+                          }
+                        }}
+                      />
+                    </label>
                   </div>
                 </div>
               </div>

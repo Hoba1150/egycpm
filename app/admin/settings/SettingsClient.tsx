@@ -26,12 +26,13 @@ import {
   HelpCircle,
   ShieldCheck,
   Zap,
+  Car,
 } from "lucide-react";
 
 export default function SettingsClient({ initialSettings }: { initialSettings: Record<string, string> }) {
   const router = useRouter();
   const [settings, setSettings] = useState(initialSettings);
-  const [activeTab, setActiveTab] = useState<"SLIDER" | "TEXTS" | "THEME" | "PAYMENT" | "BACKUP">("SLIDER");
+  const [activeTab, setActiveTab] = useState<"SLIDER" | "LOGO" | "TEXTS" | "THEME" | "PAYMENT" | "BACKUP">("LOGO");
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -215,13 +216,26 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
   return (
     <div className="space-y-6 text-right">
       {/* Navigation Tabs */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 p-1.5 bg-[#12161f] border border-gray-800 rounded-2xl">
+      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 p-1.5 bg-[#12161f] border border-gray-800 rounded-2xl">
+        <button
+          type="button"
+          onClick={() => setActiveTab("LOGO")}
+          className={`py-3 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+            activeTab === "LOGO"
+              ? "bg-red-600 text-white shadow-sm ring-1 ring-red-400"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <Car className="w-4 h-4 text-red-400" />
+          <span>لوجو وشعار المتجر ⭐</span>
+        </button>
+
         <button
           type="button"
           onClick={() => setActiveTab("SLIDER")}
           className={`py-3 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
             activeTab === "SLIDER"
-              ? "bg-orange-500 text-black shadow-sm"
+              ? "bg-red-600 text-white shadow-sm"
               : "text-gray-400 hover:text-white"
           }`}
         >
@@ -284,6 +298,106 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
 
       {/* Main Settings Form */}
       <form onSubmit={handleSave} className="space-y-6">
+        {/* TAB 0: STORE LOGO */}
+        {activeTab === "LOGO" && (
+          <div className="p-6 rounded-2xl bg-[#12161f] border border-gray-800 space-y-6">
+            <div className="border-b border-gray-800 pb-3 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Car className="w-5 h-5 text-red-500" />
+                  <span>تعديل وتحميل لوجو المتجر الرسمي (Store Logo)</span>
+                </h3>
+                <p className="text-xs text-gray-400 mt-1">
+                  ارفع صورة لوجو مخصصة لمتجرك من جهازك مباشرة؛ تُحفظ وتُرفع تلقائياً عبر مسار Cloudinary CDN فائق السرعة وبدون استهلاك لسيرفرك.
+                </p>
+              </div>
+              <span className="px-3 py-1 rounded-lg bg-red-600/10 border border-red-500/30 text-red-400 font-mono text-xs font-black shrink-0">
+                Cloudinary CDN 🚀
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center p-4 rounded-xl bg-[#161b24] border border-gray-800">
+              {/* Logo Live Preview */}
+              <div className="md:col-span-4 flex flex-col items-center justify-center p-6 rounded-2xl bg-[#0f1218] border border-gray-800 space-y-3">
+                <span className="text-xs text-gray-300 font-bold">معاينة الشعار الحالية:</span>
+                <div className="w-32 h-32 rounded-2xl bg-[#161b24] border-2 border-red-500/40 p-3 flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(220,38,38,0.25)]">
+                  {settings.store_logo_url ? (
+                    <img
+                      src={settings.store_logo_url}
+                      alt="Store Logo"
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <div className="text-center text-gray-500 text-xs">
+                      <Car className="w-12 h-12 mx-auto text-red-500 mb-1 opacity-80" />
+                      <span className="font-bold">الشعار الافتراضي</span>
+                    </div>
+                  )}
+                </div>
+                {settings.store_logo_url && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleChange("store_logo_url", "");
+                      toast.info("تمت إزالة الشعار واستعادة الأيقونة الافتراضية. اضغط حفظ لتطبيق التغيير.");
+                    }}
+                    className="text-xs text-red-400 hover:text-red-300 hover:underline flex items-center gap-1.5 pt-1 font-bold"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>إزالة الشعار واستعادة الافتراضي</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Upload & Link Controls */}
+              <div className="md:col-span-8 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-200 mb-2">
+                    1. رفع لوجو جديد من جهازك (يُرفع تلقائياً على Cloudinary CDN):
+                  </label>
+                  <label
+                    className={`w-full py-4 px-4 rounded-xl border-2 border-dashed border-red-500/50 bg-[#0f1218] hover:bg-red-500/10 transition cursor-pointer flex items-center justify-center gap-2.5 text-xs font-black ${
+                      isUploadingLogo ? "opacity-60 pointer-events-none" : "text-white"
+                    }`}
+                  >
+                    <Upload className="w-5 h-5 text-red-500" />
+                    <span>
+                      {isUploadingLogo ? "جاري رفع اللوجو مباشرة إلى Cloudinary..." : "اضغط هنا لاختيار صورة اللوجو (PNG, JPG, WebP)"}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                      disabled={isUploadingLogo}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1.5">
+                    2. أو ضع رابط الشعار المباشر (URL):
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://res.cloudinary.com/..."
+                    value={settings.store_logo_url || ""}
+                    onChange={(e) => handleChange("store_logo_url", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-left font-mono"
+                    dir="ltr"
+                  />
+                </div>
+
+                <div className="p-3 rounded-xl bg-red-950/20 border border-red-500/30 text-xs text-gray-300 space-y-1">
+                  <p className="font-bold text-red-400">⚡ ميزات الشعار في المتجر:</p>
+                  <p className="text-[11px] text-gray-400 leading-relaxed">
+                    يظهر اللوجو في أعلى المتجر (الهيدر)، والفوتر، وصفحات الطلبات، ويتم تحميله مباشرة وبسرعة فائقة من سيرفرات Cloudinary العالمية بدون أي استهلاك لباقة Vercel أو قاعدة بيانات Supabase.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {/* TAB 1: HERO SLIDER & VEHICLE IMAGES */}
         {activeTab === "SLIDER" && (
           <div className="p-6 rounded-2xl bg-[#12161f] border border-gray-800 space-y-6">
@@ -455,90 +569,6 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
               <p className="text-xs text-gray-400">
                 تحكم كامل في كافة النصوص الظاهرة للعميل في الصفحة الرئيسية والأقسام والفوتر بدون تعديل الكود
               </p>
-            </div>
-
-            {/* SECTION 0: STORE LOGO (CLOUDINARY CDN) */}
-            <div className="space-y-4 p-5 rounded-2xl bg-[#161b24] border border-gray-800 shadow-sm">
-              <div className="flex items-center justify-between border-b border-gray-800 pb-3">
-                <h4 className="text-sm font-black text-white flex items-center gap-2">
-                  <ImageIcon className="w-4 h-4 text-red-500" />
-                  <span>لوجو وشعار المتجر الرسمي (Store Logo)</span>
-                </h4>
-                <span className="px-2.5 py-0.5 rounded-md bg-red-600/10 border border-red-500/30 text-red-400 font-mono text-[10px] font-bold">
-                  Cloudinary CDN 🚀
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
-                {/* Logo Live Preview */}
-                <div className="md:col-span-4 flex flex-col items-center justify-center p-4 rounded-xl bg-[#0f1218] border border-gray-800 space-y-2">
-                  <span className="text-[11px] text-gray-400 font-medium">معاينة الشعار الحالية:</span>
-                  <div className="w-24 h-24 rounded-2xl bg-[#161b24] border border-red-500/40 p-2 flex items-center justify-center overflow-hidden shadow-[0_0_15px_rgba(220,38,38,0.25)]">
-                    {settings.store_logo_url ? (
-                      <img
-                        src={settings.store_logo_url}
-                        alt="Store Logo"
-                        className="w-full h-full object-contain"
-                      />
-                    ) : (
-                      <div className="text-center text-gray-500 text-xs">
-                        <Car className="w-8 h-8 mx-auto text-red-500 mb-1 opacity-70" />
-                        <span>شعار افتراضي</span>
-                      </div>
-                    )}
-                  </div>
-                  {settings.store_logo_url && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleChange("store_logo_url", "");
-                        toast.info("تمت إزالة الشعار واستعادة الأيقونة الافتراضية.");
-                      }}
-                      className="text-[11px] text-red-400 hover:text-red-300 hover:underline flex items-center gap-1 pt-1"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                      <span>إزالة الشعار</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* Upload & Link Controls */}
-                <div className="md:col-span-8 space-y-3">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-200 mb-1.5">
-                      رفع لوجو جديد من جهازك (يُرفع تلقائياً على Cloudinary CDN):
-                    </label>
-                    <label className={`w-full py-3 px-4 rounded-xl border border-dashed border-red-500/50 bg-[#0f1218] hover:bg-red-500/10 transition cursor-pointer flex items-center justify-center gap-2 text-xs font-bold ${isUploadingLogo ? "opacity-60 pointer-events-none" : "text-white"}`}>
-                      <Upload className="w-4 h-4 text-red-500" />
-                      <span>{isUploadingLogo ? "جاري رفع اللوجو لـ Cloudinary..." : "اختر صورة الشعار (PNG, JPG, WebP)"}</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleLogoUpload}
-                        disabled={isUploadingLogo}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-gray-400 mb-1">
-                      أو ضع رابط الشعار المباشر (URL):
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="https://res.cloudinary.com/..."
-                      value={settings.store_logo_url || ""}
-                      onChange={(e) => handleChange("store_logo_url", e.target.value)}
-                      className="w-full px-3.5 py-2 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-left font-mono"
-                      dir="ltr"
-                    />
-                  </div>
-                  <p className="text-[11px] text-gray-400 leading-relaxed">
-                    💡 يظهر الشعار أعلى المتجر في الهيدر والفوتر والصفحات، ويتم تحسينه وتوزيعه بسرعة فائقة عبر Cloudinary CDN بدون أي استهلاك لباندويث السيرفر.
-                  </p>
-                </div>
-              </div>
             </div>
 
             {/* SECTION 1: HERO COPY */}
