@@ -41,8 +41,10 @@ export async function updateStoreSettings(updates: Record<string, string>) {
     },
   });
 
+  revalidatePath("/", "layout");
   revalidatePath("/");
   revalidatePath("/admin/settings");
+  revalidatePath("/shop");
   return { success: true };
 }
 

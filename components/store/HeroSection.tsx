@@ -25,7 +25,15 @@ interface HeroSectionProps {
 }
 
 export default function HeroSection({ user: initialUser }: HeroSectionProps) {
-  const [currentUser, setCurrentUser] = useState(initialUser);
+  const [currentUser, setCurrentUser] = useState(initialUser || (() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = sessionStorage.getItem("cpm_cached_user");
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return null;
+  }));
   // Read settings from server-injected Context — no FOUC
   const settings = useSettings();
   const [activeSlide, setActiveSlide] = useState(0);
@@ -38,6 +46,9 @@ export default function HeroSection({ user: initialUser }: HeroSectionProps) {
     ]).then(([authData]) => {
       if (authData.user) {
         setCurrentUser(authData.user);
+        try {
+          sessionStorage.setItem("cpm_cached_user", JSON.stringify(authData.user));
+        } catch {}
       } else {
         setCurrentUser(null);
       }
@@ -263,8 +274,9 @@ export default function HeroSection({ user: initialUser }: HeroSectionProps) {
                       loading={idx === 0 ? "eager" : "lazy"}
                       className="w-full h-full object-cover"
                     />
-                    {/* cinematic bottom vignette */}
-                    <div className="absolute inset-0 hero-vignette" />
+                    {/* cinematic right-edge gradient + bottom vignette */}
+                    <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-[var(--card)] opacity-90 pointer-events-none" />
+                    <div className="absolute inset-0 hero-vignette pointer-events-none" />
                   </div>
                 ))}
 

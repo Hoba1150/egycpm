@@ -388,7 +388,34 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
                   />
                 </div>
 
-                <div className="p-3 rounded-xl bg-red-950/20 border border-red-500/30 text-xs text-gray-300 space-y-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-gray-800">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-200 mb-1">
+                        اسم المتجر (الظاهر بجانب اللوجو):
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.store_name || ""}
+                        onChange={(e) => handleChange("store_name", e.target.value)}
+                        placeholder="مثال: EGY CPM"
+                        className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-200 mb-1">
+                        الكلمة التوضيحية تحت اللوجو (Slogan):
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.store_slogan || ""}
+                        onChange={(e) => handleChange("store_slogan", e.target.value)}
+                        placeholder="مثال: Car Parking Marketplace"
+                        className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-red-950/20 border border-red-500/30 text-xs text-gray-300 space-y-1">
                   <p className="font-bold text-red-400">⚡ ميزات الشعار في المتجر:</p>
                   <p className="text-[11px] text-gray-400 leading-relaxed">
                     يظهر اللوجو في أعلى المتجر (الهيدر)، والفوتر، وصفحات الطلبات، ويتم تحميله مباشرة وبسرعة فائقة من سيرفرات Cloudinary العالمية بدون أي استهلاك لباقة Vercel أو قاعدة بيانات Supabase.

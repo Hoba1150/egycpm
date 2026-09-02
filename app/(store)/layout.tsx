@@ -7,8 +7,8 @@ import CyberBackground from "@/components/shared/CyberBackground";
 import { getStoreSettings } from "@/lib/actions/settings";
 import { SettingsProvider } from "@/lib/context/SettingsContext";
 
-// Revalidate every 60 seconds so changes from admin panel appear quickly
-export const revalidate = 60;
+// Revalidate every 10 seconds so changes from admin panel appear almost instantly
+export const revalidate = 10;
 
 export default async function StoreLayout({
   children,

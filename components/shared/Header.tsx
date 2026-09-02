@@ -54,8 +54,8 @@ function LogoEmblem() {
         <span className="text-sm sm:text-base font-black text-white tracking-tight block group-hover:text-[var(--red-hi)] transition-colors">
           {storeName}
         </span>
-        <span className="text-[9px] font-mono text-[var(--red)] uppercase tracking-[0.12em] block mt-0.5 font-bold opacity-80">
-          Car Parking
+        <span className="text-[9px] font-mono text-[var(--red-hi)] uppercase tracking-[0.1em] block mt-0.5 font-bold opacity-90 truncate max-w-[140px]">
+          {settings.store_slogan || "Car Parking"}
         </span>
       </div>
     </div>
@@ -73,7 +73,15 @@ export default function Header() {
   // Read settings from server-injected Context (no FOUC, no extra API call)
   const settings = useSettings();
 
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<any>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = sessionStorage.getItem("cpm_cached_user");
+        if (cached) return JSON.parse(cached);
+      } catch {}
+    }
+    return null;
+  });
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -85,6 +93,13 @@ export default function Header() {
       if (resAuth.ok) {
         const data = await resAuth.json();
         setUser(data.user);
+        try {
+          if (data.user) {
+            sessionStorage.setItem("cpm_cached_user", JSON.stringify(data.user));
+          } else {
+            sessionStorage.removeItem("cpm_cached_user");
+          }
+        } catch {}
       }
     } catch {
       // ignore
@@ -105,6 +120,9 @@ export default function Header() {
       await fetch("/api/auth/logout", { method: "POST" });
       setUser(null);
       setUserDropdown(false);
+      try {
+        sessionStorage.removeItem("cpm_cached_user");
+      } catch {}
       toast.success("تم تسجيل الخروج بنجاح.");
       router.refresh();
     } catch {
@@ -203,12 +221,12 @@ export default function Header() {
               {/* Shopping Cart Button */}
               <button
                 onClick={() => setCartOpen(true)}
-                className="relative p-1.5 sm:p-2 rounded-lg bg-[#12161f] border border-gray-800 text-gray-300 hover:text-orange-500 transition"
+                className="relative h-8 sm:h-9 px-2.5 rounded-lg bg-[var(--card-hi)] border border-[var(--border)] text-gray-300 hover:text-[var(--red-hi)] transition flex items-center justify-center shrink-0"
                 aria-label="سلة المشتريات"
               >
-                <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <ShoppingCart className="w-4 h-4" />
                 {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-3.5 px-0.5 rounded-full bg-orange-500 text-black text-[8px] sm:text-[9px] font-black font-mono">
+                  <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-3.5 px-0.5 rounded-full bg-[var(--red-hi)] text-white text-[8px] sm:text-[9px] font-black font-mono shadow-sm">
                     {itemCount}
                   </span>
                 )}
@@ -217,82 +235,84 @@ export default function Header() {
               {/* Notifications Dropdown */}
               {user && <NotificationsDropdown />}
 
-              {/* User Account / Login State */}
-              {user ? (
-                <div className="relative">
-                  <button
-                    onClick={() => setUserDropdown(!userDropdown)}
-                    className="flex items-center gap-1 p-1 sm:px-2.5 sm:py-1.5 rounded-lg bg-[#12161f] border border-orange-500/30 text-right"
-                  >
-                    <div className="flex flex-col text-right leading-tight">
-                      <span className="text-[11px] sm:text-xs font-bold text-white max-w-[70px] sm:max-w-[80px] truncate">
-                        {user.name || "الحساب"}
-                      </span>
-                      <span className="text-[9px] sm:text-[10px] text-orange-500 font-mono font-bold">
-                        {formatCurrency(user.wallet?.totalAvailable || 0)}
-                      </span>
-                    </div>
-                    <ChevronDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-400" />
-                  </button>
-
-                  {/* Dropdown Menu */}
-                  {userDropdown && (
-                    <div
-                      className="absolute left-0 mt-1.5 w-48 sm:w-52 rounded-xl bg-[#0f1218] border border-gray-800 shadow-xl p-2 z-50 text-right space-y-1"
-                      onClick={() => setUserDropdown(false)}
+              {/* User Account / Login State - Static fixed height to prevent any bar shift */}
+              <div className="h-8 sm:h-9 flex items-center shrink-0">
+                {user ? (
+                  <div className="relative h-full flex items-center">
+                    <button
+                      onClick={() => setUserDropdown(!userDropdown)}
+                      className="h-full flex items-center gap-1.5 px-2 sm:px-3 rounded-lg bg-[var(--card-hi)] border border-[var(--border-hi)] text-right hover:border-[var(--red)] transition"
                     >
-                      <div className="p-1.5 border-b border-gray-800 mb-1">
-                        <p className="text-xs font-bold text-white truncate">{user.name}</p>
-                        <p className="text-[10px] text-orange-500 font-mono font-bold">
+                      <div className="flex flex-col text-right leading-none justify-center">
+                        <span className="text-[10px] sm:text-[11px] font-bold text-white max-w-[70px] sm:max-w-[85px] truncate">
+                          {user.name || "الحساب"}
+                        </span>
+                        <span className="text-[9px] sm:text-[10px] text-[var(--red-hi)] font-mono font-black mt-0.5">
                           {formatCurrency(user.wallet?.totalAvailable || 0)}
-                        </p>
+                        </span>
                       </div>
+                      <ChevronDown className="w-3 h-3 text-gray-400" />
+                    </button>
 
-                      <Link
-                        href="/wallet"
-                        className="flex items-center gap-2 p-1.5 rounded-lg text-xs text-gray-300 hover:bg-gray-800/40 hover:text-orange-500 transition"
+                    {/* Dropdown Menu */}
+                    {userDropdown && (
+                      <div
+                        className="absolute left-0 mt-1.5 w-48 sm:w-52 rounded-xl bg-[#0f1218] border border-gray-800 shadow-xl p-2 z-50 text-right space-y-1"
+                        onClick={() => setUserDropdown(false)}
                       >
-                        <Wallet className="w-3.5 h-3.5 text-orange-500" />
-                        <span>محفظتي وشحن الرصيد</span>
-                      </Link>
+                        <div className="p-1.5 border-b border-gray-800 mb-1">
+                          <p className="text-xs font-bold text-white truncate">{user.name}</p>
+                          <p className="text-[10px] text-orange-500 font-mono font-bold">
+                            {formatCurrency(user.wallet?.totalAvailable || 0)}
+                          </p>
+                        </div>
 
-                      <Link
-                        href="/orders"
-                        className="flex items-center gap-2 p-1.5 rounded-lg text-xs text-gray-300 hover:bg-gray-800/40 hover:text-orange-500 transition"
-                      >
-                        <Car className="w-3.5 h-3.5 text-orange-500" />
-                        <span>طلباتي ومشترياتي</span>
-                      </Link>
-
-                      {isAdmin && (
                         <Link
-                          href="/admin/login"
-                          className="flex items-center gap-2 p-1.5 rounded-lg text-xs text-orange-400 bg-orange-500/10 border border-orange-500/30 transition"
+                          href="/wallet"
+                          className="flex items-center gap-2 p-1.5 rounded-lg text-xs text-gray-300 hover:bg-gray-800/40 hover:text-orange-500 transition"
                         >
-                          <ShieldAlert className="w-3.5 h-3.5" />
-                          <span>لوحة التحكم الإدارية</span>
+                          <Wallet className="w-3.5 h-3.5 text-orange-500" />
+                          <span>محفظتي وشحن الرصيد</span>
                         </Link>
-                      )}
 
-                      <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-2 p-1.5 rounded-lg text-xs text-red-400 hover:bg-red-500/10 transition"
-                      >
-                        <LogOut className="w-3.5 h-3.5" />
-                        <span>تسجيل الخروج</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <button
-                  onClick={() => setIsAuthOpen(true)}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-black font-extrabold text-[11px] sm:text-xs transition shadow-sm"
-                >
-                  <User className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                  <span>دخول</span>
-                </button>
-              )}
+                        <Link
+                          href="/orders"
+                          className="flex items-center gap-2 p-1.5 rounded-lg text-xs text-gray-300 hover:bg-gray-800/40 hover:text-orange-500 transition"
+                        >
+                          <Car className="w-3.5 h-3.5 text-orange-500" />
+                          <span>طلباتي ومشترياتي</span>
+                        </Link>
+
+                        {isAdmin && (
+                          <Link
+                            href="/admin/login"
+                            className="flex items-center gap-2 p-1.5 rounded-lg text-xs text-orange-400 bg-orange-500/10 border border-orange-500/30 transition"
+                          >
+                            <ShieldAlert className="w-3.5 h-3.5" />
+                            <span>لوحة التحكم الإدارية</span>
+                          </Link>
+                        )}
+
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-2 p-1.5 rounded-lg text-xs text-red-400 hover:bg-red-500/10 transition"
+                        >
+                          <LogOut className="w-3.5 h-3.5" />
+                          <span>تسجيل الخروج</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setIsAuthOpen(true)}
+                    className="h-full flex items-center gap-1.5 px-3 rounded-lg cpm-btn-red text-[11px] sm:text-xs tracking-wide shrink-0"
+                  >
+                    <User className="w-3.5 h-3.5" />
+                    <span>دخول</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
