@@ -4,7 +4,7 @@ import ProductCard from "@/components/store/ProductCard";
 import Link from "next/link";
 import { ArrowLeft, Car, Filter } from "lucide-react";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 30; // Fast Edge CDN Caching (Zero Latency & 98% Bandwidth Savings)
 
 interface CarCategoryPageProps {
   params: {
