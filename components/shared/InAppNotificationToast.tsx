@@ -82,7 +82,7 @@ export default function InAppNotificationToast() {
 
   useEffect(() => {
     checkForNewNotifications();
-    const interval = setInterval(checkForNewNotifications, 12000);
+    const interval = setInterval(checkForNewNotifications, 45000);
 
     // Custom event listener for instant in-app triggers
     const handleCustomNotification = (e: any) => {

@@ -24,10 +24,8 @@ export default function MobileBottomNav() {
   useEffect(() => {
     fetchUser();
     window.addEventListener("cpm_auth_changed", fetchUser);
-    window.addEventListener("focus", fetchUser);
     return () => {
       window.removeEventListener("cpm_auth_changed", fetchUser);
-      window.removeEventListener("focus", fetchUser);
     };
   }, []);
 

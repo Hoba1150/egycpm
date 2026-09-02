@@ -64,10 +64,8 @@ export default function Header() {
     fetchSession();
     const handleAuthEvent = () => fetchSession();
     window.addEventListener("cpm_auth_changed", handleAuthEvent);
-    window.addEventListener("focus", handleAuthEvent);
     return () => {
       window.removeEventListener("cpm_auth_changed", handleAuthEvent);
-      window.removeEventListener("focus", handleAuthEvent);
     };
   }, []);
 
