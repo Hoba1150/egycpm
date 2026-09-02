@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import crypto from "crypto";
 
-const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "y3cwryo5";
+const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "y3cwryo5";
 const API_KEY = process.env.CLOUDINARY_API_KEY || "536262785818932";
 const API_SECRET = process.env.CLOUDINARY_API_SECRET || "V4vNclaoiKkUnYvbVDHPmRoFTU0";
 
