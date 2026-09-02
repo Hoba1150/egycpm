@@ -1,7 +1,47 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import fs from "fs";
-import path from "path";
+import crypto from "crypto";
+
+const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "y3cwryo5";
+const API_KEY = process.env.CLOUDINARY_API_KEY || "536262785818932";
+const API_SECRET = process.env.CLOUDINARY_API_SECRET || "V4vNclaoiKkUnYvbVDHPmRoFTU0";
+
+async function uploadToCloudinary(base64Data: string): Promise<string> {
+  const timestamp = Math.floor(Date.now() / 1000).toString();
+  const signStr = `timestamp=${timestamp}${API_SECRET}`;
+  const signature = crypto.createHash("sha1").update(signStr).digest("hex");
+
+  // Strip data URI prefix if present
+  let imageData = base64Data;
+  if (imageData.includes(",")) {
+    imageData = imageData.split(",")[1];
+  }
+
+  const params = new URLSearchParams({
+    api_key: API_KEY,
+    timestamp,
+    signature,
+    folder: "egycpm",
+  });
+
+  // Build form body with file
+  const body = `file=data%3Aimage%2Fjpeg%3Bbase64%2C${encodeURIComponent(imageData)}&${params.toString()}`;
+
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+    }
+  );
+
+  const result = await response.json();
+  if (!result.secure_url) {
+    throw new Error(result.error?.message || "Cloudinary upload failed");
+  }
+  return result.secure_url;
+}
 
 export async function POST(req: Request) {
   try {
@@ -17,36 +57,28 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "لم يتم تحديد أي ملف." }, { status: 400 });
     }
 
-    // Validate size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json({ message: "حجم الصورة كبير جداً (الحد الأقصى 5 ميجابايت)." }, { status: 400 });
+    // Validate size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ message: "حجم الصورة كبير جداً (الحد الأقصى 10 ميجابايت)." }, { status: 400 });
     }
 
     // Validate type
-    const validTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+    const validTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg", "image/gif"];
     if (!validTypes.includes(file.type)) {
-      return NextResponse.json({ message: "صيغة الملف غير مدعومة. يرجى رفع صورة (PNG, JPG, WebP)." }, { status: 400 });
+      return NextResponse.json({ message: "صيغة الملف غير مدعومة." }, { status: 400 });
     }
 
+    // Convert to base64
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+    const base64 = buffer.toString("base64");
 
-    // Save to public/uploads
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
+    // Upload to Cloudinary CDN
+    const url = await uploadToCloudinary(base64);
 
-    const ext = file.name.split(".").pop() || "jpg";
-    const filename = `proof_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
-    const filePath = path.join(uploadDir, filename);
-
-    fs.writeFileSync(filePath, buffer);
-
-    const publicUrl = `/uploads/${filename}`;
-    return NextResponse.json({ success: true, url: publicUrl });
+    return NextResponse.json({ success: true, url });
   } catch (error: any) {
     console.error("Upload error:", error);
-    return NextResponse.json({ message: "فشل رفع الصورة." }, { status: 500 });
+    return NextResponse.json({ message: "فشل رفع الصورة: " + error.message }, { status: 500 });
   }
 }
