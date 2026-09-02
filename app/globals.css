@@ -2,191 +2,153 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap');
+
+/* ═══════════════════════════════════════════════
+   EGY CPM — PREMIUM BLACK × DEEP RED THEME
+   Obsidian surfaces · Carbon cards · Action Red
+═══════════════════════════════════════════════ */
 
 :root {
-  --font-tajawal: 'Tajawal', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --theme-primary: #dc2626;
-  --theme-bg: #030406;
-  --theme-card: rgba(12, 14, 20, 0.7);
-  --theme-border: rgba(255, 255, 255, 0.08);
+  --red:       #c0121a;
+  --red-hi:    #e8161f;
+  --red-glow:  rgba(192, 18, 26, 0.35);
+  --red-soft:  rgba(192, 18, 26, 0.12);
+  --bg:        #050507;
+  --surface:   #0b0c10;
+  --card:      #0f1016;
+  --card-hi:   #141519;
+  --border:    rgba(255,255,255,0.06);
+  --border-hi: rgba(192, 18, 26, 0.45);
+  --text:      #eeeef2;
+  --text-dim:  #7a7b8a;
+  --font-body: 'Tajawal', system-ui, sans-serif;
 }
 
-* {
-  box-sizing: border-box;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+* { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
 
-::selection {
-  background-color: rgba(220, 38, 38, 0.4);
-  color: #ffffff;
-}
+::selection { background: var(--red); color: #fff; }
+
+html { scroll-behavior: smooth; }
 
 body {
-  background-color: #030406;
-  color: #f1f3f7;
-  font-family: var(--font-tajawal);
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
   overflow-x: hidden;
-  background-image: 
-    radial-gradient(ellipse 90% 55% at 50% -20%, rgba(220, 38, 38, 0.08), transparent 70%),
-    radial-gradient(ellipse 60% 40% at 85% 40%, rgba(220, 38, 38, 0.03), transparent 60%),
-    radial-gradient(ellipse 60% 40% at 15% 70%, rgba(255, 255, 255, 0.015), transparent 60%);
+  /* subtle ambient radial glow from top — gives depth without weight */
+  background-image:
+    radial-gradient(ellipse 110% 50% at 50% -8%, rgba(192,18,26,0.10) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 35% at 92% 55%,  rgba(192,18,26,0.04) 0%, transparent 60%);
   background-attachment: fixed;
 }
 
-/* ─────────────────────────────────────────────────────────────
-   APPLE iOS / MINIMAL PREMIUM GLASSMORPHISM SYSTEM
-───────────────────────────────────────────────────────────── */
+/* ── Scrollbar ──────────────────────────────── */
+::-webkit-scrollbar         { width: 4px; height: 4px; }
+::-webkit-scrollbar-track   { background: transparent; }
+::-webkit-scrollbar-thumb   { background: rgba(255,255,255,0.10); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--red); }
 
-/* Standard iOS Frosted Glass Panel */
-.glass-panel {
-  background: rgba(12, 14, 20, 0.65);
-  backdrop-filter: blur(24px) saturate(190%);
-  -webkit-backdrop-filter: blur(24px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 
-    0 10px 30px -10px rgba(0, 0, 0, 0.7),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
+/* ── Base surface overrides (keep dark hex refs consistent) ── */
+.bg-\[\#08090d\]  { background-color: var(--surface) !important; }
+.bg-\[\#0f1218\]  { background-color: var(--card)    !important; }
+.bg-\[\#161b24\]  { background-color: var(--card-hi) !important; }
+.bg-\[\#12161f\]  { background-color: var(--card)    !important; }
+.bg-\[\#121620\]  { background-color: var(--card-hi) !important; }
+.border-gray-800  { border-color: var(--border)      !important; }
+.border-gray-700  { border-color: rgba(255,255,255,0.09) !important; }
+
+/* ── Utility: Premium Card ────────────────── */
+.cpm-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  transition: border-color .22s ease, box-shadow .22s ease, transform .22s ease;
 }
-
-/* Glass Card with Hover Reflection */
-.glass-card {
-  background: rgba(14, 17, 24, 0.6);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  box-shadow: 
-    0 8px 24px -6px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.glass-card:hover {
-  border-color: rgba(220, 38, 38, 0.35);
-  background: rgba(18, 22, 32, 0.75);
+.cpm-card:hover {
+  border-color: var(--border-hi);
+  box-shadow: 0 0 28px -6px var(--red-glow), 0 8px 24px -8px rgba(0,0,0,0.7);
   transform: translateY(-2px);
-  box-shadow: 
-    0 16px 36px -8px rgba(0, 0, 0, 0.8),
-    0 0 24px -4px rgba(220, 38, 38, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
-/* Glass Interactive Buttons */
-.glass-button-primary {
-  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 
-    0 4px 16px -2px rgba(220, 38, 38, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(12px);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+/* ── Utility: Premium Button (Red) ─────────── */
+.cpm-btn-red {
+  background: linear-gradient(135deg, var(--red-hi) 0%, var(--red) 100%);
+  color: #fff;
+  font-weight: 800;
+  border: 1px solid rgba(255,255,255,0.14);
+  box-shadow: 0 4px 18px -4px var(--red-glow), inset 0 1px 0 rgba(255,255,255,0.22);
+  transition: filter .18s ease, transform .18s ease, box-shadow .18s ease;
 }
-
-.glass-button-primary:hover {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  box-shadow: 
-    0 8px 24px 0 rgba(220, 38, 38, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+.cpm-btn-red:hover {
+  filter: brightness(1.12);
+  box-shadow: 0 6px 28px -4px var(--red-glow);
   transform: translateY(-1px) scale(1.01);
 }
+.cpm-btn-red:active { transform: scale(.97); }
 
-.glass-button-secondary {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #f3f4f6;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+/* ── Utility: Ghost Button ─────────────────── */
+.cpm-btn-ghost {
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  font-weight: 700;
+  border: 1px solid var(--border);
+  transition: background .18s ease, border-color .18s ease;
+}
+.cpm-btn-ghost:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.15);
 }
 
-.glass-button-secondary:hover {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
-  transform: translateY(-1px);
+/* ── Utility: Input ────────────────────────── */
+.cpm-input {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  color: var(--text);
+  transition: border-color .18s, background .18s;
 }
-
-/* Glass Inputs & Form Elements */
-.glass-input {
-  background: rgba(10, 12, 18, 0.55);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  transition: all 0.2s ease;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
-}
-
-.glass-input:focus {
-  border-color: rgba(220, 38, 38, 0.6);
-  background: rgba(14, 17, 24, 0.75);
-  box-shadow: 
-    0 0 0 3px rgba(220, 38, 38, 0.18),
-    inset 0 1px 2px rgba(0, 0, 0, 0.4);
+.cpm-input:focus {
   outline: none;
+  border-color: var(--red);
+  background: rgba(255,255,255,0.055);
+  box-shadow: 0 0 0 3px rgba(192,18,26,0.15);
 }
 
-/* Glass Pill / Badge */
-.glass-badge {
-  background: rgba(220, 38, 38, 0.12);
-  border: 1px solid rgba(220, 38, 38, 0.3);
-  color: #fca5a5;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+/* ── Utility: Red Accent Text / Line ─────── */
+.cpm-accent          { color: var(--red-hi); }
+.cpm-accent-dim      { color: #e87070; }
+.cpm-divider-red     { border-color: var(--red); opacity: .6; }
+
+/* ── Hero Slider: Cinematic Vignette ──────── */
+.hero-vignette {
+  background: linear-gradient(
+    to top,
+    rgba(5,5,7,.98)    0%,
+    rgba(5,5,7,.75)   35%,
+    rgba(5,5,7,.25)   70%,
+    transparent       100%
+  );
 }
 
-/* Universal surface overrides for existing utility classes across all pages */
-.bg-\[\#08090d\], [class*="bg-[#08090d]"] {
-  background: rgba(10, 12, 17, 0.7) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
+/* ── Product Name: bigger & bolder override ─ */
+.product-name-lg {
+  font-size: clamp(0.85rem, 2vw, 1rem);
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
 }
-.bg-\[\#0f1218\], [class*="bg-[#0f1218]"] {
-  background: rgba(12, 15, 22, 0.65) !important;
-  backdrop-filter: blur(18px) !important;
-  -webkit-backdrop-filter: blur(18px) !important;
-}
-.bg-\[\#161b24\], [class*="bg-[#161b24]"] {
-  background: rgba(16, 20, 28, 0.65) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-}
-.bg-\[\#12161f\], [class*="bg-[#12161f]"] {
-  background: rgba(13, 16, 23, 0.65) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
+.product-price-lg {
+  font-size: clamp(1.05rem, 2.5vw, 1.25rem);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--red-hi);
+  font-variant-numeric: tabular-nums;
 }
 
-.border-gray-800, [class*="border-gray-800"] {
-  border-color: rgba(255, 255, 255, 0.08) !important;
-}
-.border-gray-700, [class*="border-gray-700"] {
-  border-color: rgba(255, 255, 255, 0.12) !important;
-}
-
-/* Minimal Modern Scrollbar */
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(220, 38, 38, 0.6);
-}
-
+/* ── Reduced Motion ────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *, ::before, ::after {
     animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }

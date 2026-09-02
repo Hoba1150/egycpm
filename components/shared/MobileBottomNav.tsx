@@ -49,8 +49,7 @@ export default function MobileBottomNav() {
 
   return (
     <>
-      {/* iOS Floating Frosted Glass Dock */}
-      <nav className="md:hidden fixed bottom-3 left-3 right-3 z-30 rounded-3xl bg-[#080a0f]/80 backdrop-blur-2xl border border-white/10 shadow-[0_12px_36px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.1)] px-2 py-2">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#0c0f15]/95 backdrop-blur-md border-t border-gray-800 px-1 py-1">
         <div className="grid grid-cols-5 gap-1">
           {items.map((item, idx) => {
             const Icon = item.icon;
@@ -61,17 +60,17 @@ export default function MobileBottomNav() {
                 <button
                   key={idx}
                   onClick={item.onClick}
-                  className="flex flex-col items-center justify-center py-1 relative text-gray-400 hover:text-white transition active:scale-90"
+                  className="flex flex-col items-center justify-center py-1 relative text-gray-400 hover:text-orange-500 transition"
                 >
                   <div className="relative">
-                    <Icon className="w-5 h-5" />
+                    <Icon className="w-4 h-4" />
                     {Boolean(item.badge && item.badge > 0) && (
-                      <span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-red-600 text-[9px] font-black text-white font-mono shadow-sm border border-white/20">
+                      <span className="absolute -top-1.5 -right-2 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-orange-500 text-[8px] font-bold text-black font-mono">
                         {item.badge}
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] mt-1 font-medium">{item.name}</span>
+                  <span className="text-[9px] mt-0.5 font-medium">{item.name}</span>
                 </button>
               );
             }
@@ -80,16 +79,18 @@ export default function MobileBottomNav() {
               <Link
                 key={idx}
                 href={item.href!}
-                className={`flex flex-col items-center justify-center py-1 relative transition active:scale-90 ${
-                  isActive ? "text-white font-black" : "text-gray-400 hover:text-gray-200"
+                className={`flex flex-col items-center justify-center py-1 relative transition ${
+                  isActive
+                    ? "text-orange-500 font-bold"
+                    : "text-gray-400 hover:text-gray-200"
                 }`}
               >
                 <div className="relative">
-                  <Icon className={`w-5 h-5 ${isActive ? "text-red-500 drop-shadow-[0_0_8px_rgba(220,38,38,0.6)]" : ""}`} />
+                  <Icon className={`w-4 h-4 ${isActive ? "text-orange-500" : ""}`} />
                 </div>
-                <span className="text-[10px] mt-1 font-medium">{item.name}</span>
+                <span className="text-[9px] mt-0.5 font-medium">{item.name}</span>
                 {isActive && (
-                  <span className="absolute -bottom-0.5 w-4 h-1 bg-red-500 rounded-full shadow-[0_0_6px_rgba(220,38,38,0.8)]" />
+                  <span className="absolute -bottom-0.5 w-4 h-0.5 bg-orange-500 rounded-full" />
                 )}
               </Link>
             );
