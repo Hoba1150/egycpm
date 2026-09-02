@@ -8,7 +8,8 @@ const API_SECRET = process.env.CLOUDINARY_API_SECRET || "V4vNclaoiKkUnYvbVDHPmRo
 
 async function uploadToCloudinary(base64Data: string): Promise<string> {
   const timestamp = Math.floor(Date.now() / 1000).toString();
-  const signStr = `timestamp=${timestamp}${API_SECRET}`;
+  // Cloudinary signature requires all parameters sent in alphabetical order: folder, timestamp
+  const signStr = `folder=egycpm&timestamp=${timestamp}${API_SECRET}`;
   const signature = crypto.createHash("sha1").update(signStr).digest("hex");
 
   // Strip data URI prefix if present
@@ -18,21 +19,18 @@ async function uploadToCloudinary(base64Data: string): Promise<string> {
   }
 
   const params = new URLSearchParams({
+    file: `data:image/jpeg;base64,${imageData}`,
     api_key: API_KEY,
     timestamp,
     signature,
     folder: "egycpm",
   });
 
-  // Build form body with file
-  const body = `file=data%3Aimage%2Fjpeg%3Bbase64%2C${encodeURIComponent(imageData)}&${params.toString()}`;
-
   const response = await fetch(
     `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body,
+      body: params,
     }
   );
 
@@ -42,6 +40,7 @@ async function uploadToCloudinary(base64Data: string): Promise<string> {
   }
   return result.secure_url;
 }
+
 
 export async function POST(req: Request) {
   try {
