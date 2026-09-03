@@ -19,6 +19,7 @@ import {
   Gift,
   Gamepad2,
   TrendingUp,
+  X,
 } from "lucide-react";
 import { getAdminSidebarCounts } from "@/lib/actions/settings";
 
@@ -26,6 +27,7 @@ export default function AdminSidebar({ user }: { user: any }) {
   const pathname = usePathname();
   const userRole = user?.role || "CUSTOMER";
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const refreshCounts = useCallback(() => {
     getAdminSidebarCounts().then(setCounts).catch(() => {});
@@ -106,61 +108,129 @@ export default function AdminSidebar({ user }: { user: any }) {
 
   return (
     <>
-      {/* ─── Mobile Sticky Compact Section Tabs (Fixed/Sticky at top under Topbar, with direct content visibility) ─── */}
-      <div className="md:hidden sticky top-0 z-20 bg-[#0d1117]/95 backdrop-blur-md border-b border-gray-800 px-2 py-1.5 overflow-x-auto scrollbar-none flex items-center gap-1.5 shrink-0">
-        {visibleMainLinks.map((link) => {
-          const Icon = link.icon;
-          const isActive = pathname === link.href || (link.href !== "/admin" && pathname.startsWith(link.href));
-          const badgeCount = counts[link.href];
-          const shortName = link.name.replace(/إدارة |مركز |مراجعة |تقييمات و|سجل |\(Audit Logs\)/g, "").trim();
+      {/* ─── Mobile: Floating Nav FAB + Full-Screen Drawer ─── */}
+      <div className="md:hidden">
+        {/* Floating Nav Button — fixed bottom-left above BottomNav */}
+        <button
+          onClick={() => setMobileNavOpen(true)}
+          className="fixed bottom-[72px] left-4 z-40 w-12 h-12 rounded-2xl bg-orange-500 shadow-[0_4px_20px_rgba(249,115,22,0.5)] flex items-center justify-center transition active:scale-90 hover:bg-orange-400"
+          aria-label="قائمة أقسام الإدارة"
+        >
+          <LayoutDashboard className="w-5 h-5 text-black" />
+          {/* Badge if any pending */}
+          {Object.values(counts).some((v) => v > 0) && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center font-mono">
+              {Object.values(counts).reduce((a, b) => a + (b > 0 ? b : 0), 0)}
+            </span>
+          )}
+        </button>
 
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap shrink-0 transition ${
-                isActive
-                  ? "bg-orange-500 text-black shadow-sm"
-                  : "bg-[#161b22] text-gray-300 hover:text-white border border-gray-800"
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5 shrink-0" />
-              <span>{shortName}</span>
-              {badgeCount !== undefined && badgeCount > 0 && (
-                <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black ${
-                  isActive ? "bg-black text-white" : "bg-orange-500 text-black"
-                }`}>
-                  {badgeCount}
-                </span>
-              )}
-            </Link>
-          );
-        })}
-        {visibleCpm2Links.map((link) => {
-          const Icon = link.icon;
-          const isActive = pathname.startsWith(link.href);
-          const badgeCount = counts[link.href];
+        {/* Slide-Up Full Drawer */}
+        {mobileNavOpen && (
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
+              onClick={() => setMobileNavOpen(false)}
+            />
 
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap shrink-0 transition ${
-                isActive
-                  ? "bg-purple-600 text-white shadow-sm"
-                  : "bg-purple-950/40 text-purple-300 hover:text-white border border-purple-800/50"
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5 shrink-0" />
-              <span>CPM 2</span>
-              {badgeCount !== undefined && badgeCount > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black bg-purple-500 text-white">
-                  {badgeCount}
-                </span>
-              )}
-            </Link>
-          );
-        })}
+            {/* Drawer Panel */}
+            <div className="fixed inset-x-0 bottom-0 z-50 bg-[#0d1117] rounded-t-3xl border-t border-gray-800 shadow-2xl text-right max-h-[80vh] overflow-y-auto">
+              {/* Handle + Header */}
+              <div className="sticky top-0 bg-[#0d1117] border-b border-gray-800 px-5 pt-4 pb-3 rounded-t-3xl">
+                <div className="w-10 h-1.5 bg-gray-700 rounded-full mx-auto mb-3" />
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => setMobileNavOpen(false)}
+                    className="p-1.5 rounded-xl bg-gray-800 text-gray-400 hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  <div>
+                    <span className="text-xs font-mono font-bold text-orange-500 block text-right">ADMIN NAVIGATION</span>
+                    <h3 className="text-sm font-black text-white text-right">أقسام لوحة الإدارة</h3>
+                  </div>
+                </div>
+              </div>
+
+              {/* Nav Links Grid */}
+              <div className="p-4 grid grid-cols-2 gap-2.5">
+                {visibleMainLinks.map((link) => {
+                  const Icon = link.icon;
+                  const isActive = pathname === link.href || (link.href !== "/admin" && pathname.startsWith(link.href));
+                  const badgeCount = counts[link.href];
+
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setMobileNavOpen(false)}
+                      className={`relative flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border text-center transition active:scale-95 ${
+                        isActive
+                          ? "bg-orange-500/15 border-orange-500/50 text-orange-400"
+                          : "bg-[#161b22] border-gray-800 text-gray-300 hover:text-white hover:border-gray-700"
+                      }`}
+                    >
+                      <Icon className={`w-5 h-5 ${isActive ? "text-orange-500" : "text-gray-400"}`} />
+                      <span className="text-[11px] font-bold leading-tight">
+                        {link.name.replace(/إدارة |مركز |مراجعة |تقييمات و|سجل |\(Audit Logs\)/g, "").trim()}
+                      </span>
+                      {badgeCount !== undefined && badgeCount > 0 && (
+                        <span className="absolute top-2 right-2 min-w-[20px] h-5 px-1.5 rounded-full bg-orange-500 text-black text-[10px] font-black font-mono flex items-center justify-center">
+                          {badgeCount}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+
+                {visibleCpm2Links.map((link) => {
+                  const Icon = link.icon;
+                  const isActive = pathname.startsWith(link.href);
+                  const badgeCount = counts[link.href];
+
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setMobileNavOpen(false)}
+                      className={`relative flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border text-center transition active:scale-95 ${
+                        isActive
+                          ? "bg-purple-500/15 border-purple-500/50 text-purple-400"
+                          : "bg-purple-950/40 border-purple-800/30 text-purple-300 hover:text-white"
+                      }`}
+                    >
+                      <Icon className={`w-5 h-5 ${isActive ? "text-purple-400" : "text-purple-400/70"}`} />
+                      <span className="text-[11px] font-bold leading-tight">إدارة CPM 2</span>
+                      {badgeCount !== undefined && badgeCount > 0 && (
+                        <span className="absolute top-2 right-2 min-w-[20px] h-5 px-1.5 rounded-full bg-purple-500 text-white text-[10px] font-black font-mono flex items-center justify-center">
+                          {badgeCount}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* User & Store Visit */}
+              <div className="px-4 pb-6 pt-1 border-t border-gray-800 mt-1 flex gap-2">
+                <Link
+                  href="/"
+                  target="_blank"
+                  onClick={() => setMobileNavOpen(false)}
+                  className="flex-1 py-3 px-4 rounded-2xl bg-[#161b22] border border-gray-700 text-xs font-bold text-gray-300 text-center hover:text-white transition flex items-center justify-center gap-1.5"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>زيارة المتجر</span>
+                </Link>
+                <div className="flex-1 py-3 px-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-xs font-bold text-orange-400 text-center flex items-center justify-center gap-1.5">
+                  <Shield className="w-4 h-4" />
+                  <span className="truncate">{user?.name || user?.email}</span>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* ─── Desktop Standard Sidebar ─── */}

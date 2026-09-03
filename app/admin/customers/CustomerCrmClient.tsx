@@ -202,8 +202,128 @@ export default function CustomerCrmClient({
         </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-2xl bg-[#12161f] border border-gray-800 overflow-hidden">
+      {/* ═══ Mobile Customer Cards (md:hidden) ═══ */}
+      <div className="md:hidden space-y-3">
+        {filtered.length === 0 ? (
+          <div className="p-10 text-center text-gray-500 text-xs bg-[#12161f] rounded-2xl border border-gray-800">
+            لا توجد نتائج مطابقة للبحث.
+          </div>
+        ) : (
+          filtered.map((c) => {
+            const isRevealed = revealedPasswords[c.id];
+            const displayPwd = c.decryptedPassword || (c.passwordHash ? "[مشفرة]" : "غير محددة");
+
+            return (
+              <div key={c.id} className="bg-[#12161f] border border-gray-800 rounded-2xl overflow-hidden">
+                {/* Card Header */}
+                <div className="p-4 flex items-center gap-3">
+                  <img
+                    src={c.image || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=80"}
+                    alt={c.name}
+                    className="w-11 h-11 rounded-xl object-cover border border-gray-700 shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-black text-white text-sm">{c.name || "جيمر"}</span>
+                      {c.role !== "CUSTOMER" && (
+                        <span className="px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-500 text-[9px] font-mono font-bold shrink-0">
+                          {c.role}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[11px] text-gray-400 font-mono block truncate">{c.email}</span>
+                    {c.phone && (
+                      <span className="text-[10px] text-cyan-400 font-mono flex items-center gap-1 mt-0.5">
+                        <Phone className="w-3 h-3" />
+                        <span>{c.phone}</span>
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-base font-black text-green-400 font-mono block">{formatCurrency(c.wallet?.balance || 0)}</span>
+                    <span className="text-[10px] text-gray-400 font-mono">{c._count?.orders || 0} طلب</span>
+                  </div>
+                </div>
+
+                {/* Stats Row */}
+                <div className="px-4 pb-3 grid grid-cols-3 gap-2">
+                  <div className="bg-[#0d1117] rounded-xl p-2 text-center">
+                    <span className="text-[9px] text-gray-500 block mb-0.5">الهدايا</span>
+                    <span className="text-xs font-black text-orange-400 font-mono">{formatCurrency(c.wallet?.giftBalance || 0)}</span>
+                  </div>
+                  <div className="bg-[#0d1117] rounded-xl p-2 text-center">
+                    <span className="text-[9px] text-gray-500 block mb-0.5">المشتريات</span>
+                    <span className="text-xs font-black text-gray-200 font-mono">{formatCurrency(c.wallet?.totalSpent || 0)}</span>
+                  </div>
+                  <div className="bg-[#0d1117] rounded-xl p-2 text-center">
+                    <span className="text-[9px] text-gray-500 block mb-0.5">كلمة المرور</span>
+                    <div className="flex items-center justify-center gap-1">
+                      <span className="text-[9px] text-orange-400 font-mono truncate max-w-[48px]">{isRevealed ? displayPwd : "••••••"}</span>
+                      <button onClick={() => togglePasswordReveal(c.id)} className="text-gray-400 hover:text-white">
+                        {isRevealed ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="px-3 pb-4 grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setGiftCustomer(c)}
+                    className="py-2.5 rounded-xl bg-orange-500/10 border border-orange-500/30 text-orange-400 text-xs font-bold flex items-center justify-center gap-1.5 transition hover:bg-orange-500/20"
+                  >
+                    <Gift className="w-3.5 h-3.5" />
+                    <span>هدية رصيد 🎁</span>
+                  </button>
+
+                  <button
+                    onClick={() => { setAdjustCustomer(c); setAdjustType("MANUAL_CREDIT"); setAdjustAmount(100); setAdjustReason(""); }}
+                    className="py-2.5 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400 text-xs font-bold flex items-center justify-center gap-1.5 transition hover:bg-green-500/20"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    <span>تعديل الرصيد</span>
+                  </button>
+
+                  <button
+                    onClick={() => { setPwdCustomer(c); setNewPassword(""); }}
+                    className="py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-bold flex items-center justify-center gap-1.5 transition hover:bg-blue-500/20"
+                  >
+                    <Key className="w-3.5 h-3.5" />
+                    <span>تغيير كلمة المرور</span>
+                  </button>
+
+                  {isSuperAdmin && (
+                    <button
+                      onClick={() => { setRoleCustomer(c); setSelectedRole(c.role); }}
+                      className={`py-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                        c.role !== "CUSTOMER"
+                          ? "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20"
+                          : "bg-orange-500/10 border-orange-500/30 text-orange-500 hover:bg-orange-500/20"
+                      }`}
+                    >
+                      <Crown className="w-3.5 h-3.5" />
+                      <span>{c.role !== "CUSTOMER" ? "تعديل الرتبة" : "ترقية أدمن"}</span>
+                    </button>
+                  )}
+
+                  {c.role !== "SUPER_ADMIN" && (
+                    <button
+                      onClick={() => setDeleteUser(c)}
+                      className="py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold flex items-center justify-center gap-1.5 transition hover:bg-red-500/20 col-span-2"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>حذف الحساب نهائياً</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* ═══ Desktop Table (hidden on mobile) ═══ */}
+      <div className="hidden md:block rounded-2xl bg-[#12161f] border border-gray-800 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-right text-xs">
             <thead>

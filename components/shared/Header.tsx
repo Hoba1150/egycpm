@@ -250,56 +250,63 @@ export default function Header() {
                           {formatCurrency(user.wallet?.totalAvailable || 0)}
                         </span>
                       </div>
-                      <ChevronDown className="w-3 h-3 text-gray-400" />
+                      <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${userDropdown ? "rotate-180" : ""}`} />
                     </button>
 
-                    {/* Dropdown Menu */}
+                    {/* Dropdown Menu — Properly anchored below */}
                     {userDropdown && (
-                      <div
-                        className="absolute left-0 mt-1.5 w-48 sm:w-52 rounded-xl bg-[#0f1218] border border-gray-800 shadow-xl p-2 z-50 text-right space-y-1"
-                        onClick={() => setUserDropdown(false)}
-                      >
-                        <div className="p-1.5 border-b border-gray-800 mb-1">
-                          <p className="text-xs font-bold text-white truncate">{user.name}</p>
-                          <p className="text-[10px] text-orange-500 font-mono font-bold">
-                            {formatCurrency(user.wallet?.totalAvailable || 0)}
-                          </p>
-                        </div>
-
-                        <Link
-                          href="/wallet"
-                          className="flex items-center gap-2 p-1.5 rounded-lg text-xs text-gray-300 hover:bg-gray-800/40 hover:text-orange-500 transition"
+                      <>
+                        {/* Backdrop to close on outside click */}
+                        <div
+                          className="fixed inset-0 z-[45]"
+                          onClick={() => setUserDropdown(false)}
+                        />
+                        <div
+                          className="absolute top-full right-0 mt-2 w-52 sm:w-56 rounded-xl bg-[#0f1218] border border-gray-800 shadow-2xl p-2 z-[46] text-right space-y-1"
+                          onClick={() => setUserDropdown(false)}
                         >
-                          <Wallet className="w-3.5 h-3.5 text-orange-500" />
-                          <span>محفظتي وشحن الرصيد</span>
-                        </Link>
+                          <div className="p-2 border-b border-gray-800 mb-1">
+                            <p className="text-xs font-bold text-white truncate">{user.name}</p>
+                            <p className="text-[10px] text-orange-500 font-mono font-bold">
+                              {formatCurrency(user.wallet?.totalAvailable || 0)}
+                            </p>
+                          </div>
 
-                        <Link
-                          href="/orders"
-                          className="flex items-center gap-2 p-1.5 rounded-lg text-xs text-gray-300 hover:bg-gray-800/40 hover:text-orange-500 transition"
-                        >
-                          <Car className="w-3.5 h-3.5 text-orange-500" />
-                          <span>طلباتي ومشترياتي</span>
-                        </Link>
-
-                        {isAdmin && (
                           <Link
-                            href="/admin/login"
-                            className="flex items-center gap-2 p-1.5 rounded-lg text-xs text-orange-400 bg-orange-500/10 border border-orange-500/30 transition"
+                            href="/wallet"
+                            className="flex items-center gap-2 p-2 rounded-lg text-xs text-gray-300 hover:bg-gray-800/40 hover:text-orange-500 transition"
                           >
-                            <ShieldAlert className="w-3.5 h-3.5" />
-                            <span>لوحة التحكم الإدارية</span>
+                            <Wallet className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                            <span>محفظتي وشحن الرصيد</span>
                           </Link>
-                        )}
 
-                        <button
-                          onClick={handleLogout}
-                          className="w-full flex items-center gap-2 p-1.5 rounded-lg text-xs text-red-400 hover:bg-red-500/10 transition"
-                        >
-                          <LogOut className="w-3.5 h-3.5" />
-                          <span>تسجيل الخروج</span>
-                        </button>
-                      </div>
+                          <Link
+                            href="/orders"
+                            className="flex items-center gap-2 p-2 rounded-lg text-xs text-gray-300 hover:bg-gray-800/40 hover:text-orange-500 transition"
+                          >
+                            <Car className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+                            <span>طلباتي ومشترياتي</span>
+                          </Link>
+
+                          {isAdmin && (
+                            <Link
+                              href="/admin"
+                              className="flex items-center gap-2 p-2 rounded-lg text-xs text-orange-400 bg-orange-500/10 border border-orange-500/30 transition"
+                            >
+                              <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
+                              <span>لوحة التحكم الإدارية</span>
+                            </Link>
+                          )}
+
+                          <button
+                            onClick={handleLogout}
+                            className="w-full flex items-center gap-2 p-2 rounded-lg text-xs text-red-400 hover:bg-red-500/10 transition"
+                          >
+                            <LogOut className="w-3.5 h-3.5 shrink-0" />
+                            <span>تسجيل الخروج</span>
+                          </button>
+                        </div>
+                      </>
                     )}
                   </div>
                 ) : (
