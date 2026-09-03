@@ -35,8 +35,8 @@ export default function AdminSidebar({ user }: { user: any }) {
 
   useEffect(() => {
     refreshCounts();
-    // Poll every 8 seconds for near-real-time updates
-    const interval = setInterval(refreshCounts, 8000);
+    // Poll every 90s — TopBar already polls at 60s; combined DB load stays well within pool limits
+    const interval = setInterval(refreshCounts, 90000);
     return () => clearInterval(interval);
   }, [refreshCounts]);
 

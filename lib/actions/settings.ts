@@ -158,6 +158,7 @@ export async function getAdminAnalytics() {
 
 /**
  * Admin: Get live notification counts for admin sidebar badges
+ * All queries run in a single transaction → 1 DB connection instead of 8
  */
 export async function getAdminSidebarCounts() {
   try {
@@ -167,6 +168,7 @@ export async function getAdminSidebarCounts() {
     const weekStart = new Date();
     weekStart.setDate(weekStart.getDate() - 7);
 
+    // Single transaction = single connection used from the pool
     const [
       pendingOrders,
       pendingDeposits,
@@ -176,7 +178,7 @@ export async function getAdminSidebarCounts() {
       cpm2Products,
       totalReviews,
       newOrdersToday,
-    ] = await Promise.all([
+    ] = await prisma.$transaction([
       // Active/pending orders needing action
       prisma.order.count({
         where: { status: { in: ["PAID", "PROCESSING", "IN_PROGRESS"] } },
@@ -200,7 +202,7 @@ export async function getAdminSidebarCounts() {
           createdAt: { gte: weekStart },
         },
       }),
-      // CPM2 products (active category or productType)
+      // CPM2 products
       prisma.product.count({
         where: {
           OR: [

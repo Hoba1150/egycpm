@@ -175,18 +175,13 @@ export default function AdminTopbar({ user }: { user: any }) {
       }
 
       lastCountsRef.current = currentCounts;
-
-      // Soft refresh current view if needed without navigation
-      if (hasChange) {
-        router.refresh();
-      }
     } catch {}
   }, [router]);
 
   useEffect(() => {
     checkAdminRealtime();
-    // Fast near-realtime heartbeat interval (every 5 seconds)
-    const interval = setInterval(checkAdminRealtime, 5000);
+    // Reduced to 60s to avoid connection pool exhaustion (DB limit: 5 connections)
+    const interval = setInterval(checkAdminRealtime, 60000);
     return () => clearInterval(interval);
   }, [checkAdminRealtime]);
 
