@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useSettings } from "@/lib/context/SettingsContext";
+import DriftAnimationShowcase from "@/components/store/DriftAnimationShowcase";
 
 interface HeroSectionProps {
   user?: any;
@@ -38,6 +39,7 @@ export default function HeroSection({ user: initialUser }: HeroSectionProps) {
   const settings = useSettings();
   const [activeSlide, setActiveSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isDriftActive, setIsDriftActive] = useState(false);
   const touchStartX = useRef<number | null>(null);
 
   const fetchLiveSession = () => {
@@ -215,10 +217,29 @@ export default function HeroSection({ user: initialUser }: HeroSectionProps) {
           <div className="grid grid-cols-1 lg:grid-cols-12">
 
             {/* Content Column */}
-            <div className="lg:col-span-7 p-6 sm:p-8 lg:p-10 flex flex-col justify-center space-y-5 text-right">
-              <div className="inline-flex items-center gap-2 self-start px-3 py-1.5 rounded-xl bg-[var(--red-soft)] border border-[var(--border-hi)] text-[var(--red-hi)] text-xs font-bold">
-                <Wrench className="w-3.5 h-3.5" />
-                <span>{settings.hero_badge ?? "متجر وورشة Car Parking الرسمية"}</span>
+            <div className="lg:col-span-7 p-6 sm:p-8 lg:p-10 flex flex-col justify-center space-y-5 text-right relative">
+              {/* Drift Animation Overlay Component */}
+              <DriftAnimationShowcase
+                active={isDriftActive}
+                onFinish={() => setIsDriftActive(false)}
+              />
+
+              <div className="flex items-center justify-between gap-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[var(--red-soft)] border border-[var(--border-hi)] text-[var(--red-hi)] text-xs font-bold">
+                  <Wrench className="w-3.5 h-3.5" />
+                  <span>{settings.hero_badge ?? "متجر وورشة Car Parking الرسمية"}</span>
+                </div>
+
+                {/* 🔴 Mini Drift Show Action Button */}
+                <button
+                  onClick={() => setIsDriftActive(true)}
+                  disabled={isDriftActive}
+                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white text-xs font-black flex items-center gap-1.5 shadow-[0_0_15px_rgba(239,68,68,0.4)] active:scale-95 transition"
+                  title="تشغيل عرض الدريفت التفاعلي"
+                >
+                  <Flame className="w-3.5 h-3.5 text-yellow-300 animate-pulse" />
+                  <span>START DRIFT 💨</span>
+                </button>
               </div>
 
               <h1 className="text-2xl sm:text-4xl font-black text-white leading-tight tracking-tight">
