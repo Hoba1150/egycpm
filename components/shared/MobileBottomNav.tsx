@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ShoppingBag, ShoppingCart, Wallet, User as UserIcon } from "lucide-react";
+import { Home, ShoppingBag, ShoppingCart, Wallet, User as UserIcon, Zap } from "lucide-react";
 import { useCartStore } from "@/lib/store";
 import AuthModal from "@/components/shared/AuthModal";
 
@@ -32,6 +32,7 @@ export default function MobileBottomNav() {
   const items = [
     { name: "الرئيسية", href: "/", icon: Home },
     { name: "المتجر", href: "/shop", icon: ShoppingBag },
+    { name: "CPM 2", href: "/cpm2", icon: Zap, isSpecial: true },
     {
       name: "السلة",
       onClick: () => setCartOpen(true),
@@ -50,7 +51,7 @@ export default function MobileBottomNav() {
   return (
     <>
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#0c0f15]/95 backdrop-blur-md border-t border-gray-800 px-1 py-1">
-        <div className="grid grid-cols-5 gap-1">
+        <div className="grid grid-cols-6 gap-0.5">
           {items.map((item, idx) => {
             const Icon = item.icon;
             const isActive = item.href ? pathname === item.href : false;
@@ -70,7 +71,7 @@ export default function MobileBottomNav() {
                       </span>
                     )}
                   </div>
-                  <span className="text-[9px] mt-0.5 font-medium">{item.name}</span>
+                  <span className="text-[9px] mt-0.5 font-medium truncate max-w-full">{item.name}</span>
                 </button>
               );
             }
@@ -81,16 +82,20 @@ export default function MobileBottomNav() {
                 href={item.href!}
                 className={`flex flex-col items-center justify-center py-1 relative transition ${
                   isActive
-                    ? "text-orange-500 font-bold"
+                    ? item.isSpecial
+                      ? "text-purple-400 font-bold"
+                      : "text-orange-500 font-bold"
+                    : item.isSpecial
+                    ? "text-purple-400/80 hover:text-purple-300"
                     : "text-gray-400 hover:text-gray-200"
                 }`}
               >
                 <div className="relative">
-                  <Icon className={`w-4 h-4 ${isActive ? "text-orange-500" : ""}`} />
+                  <Icon className={`w-4 h-4 ${isActive ? (item.isSpecial ? "text-purple-400" : "text-orange-500") : ""}`} />
                 </div>
-                <span className="text-[9px] mt-0.5 font-medium">{item.name}</span>
+                <span className="text-[9px] mt-0.5 font-medium truncate max-w-full">{item.name}</span>
                 {isActive && (
-                  <span className="absolute -bottom-0.5 w-4 h-0.5 bg-orange-500 rounded-full" />
+                  <span className={`absolute -bottom-0.5 w-4 h-0.5 rounded-full ${item.isSpecial ? "bg-purple-500" : "bg-orange-500"}`} />
                 )}
               </Link>
             );

@@ -91,11 +91,11 @@ export default function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <div className="cpm-card flex flex-col overflow-hidden group relative">
+    <div className="cpm-card flex flex-col overflow-hidden group relative rounded-xl sm:rounded-2xl">
       {/* ─── Image ─── */}
       <Link
         href={`/product/${product.slug}`}
-        className="block relative aspect-[4/3] overflow-hidden bg-[#0a0b0f]"
+        className="block relative aspect-[16/11] sm:aspect-[4/3] overflow-hidden bg-[#0a0b0f]"
       >
         <img
           src={primaryImage}
@@ -110,50 +110,50 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* ─── Discount badge ─── */}
         {product.discountPercent && product.discountPercent > 0 && (
-          <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-lg bg-[var(--red)] text-white text-[11px] font-black font-mono tracking-wide shadow-md z-10">
+          <span className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg bg-[var(--red)] text-white text-[9px] sm:text-[11px] font-black font-mono tracking-wide shadow-md z-10">
             %{product.discountPercent}-
           </span>
         )}
 
         {/* ─── Edition / Stock badge ─── */}
         {product.stockType === "ONE_OF_ONE" ? (
-          <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-lg bg-gradient-to-r from-[#c0121a] to-[#ff4500] text-white font-black text-[10px] tracking-widest z-10 shadow-md border border-white/20 flex items-center gap-1">
+          <span className="absolute top-1.5 left-1.5 sm:top-2.5 sm:left-2.5 px-1.5 sm:px-2.5 py-0.5 rounded-md sm:rounded-lg bg-gradient-to-r from-[#c0121a] to-[#ff4500] text-white font-black text-[9px] sm:text-[10px] tracking-wider sm:tracking-widest z-10 shadow-md border border-white/20 flex items-center gap-1">
             <span dir="ltr" className="font-mono">1 OF 1</span>
             <span>🔥</span>
           </span>
         ) : product.stockType === "LIMITED" || product.isLimited ? (
-          <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-lg bg-black/70 text-[#f87171] font-bold text-[10px] z-10 border border-[#c0121a]/50">
+          <span className="absolute top-1.5 left-1.5 sm:top-2.5 sm:left-2.5 px-1.5 sm:px-2.5 py-0.5 rounded-md sm:rounded-lg bg-black/70 text-[#f87171] font-bold text-[9px] sm:text-[10px] z-10 border border-[#c0121a]/50">
             إصدار محدود
           </span>
         ) : product.stockType === "QUANTITY" && product.stockQuantity <= 10 ? (
-          <span className="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-lg bg-amber-500 text-black font-black text-[10px] z-10">
+          <span className="absolute top-1.5 left-1.5 sm:top-2.5 sm:left-2.5 px-1.5 sm:px-2.5 py-0.5 rounded-md sm:rounded-lg bg-amber-500 text-black font-black text-[9px] sm:text-[10px] z-10">
             متبقي {product.stockQuantity} ⚡
           </span>
         ) : null}
       </Link>
 
       {/* ─── Body ─── */}
-      <div className="p-3.5 sm:p-4 flex-1 flex flex-col justify-between text-right gap-2.5">
-        <div className="space-y-1">
+      <div className="p-2 sm:p-3.5 md:p-4 flex-1 flex flex-col justify-between text-right gap-1.5 sm:gap-2.5">
+        <div className="space-y-0.5 sm:space-y-1">
           {/* Category label */}
-          <span className="text-[10px] sm:text-[11px] text-[var(--text-dim)] block truncate font-medium tracking-wide uppercase">
+          <span className="text-[9px] sm:text-[11px] text-[var(--text-dim)] block truncate font-medium tracking-wide uppercase">
             {product.category?.name?.split("(")[0]?.trim() || "سيارات وتعديلات"}
           </span>
 
-          {/* Product Name — BIGGER & BOLDER */}
+          {/* Product Name */}
           <Link href={`/product/${product.slug}`} className="block">
-            <h3 className="product-name-lg text-white group-hover:text-[var(--red-hi)] transition-colors duration-200 line-clamp-2 min-h-[2.5rem]">
+            <h3 className="product-name-lg text-white group-hover:text-[var(--red-hi)] transition-colors duration-200 line-clamp-2 min-h-[2rem] sm:min-h-[2.5rem]">
               {product.name}
             </h3>
           </Link>
 
-          {/* Price — LARGE & RED */}
-          <div className="flex items-baseline gap-2 pt-0.5">
-            <span className="product-price-lg">
+          {/* Price */}
+          <div className="flex items-baseline gap-1.5 sm:gap-2 pt-0.5">
+            <span className="product-price-lg text-[13px] sm:text-base md:text-lg">
               {formatCurrency(product.price)}
             </span>
             {product.originalPrice && product.originalPrice > product.price && (
-              <span className="text-xs text-[var(--text-dim)] line-through font-mono">
+              <span className="text-[10px] sm:text-xs text-[var(--text-dim)] line-through font-mono">
                 {formatCurrency(product.originalPrice)}
               </span>
             )}
@@ -161,21 +161,21 @@ export default function ProductCard({ product }: ProductCardProps) {
         </div>
 
         {/* ─── Action Buttons ─── */}
-        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/[0.06]">
+        <div className="grid grid-cols-2 gap-1.5 sm:gap-2 pt-1.5 sm:pt-2 border-t border-white/[0.06]">
           <button
             onClick={handleAddToCart}
             aria-label="إضافة للسلة"
-            className={`py-2.5 px-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1.5 active:scale-95 ${
+            className={`py-1.5 sm:py-2.5 px-1.5 sm:px-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1 active:scale-95 ${
               isAdded
                 ? "bg-emerald-500/20 border border-emerald-500 text-emerald-400"
                 : "cpm-btn-ghost"
             }`}
           >
             {isAdded ? (
-              <Check className="w-3.5 h-3.5 text-emerald-400" />
+              <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400" />
             ) : (
               <>
-                <ShoppingCart className="w-3.5 h-3.5 text-[var(--red-hi)]" />
+                <ShoppingCart className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[var(--red-hi)]" />
                 <span>سلة</span>
               </>
             )}
@@ -183,10 +183,10 @@ export default function ProductCard({ product }: ProductCardProps) {
 
           <button
             onClick={handleBuyNow}
-            className="py-2.5 px-2 rounded-xl cpm-btn-red text-[11px] sm:text-xs flex items-center justify-center gap-1.5 active:scale-95"
+            className="py-1.5 sm:py-2.5 px-1.5 sm:px-2 rounded-lg sm:rounded-xl cpm-btn-red text-[10px] sm:text-xs flex items-center justify-center gap-1 active:scale-95"
           >
-            <Zap className="w-3.5 h-3.5" />
-            <span>شراء الآن</span>
+            <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            <span>شراء</span>
           </button>
         </div>
       </div>

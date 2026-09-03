@@ -105,70 +105,130 @@ export default function AdminSidebar({ user }: { user: any }) {
   };
 
   return (
-    <aside className="w-full md:w-64 lg:w-72 bg-[#0d1117] border-b md:border-b-0 md:border-l border-gray-800 flex flex-col justify-between shrink-0">
-      {/* Top Brand */}
-      <div className="p-4 border-b border-gray-800">
-        <Link href="/admin" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-500 flex items-center justify-center">
-            <Car className="w-4 h-4" />
-          </div>
-          <div>
-            <h2 className="text-sm font-black text-white">لوحة الإدارة والتحكم</h2>
-            <span className="text-[10px] text-orange-500 font-mono font-bold">
-              EGY CPM COMMAND
-            </span>
-          </div>
-        </Link>
+    <>
+      {/* ─── Mobile Sticky Compact Section Tabs (Fixed/Sticky at top under Topbar, with direct content visibility) ─── */}
+      <div className="md:hidden sticky top-0 z-20 bg-[#0d1117]/95 backdrop-blur-md border-b border-gray-800 px-2 py-1.5 overflow-x-auto scrollbar-none flex items-center gap-1.5 shrink-0">
+        {visibleMainLinks.map((link) => {
+          const Icon = link.icon;
+          const isActive = pathname === link.href || (link.href !== "/admin" && pathname.startsWith(link.href));
+          const badgeCount = counts[link.href];
+          const shortName = link.name.replace(/إدارة |مركز |مراجعة |تقييمات و|سجل |\(Audit Logs\)/g, "").trim();
 
-        {/* Live Stats Bar */}
-        {(counts as any)["_newOrdersToday"] !== undefined && (
-          <div className="mt-2 flex items-center gap-1.5 text-[10px] text-gray-400">
-            <TrendingUp className="w-3 h-3 text-green-400" />
-            <span className="text-green-400 font-bold">{(counts as any)["_newOrdersToday"]}</span>
-            <span>طلب جديد اليوم</span>
-          </div>
-        )}
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap shrink-0 transition ${
+                isActive
+                  ? "bg-orange-500 text-black shadow-sm"
+                  : "bg-[#161b22] text-gray-300 hover:text-white border border-gray-800"
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5 shrink-0" />
+              <span>{shortName}</span>
+              {badgeCount !== undefined && badgeCount > 0 && (
+                <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black ${
+                  isActive ? "bg-black text-white" : "bg-orange-500 text-black"
+                }`}>
+                  {badgeCount}
+                </span>
+              )}
+            </Link>
+          );
+        })}
+        {visibleCpm2Links.map((link) => {
+          const Icon = link.icon;
+          const isActive = pathname.startsWith(link.href);
+          const badgeCount = counts[link.href];
+
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap shrink-0 transition ${
+                isActive
+                  ? "bg-purple-600 text-white shadow-sm"
+                  : "bg-purple-950/40 text-purple-300 hover:text-white border border-purple-800/50"
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5 shrink-0" />
+              <span>CPM 2</span>
+              {badgeCount !== undefined && badgeCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black bg-purple-500 text-white">
+                  {badgeCount}
+                </span>
+              )}
+            </Link>
+          );
+        })}
       </div>
 
-      {/* Nav Menu */}
-      <nav className="p-2 space-y-1 flex-1 overflow-y-auto">
-        {/* Main Store Links */}
-        {visibleMainLinks.map(renderLink)}
-
-        {/* CPM 2 Section (if allowed) */}
-        {visibleCpm2Links.length > 0 && (
-          <>
-            <div className="pt-3 pb-1 px-3">
-              <span className="text-[9px] font-mono font-black text-purple-500/70 uppercase tracking-widest">
-                ━ CPM 2 Section ━
+      {/* ─── Desktop Standard Sidebar ─── */}
+      <aside className="hidden md:flex md:w-64 lg:w-72 bg-[#0d1117] border-l border-gray-800 flex-col justify-between shrink-0 min-h-screen">
+        {/* Top Brand */}
+        <div className="p-4 border-b border-gray-800">
+          <Link href="/admin" className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-500 flex items-center justify-center">
+              <Car className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-black text-white">لوحة الإدارة والتحكم</h2>
+              <span className="text-[10px] text-orange-500 font-mono font-bold">
+                EGY CPM COMMAND
               </span>
             </div>
-            {visibleCpm2Links.map(renderLink)}
-          </>
-        )}
-      </nav>
+          </Link>
 
-      {/* Bottom User Bar */}
-      <div className="p-3 border-t border-gray-800 bg-[#07080b] space-y-2">
-        <div className="flex items-center gap-2.5">
-          <div className="flex-1 min-w-0">
-            <h4 className="text-xs font-bold text-white truncate">{user?.name || user?.email}</h4>
-            <span className="text-[10px] text-orange-500 font-mono font-bold">{user?.role}</span>
+          {/* Live Stats Bar */}
+          {(counts as any)["_newOrdersToday"] !== undefined && (
+            <div className="mt-2 flex items-center gap-1.5 text-[10px] text-gray-400">
+              <TrendingUp className="w-3 h-3 text-green-400" />
+              <span className="text-green-400 font-bold">{(counts as any)["_newOrdersToday"]}</span>
+              <span>طلب جديد اليوم</span>
+            </div>
+          )}
+        </div>
+
+        {/* Nav Menu */}
+        <nav className="p-2 space-y-1 flex-1 overflow-y-auto">
+          {/* Main Store Links */}
+          {visibleMainLinks.map(renderLink)}
+
+          {/* CPM 2 Section (if allowed) */}
+          {visibleCpm2Links.length > 0 && (
+            <>
+              <div className="pt-3 pb-1 px-3">
+                <span className="text-[9px] font-mono font-black text-purple-500/70 uppercase tracking-widest">
+                  ━ CPM 2 Section ━
+                </span>
+              </div>
+              {visibleCpm2Links.map(renderLink)}
+            </>
+          )}
+        </nav>
+
+        {/* Bottom User Bar */}
+        <div className="p-3 border-t border-gray-800 bg-[#07080b] space-y-2">
+          <div className="flex items-center gap-2.5">
+            <div className="flex-1 min-w-0">
+              <h4 className="text-xs font-bold text-white truncate">{user?.name || user?.email}</h4>
+              <span className="text-[10px] text-orange-500 font-mono font-bold">{user?.role}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link
+              href="/"
+              target="_blank"
+              className="flex-1 py-1.5 px-2 rounded-lg bg-[#161b22] hover:bg-[#21262d] text-gray-300 hover:text-white text-[11px] font-semibold flex items-center justify-center gap-1 border border-gray-700 transition"
+            >
+              <span>زيارة المتجر</span>
+              <ExternalLink className="w-3 h-3" />
+            </Link>
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          <Link
-            href="/"
-            target="_blank"
-            className="flex-1 py-1.5 px-2 rounded-lg bg-[#161b22] hover:bg-[#21262d] text-gray-300 hover:text-white text-[11px] font-semibold flex items-center justify-center gap-1 border border-gray-700 transition"
-          >
-            <span>زيارة المتجر</span>
-            <ExternalLink className="w-3 h-3" />
-          </Link>
-        </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }
 

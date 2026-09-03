@@ -20,6 +20,9 @@ import {
   Trash2,
   Key,
   Send,
+  MoreVertical,
+  User,
+  ShoppingBag,
 } from "lucide-react";
 
 export default function OrderPipelineClient({ initialOrders }: { initialOrders: any[] }) {
@@ -60,6 +63,20 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
   const [refundModalOrder, setRefundModalOrder] = useState<any | null>(null);
   const [refundReason, setRefundReason] = useState("");
   const [isRefunding, setIsRefunding] = useState(false);
+
+  // Mobile Bottom Sheet Actions state
+  const [bottomSheetOrder, setBottomSheetOrder] = useState<any | null>(null);
+
+  const openOrderDetails = (o: any) => {
+    setSelectedOrder(o);
+    setNewStatus(o.status || "COMPLETED");
+    setAdminNotes(o.adminNotes || "");
+    setDeliveredEmail(o.deliveredAccountEmail || "");
+    setDeliveredPassword(o.decryptedDeliveredPassword || "");
+    setDeliveredNotes(o.deliveredAccountNotes || "");
+    setShowPassword(false);
+    setShowDeliveredPassword(false);
+  };
 
   const filtered = orders.filter((o) => {
     const matchesStatus = filterStatus === "ALL" || o.status === filterStatus;
@@ -221,8 +238,118 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
         />
       </div>
 
-      {/* Orders Table */}
-      <div className="rounded-2xl bg-[#12161f] border border-gray-800 overflow-hidden">
+      {/* ─── Mobile Responsive Cards (Phone UX) ─── */}
+      <div className="md:hidden space-y-3">
+        {filtered.length === 0 ? (
+          <div className="p-8 text-center text-gray-500 text-xs bg-[#12161f] rounded-2xl border border-gray-800">
+            لا توجد طلبات مطابقة للبحث أو الفلتر.
+          </div>
+        ) : (
+          filtered.map((o) => (
+            <div
+              key={o.id}
+              className="p-3.5 rounded-2xl bg-[#12161f] border border-gray-800/90 shadow-sm space-y-2.5 text-right relative overflow-hidden"
+            >
+              {/* Card Header: Order Number & Status */}
+              <div className="flex items-center justify-between gap-2 border-b border-gray-800/70 pb-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-mono font-black text-orange-500 text-xs">#{o.orderNumber}</span>
+                  {getFulfillmentBadge(o.fulfillmentType)}
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <span
+                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                      o.status === "COMPLETED"
+                        ? "bg-green-500/20 text-green-400"
+                        : o.status === "REFUNDED"
+                        ? "bg-orange-500/10 text-orange-400"
+                        : "bg-orange-500/10 text-orange-500 animate-pulse"
+                    }`}
+                  >
+                    {o.status}
+                  </span>
+
+                  {/* Mobile Actions Menu Trigger Button */}
+                  <button
+                    onClick={() => setBottomSheetOrder(o)}
+                    className="p-1 rounded-lg bg-[#1a202c] hover:bg-gray-700 text-gray-300 hover:text-white transition active:scale-95 border border-gray-700/60"
+                    aria-label="خيارات الطلب"
+                    title="خيارات وإجراءات"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Card Body: Items & Customer */}
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span className="text-[10px] text-gray-400 block">العميل:</span>
+                  <span className="font-bold text-white block truncate text-[11px]">{o.user?.name || "عميل"}</span>
+                  <span className="text-[9px] text-gray-400 font-mono block truncate">{o.user?.email}</span>
+                </div>
+
+                <div className="text-left">
+                  <span className="text-[10px] text-gray-400 block">المبلغ الإجمالي:</span>
+                  <span className="font-black text-green-400 font-mono text-sm">{formatCurrency(o.total)}</span>
+                  <span className="text-[9px] text-gray-500 font-mono block">{formatDate(o.createdAt)}</span>
+                </div>
+              </div>
+
+              {/* Items Summary & Game ID */}
+              <div className="p-2 rounded-xl bg-[#0e1117] border border-gray-800/80 text-[11px] space-y-1">
+                <div className="flex items-start gap-1.5 text-gray-300">
+                  <ShoppingBag className="w-3.5 h-3.5 text-orange-400 shrink-0 mt-0.5" />
+                  <span className="line-clamp-1 font-medium">
+                    {o.items.map((it: any) => `${it.productName} (x${it.quantity})`).join(", ")}
+                  </span>
+                </div>
+
+                {o.gameUsername && (
+                  <div className="flex items-center gap-1.5 text-cyan-300 font-mono text-[10px]">
+                    <Gamepad2 className="w-3 h-3 text-cyan-400 shrink-0" />
+                    <span className="truncate">{o.gameUsername}</span>
+                    {o.decryptedPassword && <span className="text-purple-300 text-[9px]">[كلمة السر متوفرة]</span>}
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Action Button */}
+              <div className="flex items-center gap-1.5 pt-0.5">
+                <button
+                  onClick={() => openOrderDetails(o)}
+                  className="flex-1 py-1.5 px-3 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 text-orange-500 border border-orange-500/30 text-xs font-bold transition text-center"
+                >
+                  معاينة وتحديث الحالة ⚙️
+                </button>
+                {o.status !== "REFUNDED" && (
+                  <button
+                    onClick={() => {
+                      setRefundModalOrder(o);
+                      setRefundReason("");
+                    }}
+                    className="p-1.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-bold transition"
+                    title="استرجاع مالي"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </button>
+                )}
+                <button
+                  onClick={() => handleDeleteOrder(o.id, o.orderNumber)}
+                  className="p-1.5 rounded-xl bg-red-500/10 text-red-400 border border-red-500/30 transition"
+                  title="حذف الطلب"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* ─── Desktop Orders Table (md+) ─── */}
+      <div className="hidden md:block rounded-2xl bg-[#12161f] border border-gray-800 overflow-hidden">
         {filtered.length === 0 ? (
           <div className="p-12 text-center text-gray-500 text-xs">
             لا توجد طلبات مطابقة للبحث أو الفلتر.
@@ -291,16 +418,7 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
                     <td className="p-4">
                       <div className="flex items-center justify-center gap-2">
                         <button
-                          onClick={() => {
-                            setSelectedOrder(o);
-                            setNewStatus(o.status || "COMPLETED");
-                            setAdminNotes(o.adminNotes || "");
-                            setDeliveredEmail(o.deliveredAccountEmail || "");
-                            setDeliveredPassword(o.decryptedDeliveredPassword || "");
-                            setDeliveredNotes(o.deliveredAccountNotes || "");
-                            setShowPassword(false);
-                            setShowDeliveredPassword(false);
-                          }}
+                          onClick={() => openOrderDetails(o)}
                           className="px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 border border-orange-500/30 text-xs font-bold transition"
                         >
                           معاينة وتحديث
@@ -609,7 +727,7 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
                 <button
                   type="submit"
                   disabled={isRefunding}
-                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-neon-purple to-neon-pink text-white font-bold text-xs transition disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-black font-black text-xs transition disabled:opacity-50"
                 >
                   {isRefunding ? "جاري تنفيذ الاسترجاع..." : "تأكيد الاسترجاع للمحفظة 💰"}
                 </button>
@@ -622,6 +740,100 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Mobile Actions Bottom Sheet ─── */}
+      {bottomSheetOrder && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4">
+          <div
+            className="fixed inset-0"
+            onClick={() => setBottomSheetOrder(null)}
+          />
+          <div className="relative w-full max-w-lg bg-[#0e1219] border-t sm:border border-gray-800 rounded-t-3xl sm:rounded-2xl p-5 text-right space-y-4 z-10 animate-in slide-in-from-bottom duration-200">
+            {/* Sheet Handle */}
+            <div className="w-12 h-1.5 bg-gray-700 rounded-full mx-auto -mt-1 mb-2 sm:hidden" />
+
+            <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+              <div>
+                <span className="text-[10px] text-gray-400 block font-mono">خيارات وإجراءات الطلب</span>
+                <h3 className="text-base font-black text-orange-500">#{bottomSheetOrder.orderNumber}</h3>
+              </div>
+              <button
+                onClick={() => setBottomSheetOrder(null)}
+                className="p-1.5 rounded-full bg-gray-800/60 text-gray-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Quick Order Info */}
+            <div className="p-3 rounded-xl bg-[#141923] border border-gray-800 text-xs space-y-1">
+              <div className="flex justify-between">
+                <span className="text-gray-400">العميل:</span>
+                <span className="font-bold text-white">{bottomSheetOrder.user?.name || "عميل"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">الإجمالي:</span>
+                <span className="font-black text-green-400 font-mono">{formatCurrency(bottomSheetOrder.total)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">الحالة:</span>
+                <span className="font-bold text-orange-400">{bottomSheetOrder.status}</span>
+              </div>
+            </div>
+
+            {/* Action Items List */}
+            <div className="space-y-2 pt-1">
+              <button
+                onClick={() => {
+                  const target = bottomSheetOrder;
+                  setBottomSheetOrder(null);
+                  openOrderDetails(target);
+                }}
+                className="w-full py-3 px-4 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/30 text-xs font-bold transition flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-orange-500" />
+                  <span>معاينة التفاصيل الكاملة وتحديث الحالة</span>
+                </div>
+                <span className="text-[10px] opacity-70">⚙️</span>
+              </button>
+
+              {bottomSheetOrder.status !== "REFUNDED" && (
+                <button
+                  onClick={() => {
+                    const target = bottomSheetOrder;
+                    setBottomSheetOrder(null);
+                    setRefundModalOrder(target);
+                    setRefundReason("");
+                  }}
+                  className="w-full py-3 px-4 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold transition flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    <RotateCcw className="w-4 h-4 text-amber-500" />
+                    <span>استرجاع المبلغ للمحفظة</span>
+                  </div>
+                  <span className="text-[10px] opacity-70">💰</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => {
+                  const target = bottomSheetOrder;
+                  setBottomSheetOrder(null);
+                  handleDeleteOrder(target.id, target.orderNumber);
+                }}
+                className="w-full py-3 px-4 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-bold transition flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <Trash2 className="w-4 h-4 text-red-500" />
+                  <span>حذف الطلب نهائياً</span>
+                </div>
+                <span className="text-[10px] opacity-70">⚠️</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

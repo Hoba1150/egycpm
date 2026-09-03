@@ -140,7 +140,6 @@ export default function Header() {
   const navLinks = [
     { name: "الرئيسية", href: "/", icon: Home },
     { name: "المتجر", href: "/shop", icon: ShoppingBag },
-    { name: "CPM 2 🔥", href: "/cpm2", icon: Zap },
     { name: "المحفظة", href: "/wallet", icon: Wallet },
     { name: "السحوبات", href: "/giveaways", icon: Gift },
     { name: "شحن رصيد", href: "/deposit", icon: Wallet },
