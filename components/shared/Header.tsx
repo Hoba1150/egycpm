@@ -140,6 +140,7 @@ export default function Header() {
   const navLinks = [
     { name: "الرئيسية", href: "/", icon: Home },
     { name: "المتجر", href: "/shop", icon: ShoppingBag },
+    { name: "CPM 2", href: "/cpm2", icon: Zap, isSpecial: true },
     { name: "المحفظة", href: "/wallet", icon: Wallet },
     { name: "السحوبات", href: "/giveaways", icon: Gift },
     { name: "شحن رصيد", href: "/deposit", icon: Wallet },
@@ -182,9 +183,26 @@ export default function Header() {
             </div>
 
             {/* Desktop Navigation Links */}
-            <nav className="hidden lg:flex items-center gap-0.5 flex-1 px-4">
+            <nav className="hidden lg:flex items-center gap-1 flex-1 px-4">
               {navLinks.map((link) => {
                 const isActive = pathname === link.href;
+                if (link.isSpecial) {
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={`relative px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 ${
+                        isActive
+                          ? "text-purple-300 bg-purple-950/70 border border-purple-500 shadow-[0_0_12px_rgba(168,85,247,0.4)]"
+                          : "text-purple-400 hover:text-white bg-purple-950/30 hover:bg-purple-900/40 border border-purple-500/30"
+                      }`}
+                    >
+                      <Zap className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
+                      <span>{link.name}</span>
+                      <span className="px-1 py-0.2 rounded text-[8px] bg-purple-500 text-white font-mono font-black">NEW</span>
+                    </Link>
+                  );
+                }
                 return (
                   <Link
                     key={link.href}
