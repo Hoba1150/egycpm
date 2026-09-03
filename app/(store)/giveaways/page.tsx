@@ -1,6 +1,7 @@
 import React from "react";
 import { getCurrentUser } from "@/lib/auth";
 import { getActiveGiveaways } from "@/lib/actions/giveaway";
+import { prisma } from "@/lib/prisma";
 import GiveawaysClient from "./GiveawaysClient";
 
 export const revalidate = 30; // Fast Edge CDN Caching (Zero Latency & 98% Bandwidth Savings)
@@ -10,6 +11,16 @@ export default async function GiveawaysPage() {
     getCurrentUser(),
     getActiveGiveaways(),
   ]);
+
+  // جلب السحوبات التي اشترك فيها المستخدم الحالي
+  const enteredGiveawayIds: string[] = user
+    ? (
+        await prisma.giveawayEntry.findMany({
+          where: { userId: user.id },
+          select: { giveawayId: true },
+        })
+      ).map((e) => e.giveawayId)
+    : [];
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 text-right space-y-6">
@@ -21,7 +32,7 @@ export default async function GiveawaysPage() {
         </p>
       </div>
 
-      <GiveawaysClient giveaways={giveaways} user={user} />
+      <GiveawaysClient giveaways={giveaways} user={user} enteredGiveawayIds={enteredGiveawayIds} />
     </div>
   );
 }

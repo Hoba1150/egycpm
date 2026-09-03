@@ -10,9 +10,11 @@ import AuthModal from "@/components/shared/AuthModal";
 export default function GiveawaysClient({
   giveaways,
   user,
+  enteredGiveawayIds = [],
 }: {
   giveaways: any[];
   user: any;
+  enteredGiveawayIds?: string[];
 }) {
   const [selectedGiveaway, setSelectedGiveaway] = useState<any>(null);
   const [userName, setUserName] = useState(user?.name || "");
@@ -22,6 +24,17 @@ export default function GiveawaysClient({
   const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   const handleOpenJoin = (g: any) => {
+    // إلزامي: يجب تسجيل الدخول أولاً
+    if (!user) {
+      toast.error("يرجى تسجيل الدخول للاشتراك في السحوبات.");
+      setIsAuthOpen(true);
+      return;
+    }
+    // منع الاشتراك المتعدد
+    if (enteredGiveawayIds.includes(g.id)) {
+      toast.info("أنت مسجل بالفعل في هذا السحب!");
+      return;
+    }
     setSelectedGiveaway(g);
     setUserName(user?.name || "");
     setPhone(user?.phone || "");
@@ -34,7 +47,7 @@ export default function GiveawaysClient({
       return;
     }
 
-    if (selectedGiveaway.entryFee > 0 && !user) {
+    if (!user) {
       setIsAuthOpen(true);
       return;
     }
@@ -58,6 +71,7 @@ export default function GiveawaysClient({
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="space-y-6 text-right">
@@ -149,12 +163,18 @@ export default function GiveawaysClient({
                   </div>
 
                   {!isFinished ? (
-                    <button
-                      onClick={() => handleOpenJoin(g)}
-                      className="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-black font-extrabold text-xs transition shadow-sm"
-                    >
-                      اشترك في السحب الآن
-                    </button>
+                    enteredGiveawayIds.includes(g.id) ? (
+                      <span className="px-3 py-2 rounded-xl bg-green-500/15 border border-green-500/40 text-green-400 font-bold text-xs flex items-center gap-1.5">
+                        ✓ أنت مسجل في السحب
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => handleOpenJoin(g)}
+                        className="px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-black font-extrabold text-xs transition shadow-sm"
+                      >
+                        {user ? "اشترك في السحب الآن" : "سجّل دخول واشترك"}
+                      </button>
+                    )
                   ) : (
                     <span className="text-xs font-bold text-gray-500">السحب مغلق</span>
                   )}

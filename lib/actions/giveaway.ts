@@ -27,6 +27,11 @@ export async function enterGiveaway(data: {
   userId?: string;
 }) {
   try {
+    // ✅ إلزامي: يجب تسجيل الدخول للاشتراك في أي سحب
+    if (!data.userId) {
+      throw new Error("يجب تسجيل الدخول أولاً للاشتراك في السحوبات. مسموح باشتراك واحد فقط لكل حساب.");
+    }
+
     const giveaway = await prisma.giveaway.findUnique({
       where: { id: data.giveawayId },
     });
@@ -36,8 +41,16 @@ export async function enterGiveaway(data: {
       throw new Error("عذراً، هذا السحب منتهي أو غير نشط.");
     }
 
-    // Check duplicate phone entry
-    const existing = await prisma.giveawayEntry.findUnique({
+    // ✅ Check: هل سجّل هذا الحساب (userId) في هذا السحب من قبل؟
+    const existingUserEntry = await prisma.giveawayEntry.findFirst({
+      where: { giveawayId: data.giveawayId, userId: data.userId },
+    });
+    if (existingUserEntry) {
+      throw new Error("أنت مسجل بالفعل في هذا السحب! مسموح باشتراك واحد فقط لكل حساب.");
+    }
+
+    // ✅ Check: هل هذا الرقم مسجل من قبل؟
+    const existingPhone = await prisma.giveawayEntry.findUnique({
       where: {
         giveawayId_phone: {
           giveawayId: data.giveawayId,
@@ -45,16 +58,20 @@ export async function enterGiveaway(data: {
         },
       },
     });
-
-    if (existing) {
+    if (existingPhone) {
       throw new Error("هذا الرقم مسجل بالفعل في هذا السحب!");
+    }
+
+    // ✅ Check: هل هذا الـ Game ID مسجل من قبل؟
+    const existingGameId = await prisma.giveawayEntry.findFirst({
+      where: { giveawayId: data.giveawayId, gameId: data.gameId.trim() },
+    });
+    if (existingGameId) {
+      throw new Error("حساب اللعبة هذا (Game ID) مسجل بالفعل في هذا السحب!");
     }
 
     // If entry fee > 0, deduct from wallet
     if (giveaway.entryFee > 0) {
-      if (!data.userId) {
-        throw new Error("يجب تسجيل الدخول للاشتراك في السحوبات المدفوعة عبر المحفظة.");
-      }
 
       const wallet = await prisma.wallet.findUnique({
         where: { userId: data.userId },
