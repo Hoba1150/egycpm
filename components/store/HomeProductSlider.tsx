@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ChevronLeft, ChevronRight, Eye, ShoppingBag } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 interface HomeProductSliderProps {
@@ -11,10 +11,34 @@ interface HomeProductSliderProps {
 
 export default function HomeProductSlider({ products }: HomeProductSliderProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [isPaused, setIsPaused] = useState(false);
+
+  // Auto-scroll loop effect
+  useEffect(() => {
+    if (!products || products.length <= 1 || isPaused) return;
+
+    const interval = setInterval(() => {
+      if (scrollRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+        // Check if reached end (in RTL scrollLeft can be negative or positive depending on browser)
+        const maxScroll = scrollWidth - clientWidth;
+        const currentAbs = Math.abs(scrollLeft);
+
+        if (currentAbs >= maxScroll - 10) {
+          scrollRef.current.scrollTo({ left: 0, behavior: "smooth" });
+        } else {
+          // Scroll next item
+          scrollRef.current.scrollBy({ left: -220, behavior: "smooth" });
+        }
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [products, isPaused]);
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
-      const scrollAmount = 300;
+      const scrollAmount = 260;
       scrollRef.current.scrollBy({
         left: direction === "left" ? -scrollAmount : scrollAmount,
         behavior: "smooth",
@@ -23,6 +47,9 @@ export default function HomeProductSlider({ products }: HomeProductSliderProps) 
   };
 
   if (!products || products.length === 0) return null;
+
+  // Duplicate items for infinite visual continuity
+  const displayProducts = products.length >= 4 ? [...products, ...products] : products;
 
   return (
     <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-4">
@@ -49,7 +76,7 @@ export default function HomeProductSlider({ products }: HomeProductSliderProps) 
 
           <Link
             href="/shop"
-            className="px-3 py-1.5 rounded-xl bg-red-600/10 hover:bg-red-600/20 text-red-500 hover:text-red-400 border border-red-500/30 text-xs font-bold flex items-center gap-1 transition group"
+            className="px-3.5 py-1.5 rounded-xl bg-red-600/10 hover:bg-red-600/20 text-red-500 hover:text-red-400 border border-red-500/30 text-xs font-bold flex items-center gap-1 transition group"
           >
             <span>عرض المتجر الكامل</span>
             <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
@@ -67,12 +94,16 @@ export default function HomeProductSlider({ products }: HomeProductSliderProps) 
         </div>
       </div>
 
-      {/* Horizontal Carousel Slider */}
+      {/* Horizontal Carousel Slider with Auto-Loop */}
       <div
         ref={scrollRef}
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+        onTouchStart={() => setIsPaused(true)}
+        onTouchEnd={() => setIsPaused(false)}
         className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-none pb-2 pt-1 scroll-smooth snap-x snap-mandatory"
       >
-        {products.map((product) => {
+        {displayProducts.map((product, index) => {
           let images: string[] = [];
           if (product.imagesArray && product.imagesArray.length > 0) {
             images = product.imagesArray;
@@ -90,9 +121,9 @@ export default function HomeProductSlider({ products }: HomeProductSliderProps) 
 
           return (
             <Link
-              key={product.id}
+              key={`${product.id}-${index}`}
               href={`/product/${product.slug}`}
-              className="snap-start shrink-0 w-[190px] sm:w-[240px] cpm-card flex flex-col overflow-hidden group relative rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:border-red-500/50 hover:shadow-[0_10px_25px_-5px_rgba(220,38,38,0.25)]"
+              className="snap-start shrink-0 w-[185px] sm:w-[230px] cpm-card flex flex-col overflow-hidden group relative rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:border-red-500/50 hover:shadow-[0_10px_25px_-5px_rgba(220,38,38,0.25)]"
             >
               {/* Image with hover effect */}
               <div className="relative aspect-[16/11] sm:aspect-[4/3] overflow-hidden bg-[#0a0b0f]">
@@ -148,3 +179,4 @@ export default function HomeProductSlider({ products }: HomeProductSliderProps) 
     </section>
   );
 }
+

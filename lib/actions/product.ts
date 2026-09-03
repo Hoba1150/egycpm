@@ -196,17 +196,11 @@ export async function getProducts(params: ProductFilterParams = {}) {
 /**
  * Get Random Active Products for Hero Showcase Slider (Main Store only)
  */
-export async function getRandomProducts(count: number = 5) {
+export async function getRandomProducts(count: number = 12) {
   try {
     const allActiveProducts = await prisma.product.findMany({
       where: {
         isActive: true,
-        NOT: [
-          { productType: "CPM2" },
-          { category: { slug: { contains: "cpm" } } },
-          { category: { name: { contains: "CPM" } } },
-          { category: { name: { contains: "cpm" } } },
-        ],
       },
       select: {
         id: true,
@@ -229,13 +223,17 @@ export async function getRandomProducts(count: number = 5) {
           select: { rating: true },
         },
       },
-      take: count * 3,
+      take: 60,
     });
 
     if (allActiveProducts.length === 0) return [];
 
-    // Shuffle array and take count
-    const shuffled = allActiveProducts.sort(() => 0.5 - Math.random());
+    // True Fisher-Yates random shuffle for uniform distribution across all current & future products
+    const shuffled = [...allActiveProducts];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
     const selected = shuffled.slice(0, count);
 
     return selected.map((prod) => {

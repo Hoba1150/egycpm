@@ -274,9 +274,6 @@ export default function HeroSection({ user: initialUser }: HeroSectionProps) {
                       loading={idx === 0 ? "eager" : "lazy"}
                       className="w-full h-full object-cover"
                     />
-                    {/* cinematic right-edge gradient + bottom vignette */}
-                    <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-[var(--card)] opacity-90 pointer-events-none" />
-                    <div className="absolute inset-0 hero-vignette pointer-events-none" />
                   </div>
                 ))}
 
