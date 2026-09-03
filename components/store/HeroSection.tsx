@@ -332,38 +332,6 @@ export default function HeroSection({ user: initialUser }: HeroSectionProps) {
             </div>
           </div>
         </div>
-
-        {/* 3. Quick Service Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {quickServices.map((srv, idx) => {
-            const Icon = srv.icon;
-            return (
-              <Link
-                key={idx}
-                href={srv.href}
-                className="cpm-card p-4 flex flex-col justify-between space-y-3 group overflow-hidden"
-              >
-                <div className="flex items-center justify-between">
-                  <div className={`p-2.5 rounded-xl border ${srv.iconBg} shrink-0 group-hover:scale-110 transition-transform`}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <span className="text-[10px] font-mono font-bold text-[var(--text-dim)] px-2 py-0.5 rounded-md bg-[var(--card-hi)] border border-[var(--border)]">
-                    {srv.badge}
-                  </span>
-                </div>
-
-                <div className="space-y-1 text-right">
-                  <h3 className="text-xs sm:text-sm font-black text-white group-hover:text-[var(--red-hi)] transition-colors">
-                    {srv.title}
-                  </h3>
-                  <p className="text-[11px] text-[var(--text-dim)] leading-snug">
-                    {srv.desc}
-                  </p>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
       </div>
     </section>
   );
