@@ -230,15 +230,15 @@ export default function HeroSection({ user: initialUser }: HeroSectionProps) {
                   <span>{settings.hero_badge ?? "متجر وورشة Car Parking الرسمية"}</span>
                 </div>
 
-                {/* 🔴 Mini Drift Show Action Button */}
+                {/* 🔴 Engine Start Action Button */}
                 <button
                   onClick={() => setIsDriftActive(true)}
                   disabled={isDriftActive}
                   className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white text-xs font-black flex items-center gap-1.5 shadow-[0_0_15px_rgba(239,68,68,0.4)] active:scale-95 transition"
-                  title="تشغيل عرض الدريفت التفاعلي"
+                  title="تشغيل المحرك وعرض العبارة الحماسية"
                 >
                   <Flame className="w-3.5 h-3.5 text-yellow-300 animate-pulse" />
-                  <span>START DRIFT 💨</span>
+                  <span>START ENGINE ⚡</span>
                 </button>
               </div>
 

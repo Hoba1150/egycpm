@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Flame, Zap, Volume2 } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Flame, X } from "lucide-react";
 
 interface DriftAnimationShowcaseProps {
   onFinish: () => void;
@@ -42,112 +42,156 @@ const ACTION_QUOTES = [
 ];
 
 export default function DriftAnimationShowcase({ onFinish, active }: DriftAnimationShowcaseProps) {
-  const [phase, setPhase] = useState<"idle" | "quote_reveal" | "done">("idle");
   const [currentQuote, setCurrentQuote] = useState(ACTION_QUOTES[0]);
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
-  // Play realistic multi-harmonic V12 engine roar synthesizer
-  const playV12EngineRoar = () => {
+  // Synthesize realistic V12 Supercar ignition & aggressive rev sound (matching YouTube V12 exhaust roar)
+  const playV12IgnitionSound = () => {
     try {
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioContextClass) return;
       const ctx = new AudioContextClass();
+      audioCtxRef.current = ctx;
       const now = ctx.currentTime;
 
-      // Master Gain
+      // Master output gain
       const masterGain = ctx.createGain();
-      masterGain.gain.setValueAtTime(0.15, now);
+      masterGain.gain.setValueAtTime(0.2, now);
       masterGain.gain.exponentialRampToValueAtTime(0.001, now + 3.2);
       masterGain.connect(ctx.destination);
 
-      // Low-pass filter for deep exhaust rumble
-      const filter = ctx.createBiquadFilter();
-      filter.type = "lowpass";
-      filter.frequency.setValueAtTime(450, now);
-      filter.frequency.exponentialRampToValueAtTime(1400, now + 0.8);
-      filter.frequency.exponentialRampToValueAtTime(350, now + 3.0);
-      filter.connect(masterGain);
+      // Deep Exhaust Resonance Filter
+      const exhaustFilter = ctx.createBiquadFilter();
+      exhaustFilter.type = "lowpass";
+      exhaustFilter.frequency.setValueAtTime(300, now);
+      // Starter crank -> Violent throttle surge -> Idle settles
+      exhaustFilter.frequency.exponentialRampToValueAtTime(1800, now + 0.9);
+      exhaustFilter.frequency.exponentialRampToValueAtTime(450, now + 2.8);
+      exhaustFilter.connect(masterGain);
 
-      // Cylinder 1: Sub Bass Rumble (Fundamental Idle -> Rev)
-      const osc1 = ctx.createOscillator();
-      osc1.type = "sawtooth";
-      osc1.frequency.setValueAtTime(65, now); // Starter crank
-      osc1.frequency.exponentialRampToValueAtTime(240, now + 0.9); // High Rev
-      osc1.frequency.exponentialRampToValueAtTime(95, now + 3.0); // Idle down
-      osc1.connect(filter);
-      osc1.start(now);
-      osc1.stop(now + 3.2);
+      // 1. Starter Motor Cranking Sound (0.0s to 0.5s)
+      const starterOsc = ctx.createOscillator();
+      starterOsc.type = "square";
+      starterOsc.frequency.setValueAtTime(45, now);
+      starterOsc.frequency.linearRampToValueAtTime(80, now + 0.4);
+      const starterGain = ctx.createGain();
+      starterGain.gain.setValueAtTime(0.12, now);
+      starterGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      starterOsc.connect(starterGain);
+      starterGain.connect(exhaustFilter);
+      starterOsc.start(now);
+      starterOsc.stop(now + 0.55);
 
-      // Cylinder 2: Harmonic Growl (V12 distinctive high scream)
-      const osc2 = ctx.createOscillator();
-      osc2.type = "sawtooth";
-      osc2.frequency.setValueAtTime(130, now);
-      osc2.frequency.exponentialRampToValueAtTime(480, now + 0.9);
-      osc2.frequency.exponentialRampToValueAtTime(190, now + 3.0);
-      osc2.connect(filter);
-      osc2.start(now);
-      osc2.stop(now + 3.2);
+      // 2. V12 Low-End Rumble (Deep V12 displacement)
+      const v12Low = ctx.createOscillator();
+      v12Low.type = "sawtooth";
+      v12Low.frequency.setValueAtTime(55, now + 0.35);
+      v12Low.frequency.exponentialRampToValueAtTime(320, now + 1.1); // High Rev Surge
+      v12Low.frequency.exponentialRampToValueAtTime(110, now + 2.9); // Idle settle
+      const v12LowGain = ctx.createGain();
+      v12LowGain.gain.setValueAtTime(0.001, now);
+      v12LowGain.gain.setValueAtTime(0.18, now + 0.35);
+      v12LowGain.gain.exponentialRampToValueAtTime(0.001, now + 3.1);
+      v12Low.connect(v12LowGain);
+      v12LowGain.connect(exhaustFilter);
+      v12Low.start(now + 0.35);
+      v12Low.stop(now + 3.2);
 
-      // Cylinder 3: High Pitch Turbo Whistle / Exhaust Spool
-      const osc3 = ctx.createOscillator();
-      osc3.type = "triangle";
-      osc3.frequency.setValueAtTime(350, now);
-      osc3.frequency.exponentialRampToValueAtTime(920, now + 0.85);
-      osc3.frequency.exponentialRampToValueAtTime(280, now + 2.8);
+      // 3. V12 High Harmonic Scream (Metallic valve & exhaust note)
+      const v12High = ctx.createOscillator();
+      v12High.type = "sawtooth";
+      v12High.frequency.setValueAtTime(110, now + 0.4);
+      v12High.frequency.exponentialRampToValueAtTime(680, now + 1.1); // Screaming peak
+      v12High.frequency.exponentialRampToValueAtTime(220, now + 2.9);
+      const v12HighGain = ctx.createGain();
+      v12HighGain.gain.setValueAtTime(0.001, now);
+      v12HighGain.gain.setValueAtTime(0.12, now + 0.4);
+      v12HighGain.gain.exponentialRampToValueAtTime(0.001, now + 3.1);
+      v12High.connect(v12HighGain);
+      v12HighGain.connect(exhaustFilter);
+      v12High.start(now + 0.4);
+      v12High.stop(now + 3.2);
+
+      // 4. Turbo / Supercharger Spool Whistle
+      const turboWhistle = ctx.createOscillator();
+      turboWhistle.type = "sine";
+      turboWhistle.frequency.setValueAtTime(400, now + 0.4);
+      turboWhistle.frequency.exponentialRampToValueAtTime(1200, now + 1.1);
+      turboWhistle.frequency.exponentialRampToValueAtTime(300, now + 2.8);
       const turboGain = ctx.createGain();
-      turboGain.gain.setValueAtTime(0.04, now);
-      turboGain.gain.exponentialRampToValueAtTime(0.001, now + 3.0);
-      osc3.connect(turboGain);
+      turboGain.gain.setValueAtTime(0.001, now);
+      turboGain.gain.setValueAtTime(0.04, now + 0.5);
+      turboGain.gain.exponentialRampToValueAtTime(0.001, now + 2.9);
+      turboWhistle.connect(turboGain);
       turboGain.connect(masterGain);
-      osc3.start(now);
-      osc3.stop(now + 3.0);
+      turboWhistle.start(now + 0.4);
+      turboWhistle.stop(now + 3.0);
     } catch {}
   };
 
-  // Pick random quote on each launch & trigger V12 sound
+  // Run one-shot on active = true, pick random quote, play sound, and auto-close via onFinish
   useEffect(() => {
-    if (active) {
-      const randomQuote = ACTION_QUOTES[Math.floor(Math.random() * ACTION_QUOTES.length)];
-      setCurrentQuote(randomQuote);
-      setPhase("quote_reveal");
-      playV12EngineRoar();
+    if (!active) return;
 
-      const timer = setTimeout(() => {
-        setPhase("done");
-        onFinish();
-      }, 3500);
+    // Pick brand new random quote
+    const randomQuote = ACTION_QUOTES[Math.floor(Math.random() * ACTION_QUOTES.length)];
+    setCurrentQuote(randomQuote);
 
-      return () => clearTimeout(timer);
-    }
+    // Play engine roar
+    playV12IgnitionSound();
+
+    // Auto close after 3.2 seconds
+    const timer = setTimeout(() => {
+      onFinish();
+    }, 3200);
+
+    return () => {
+      clearTimeout(timer);
+      if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
+        try {
+          audioCtxRef.current.close();
+        } catch {}
+      }
+    };
   }, [active, onFinish]);
 
-  if (!active || phase === "done") return null;
+  if (!active) return null;
 
   return (
-    <div className="absolute inset-0 z-30 overflow-hidden rounded-2xl sm:rounded-3xl bg-[#090b10]/95 backdrop-blur-md border border-red-500/40 p-6 flex flex-col justify-center items-center text-center select-none animate-in fade-in duration-300">
-      {/* V12 Sound Wave Visual Accent */}
-      <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-10">
-        <div className="w-72 h-72 rounded-full bg-red-600 animate-ping" />
+    <div className="absolute inset-0 z-30 overflow-hidden rounded-2xl sm:rounded-3xl bg-[#07090e]/95 backdrop-blur-md border border-red-500/40 p-5 sm:p-8 flex flex-col justify-center items-center text-center select-none animate-in fade-in duration-300">
+      {/* Quick Close Button */}
+      <button
+        onClick={onFinish}
+        className="absolute top-3 left-3 p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-gray-400 hover:text-white transition z-30"
+        title="إغلاق العرض"
+      >
+        <X className="w-4 h-4" />
+      </button>
+
+      {/* V12 Sound Wave Visual Pulse */}
+      <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-15">
+        <div className="w-64 h-64 sm:w-80 sm:h-80 rounded-full bg-red-600 animate-ping" />
       </div>
 
-      {/* Dynamic Action Quote Revealed in Pure Clean Text */}
-      <div className="relative z-20 space-y-3 max-w-xl animate-in zoom-in-95 duration-500">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-600/20 border border-red-500/50 text-red-400 font-mono font-black text-xs tracking-widest uppercase shadow-lg">
+      {/* Dynamic Action Quote in Pure Bold Text */}
+      <div className="relative z-20 space-y-3 max-w-xl animate-in zoom-in-95 duration-400">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-600/25 border border-red-500/60 text-red-400 font-mono font-black text-xs tracking-widest uppercase shadow-lg">
           <Flame className="w-4 h-4 text-red-500 animate-bounce" />
           <span>{currentQuote.badge}</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+          <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
         </div>
 
         <h2
-          className={`text-2xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r ${currentQuote.accent} tracking-tight leading-tight drop-shadow-[0_0_25px_rgba(239,68,68,0.6)]`}
+          className={`text-2xl sm:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r ${currentQuote.accent} tracking-tight leading-tight drop-shadow-[0_0_30px_rgba(239,68,68,0.7)]`}
         >
           {currentQuote.title}
         </h2>
 
-        <p className="text-xs sm:text-base text-gray-200 font-bold leading-relaxed px-4">
+        <p className="text-xs sm:text-base text-gray-100 font-bold leading-relaxed px-4">
           {currentQuote.subtitle}
         </p>
 
-        <div className="pt-3 flex items-center justify-center gap-3">
+        <div className="pt-2 flex items-center justify-center gap-3">
           <span className="h-1 w-14 bg-red-600 rounded-full animate-pulse" />
           <span className="text-[11px] text-gray-400 font-mono font-bold uppercase tracking-wider">
             V12 ENGINE ACTIVE • EGY CPM
@@ -158,5 +202,6 @@ export default function DriftAnimationShowcase({ onFinish, active }: DriftAnimat
     </div>
   );
 }
+
 
 
