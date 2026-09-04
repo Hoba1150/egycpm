@@ -7,6 +7,8 @@ import CyberBackground from "@/components/shared/CyberBackground";
 import { getStoreSettings } from "@/lib/actions/settings";
 import { SettingsProvider } from "@/lib/context/SettingsContext";
 
+import MaintenanceOverlay from "@/components/store/MaintenanceOverlay";
+
 // Revalidate every 10 seconds so changes from admin panel appear almost instantly
 export const revalidate = 10;
 
@@ -25,6 +27,7 @@ export default async function StoreLayout({
 
   return (
     <SettingsProvider settings={settings}>
+      <MaintenanceOverlay />
       <div className="relative min-h-screen flex flex-col justify-between">
         <CyberBackground />
         <Header />

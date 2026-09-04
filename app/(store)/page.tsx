@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getRandomProducts } from "@/lib/actions/product";
 import { getStoreSettings } from "@/lib/actions/settings";
 import HeroSection from "@/components/store/HeroSection";
+import SocialCommunityBanner from "@/components/store/SocialCommunityBanner";
 import HomeProductSlider from "@/components/store/HomeProductSlider";
 import WhyChooseUs from "@/components/store/WhyChooseUs";
 import FAQSection from "@/components/store/FAQSection";
@@ -38,12 +39,15 @@ export default async function HomePage() {
       {/* 1. Top Section: Wallet Balance + Hero + Image Slideshow */}
       <HeroSection user={user} initialSettings={settings} />
 
-      {/* 2. Product Showcase Carousel Slider (View Only) */}
+      {/* 2. Official Social Media & Community Hub (WhatsApp, Facebook, TikTok + CTA) */}
+      <SocialCommunityBanner />
+
+      {/* 3. Product Showcase Carousel Slider (View Only) */}
       {showcaseProducts.length > 0 && (
         <HomeProductSlider products={showcaseProducts} />
       )}
 
-      {/* 3. Bottom Information (3 Concise Features & FAQ) */}
+      {/* 4. Bottom Information (3 Concise Features & FAQ) */}
       <WhyChooseUs settings={settings} />
       <FAQSection settings={settings} />
     </div>

@@ -27,12 +27,21 @@ import {
   ShieldCheck,
   Zap,
   Car,
+  Wrench,
+  Share2,
+  Power,
+  ShieldAlert,
+  Flame,
+  MessageCircle,
+  ExternalLink,
 } from "lucide-react";
 
 export default function SettingsClient({ initialSettings }: { initialSettings: Record<string, string> }) {
   const router = useRouter();
   const [settings, setSettings] = useState(initialSettings);
-  const [activeTab, setActiveTab] = useState<"SLIDER" | "LOGO" | "TEXTS" | "THEME" | "PAYMENT" | "BACKUP">("LOGO");
+  const [activeTab, setActiveTab] = useState<
+    "LOGO" | "MAINTENANCE" | "SOCIAL" | "SLIDER" | "TEXTS" | "THEME" | "PAYMENT" | "BACKUP"
+  >("MAINTENANCE");
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -41,6 +50,18 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
 
   const handleChange = (key: string, value: string) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const isMaintenanceOn = settings.maintenance_mode === "true";
+
+  const toggleMaintenance = () => {
+    const nextState = isMaintenanceOn ? "false" : "true";
+    handleChange("maintenance_mode", nextState);
+    if (nextState === "true") {
+      toast.warning("تم تفعيل وضع الصيانة! اضغط على 'حفظ التعديلات' لإغلاق المتجر أمام الزوار.");
+    } else {
+      toast.success("تم إلغاء وضع الصيانة! اضغط على 'حفظ التعديلات' لفتح المتجر مجدداً.");
+    }
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -206,17 +227,49 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
   };
 
   const colorPresets = [
-    { name: "برتقالي رياضي (الافتراضي)", color: "#ff6600" },
+    { name: "أحمر رياضي بركاني (الافتراضي)", color: "#e8161f" },
+    { name: "برتقالي رياضي", color: "#ff6600" },
     { name: "أزرق ملكي", color: "#3b82f6" },
     { name: "أخضر نيون", color: "#10b981" },
-    { name: "أحمر رياضي", color: "#ef4444" },
     { name: "بنفسجي سايبر", color: "#8b5cf6" },
   ];
 
   return (
     <div className="space-y-6 text-right">
       {/* Navigation Tabs */}
-      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 p-1.5 bg-[#12161f] border border-gray-800 rounded-2xl">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 p-1.5 bg-[#12161f] border border-gray-800 rounded-2xl">
+        {/* Tab 1: Maintenance */}
+        <button
+          type="button"
+          onClick={() => setActiveTab("MAINTENANCE")}
+          className={`py-3 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 relative ${
+            activeTab === "MAINTENANCE"
+              ? "bg-red-600 text-white shadow-sm ring-1 ring-red-400"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <Wrench className="w-4 h-4 text-amber-400 shrink-0" />
+          <span>وضع الصيانة</span>
+          {isMaintenanceOn && (
+            <span className="w-2 h-2 rounded-full bg-red-400 animate-ping absolute top-2 right-2" />
+          )}
+        </button>
+
+        {/* Tab 2: Social */}
+        <button
+          type="button"
+          onClick={() => setActiveTab("SOCIAL")}
+          className={`py-3 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+            activeTab === "SOCIAL"
+              ? "bg-red-600 text-white shadow-sm ring-1 ring-red-400"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <Share2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>روابط المنصات</span>
+        </button>
+
+        {/* Tab 3: Logo */}
         <button
           type="button"
           onClick={() => setActiveTab("LOGO")}
@@ -226,10 +279,11 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
               : "text-gray-400 hover:text-white"
           }`}
         >
-          <Car className="w-4 h-4 text-red-400" />
-          <span>لوجو وشعار المتجر ⭐</span>
+          <Car className="w-4 h-4 text-red-400 shrink-0" />
+          <span>اللوجو والشعار</span>
         </button>
 
+        {/* Tab 4: Slider */}
         <button
           type="button"
           onClick={() => setActiveTab("SLIDER")}
@@ -239,66 +293,263 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
               : "text-gray-400 hover:text-white"
           }`}
         >
-          <ImageIcon className="w-4 h-4" />
-          <span>سلايدر صور الواجهة</span>
+          <ImageIcon className="w-4 h-4 text-orange-400 shrink-0" />
+          <span>سلايدر الصور</span>
         </button>
 
+        {/* Tab 5: Texts CMS */}
         <button
           type="button"
           onClick={() => setActiveTab("TEXTS")}
           className={`py-3 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
             activeTab === "TEXTS"
-              ? "bg-orange-500 text-black shadow-sm"
+              ? "bg-red-600 text-white shadow-sm"
               : "text-gray-400 hover:text-white"
           }`}
         >
-          <Type className="w-4 h-4" />
-          <span>نصوص وهوية المتجر (CMS)</span>
+          <Type className="w-4 h-4 text-blue-400 shrink-0" />
+          <span>نصوص المتجر</span>
         </button>
 
+        {/* Tab 6: Theme */}
         <button
           type="button"
           onClick={() => setActiveTab("THEME")}
           className={`py-3 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
             activeTab === "THEME"
-              ? "bg-orange-500 text-black shadow-sm"
+              ? "bg-red-600 text-white shadow-sm"
               : "text-gray-400 hover:text-white"
           }`}
         >
-          <Palette className="w-4 h-4" />
+          <Palette className="w-4 h-4 text-purple-400 shrink-0" />
           <span>الألوان والثيم</span>
         </button>
 
+        {/* Tab 7: Payment */}
         <button
           type="button"
           onClick={() => setActiveTab("PAYMENT")}
           className={`py-3 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
             activeTab === "PAYMENT"
-              ? "bg-orange-500 text-black shadow-sm"
+              ? "bg-red-600 text-white shadow-sm"
               : "text-gray-400 hover:text-white"
           }`}
         >
-          <CreditCard className="w-4 h-4" />
-          <span>أرقام الدفع والكاش</span>
+          <CreditCard className="w-4 h-4 text-green-400 shrink-0" />
+          <span>أرقام الكاش</span>
         </button>
 
+        {/* Tab 8: Backup */}
         <button
           type="button"
           onClick={() => setActiveTab("BACKUP")}
-          className={`py-3 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 col-span-2 sm:col-span-1 ${
+          className={`py-3 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
             activeTab === "BACKUP"
-              ? "bg-orange-500 text-black shadow-sm"
+              ? "bg-red-600 text-white shadow-sm"
               : "text-gray-400 hover:text-white"
           }`}
         >
-          <Database className="w-4 h-4" />
+          <Database className="w-4 h-4 text-cyan-400 shrink-0" />
           <span>النسخ الاحتياطي</span>
         </button>
       </div>
 
       {/* Main Settings Form */}
       <form onSubmit={handleSave} className="space-y-6">
-        {/* TAB 0: STORE LOGO */}
+        {/* TAB 1: MAINTENANCE MODE */}
+        {activeTab === "MAINTENANCE" && (
+          <div className="p-6 rounded-2xl bg-[#12161f] border border-gray-800 space-y-6">
+            <div className="border-b border-gray-800 pb-3 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Wrench className="w-5 h-5 text-amber-500" />
+                  <span>التحكم في وضع الصيانة وإغلاق المتجر (Maintenance Mode)</span>
+                </h3>
+                <p className="text-xs text-gray-400 mt-1">
+                  عند تفعيل هذا الخيار، يتم عمل BLUR على المتجر وعرض نافذة اعتذار للعملاء بأن المتجر تحت الصيانة، بينما يظل متاحاً لك بصفتك مسؤول لتعديل ومتابعة كل شيء.
+                </p>
+              </div>
+
+              <div
+                className={`px-3 py-1.5 rounded-xl font-mono text-xs font-black shrink-0 border flex items-center gap-2 ${
+                  isMaintenanceOn
+                    ? "bg-red-500/20 border-red-500/40 text-red-400"
+                    : "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
+                }`}
+              >
+                <span
+                  className={`w-2.5 h-2.5 rounded-full ${
+                    isMaintenanceOn ? "bg-red-500 animate-ping" : "bg-emerald-500"
+                  }`}
+                />
+                <span>{isMaintenanceOn ? "وضع الصيانة: مُفعل (المتجر مغلق)" : "المتجر يعمل بشكل طبيعي"}</span>
+              </div>
+            </div>
+
+            {/* Big Interactive Toggle Switch */}
+            <div className="p-5 rounded-2xl bg-[#161b24] border border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="space-y-1 text-right">
+                <span className="text-sm font-black text-white block">
+                  مفتاح تشغيل / إيقاف وضع الصيانة المباشر:
+                </span>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  اضغط على الزر لتفعيل أو إلغاء الصيانة، ثم اضغط على زر "حفظ التعديلات" بالأسفل لتطبيقه على الفور.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={toggleMaintenance}
+                className={`px-6 py-3.5 rounded-2xl font-black text-xs flex items-center justify-center gap-2.5 transition-all duration-300 shrink-0 shadow-lg hover:scale-105 active:scale-95 ${
+                  isMaintenanceOn
+                    ? "bg-red-600 hover:bg-red-700 text-white shadow-[0_0_25px_rgba(220,38,38,0.4)]"
+                    : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                }`}
+              >
+                <Power className="w-5 h-5" />
+                <span>
+                  {isMaintenanceOn ? "إلغاء وضع الصيانة (فتح المتجر للعملاء)" : "تفعيل وضع الصيانة (إغلاق المتجر)"}
+                </span>
+              </button>
+            </div>
+
+            {/* Customization Inputs */}
+            <div className="grid grid-cols-1 gap-4 p-5 rounded-2xl bg-[#161b24] border border-gray-800">
+              <h4 className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4" />
+                <span>تخصيص رسالة الاعتذار والعنوان الظاهر للعملاء:</span>
+              </h4>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-300 mb-1.5">
+                  عنوان نافذة الصيانة:
+                </label>
+                <input
+                  type="text"
+                  value={settings.maintenance_title || "المتجر في وضع الصيانة وسنعود قريباً 🛠️"}
+                  onChange={(e) => handleChange("maintenance_title", e.target.value)}
+                  placeholder="المتجر في وضع الصيانة وسنعود قريباً 🛠️"
+                  className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-300 mb-1.5">
+                  نص رسالة الاعتذار والتوضيح للعملاء:
+                </label>
+                <textarea
+                  rows={3}
+                  value={
+                    settings.maintenance_message ||
+                    "نعتذر لعملائنا الكرام، نقوم حالياً بعمل تحسينات وتطويرات دورية للمتجر لتقديم أفضل تجربة وسرعة فائقة في تسليم السيارات والخدمات. سنعود للعمل بكامل طاقتنا قريباً جداً!"
+                  }
+                  onChange={(e) => handleChange("maintenance_message", e.target.value)}
+                  placeholder="اكتب رسالة الاعتذار والتوضيح هنا..."
+                  className="w-full p-3 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right leading-relaxed"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: SOCIAL & COMMUNITY LINKS */}
+        {activeTab === "SOCIAL" && (
+          <div className="p-6 rounded-2xl bg-[#12161f] border border-gray-800 space-y-6">
+            <div className="border-b border-gray-800 pb-3 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Share2 className="w-5 h-5 text-emerald-500" />
+                  <span>روابط المنصات والمجتمع (واتساب، فيسبوك، تيك توك)</span>
+                </h3>
+                <p className="text-xs text-gray-400 mt-1">
+                  ضع روابط حساباتك الرسمية وقنواتك، وستظهر في الواجهة الرئيسية بأزرار احترافية مع النص الترويجي الذي تحدده.
+                </p>
+              </div>
+
+              <span className="px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-xs font-black shrink-0">
+                Community Hub 🔥
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* WhatsApp Link Input */}
+              <div className="p-4 rounded-xl bg-[#161b24] border border-gray-800 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-black text-[#25D366]">
+                  <MessageCircle className="w-4 h-4" />
+                  <span>رابط أو رقم واتساب (WhatsApp):</span>
+                </div>
+                <input
+                  type="text"
+                  placeholder="https://wa.me/201288212101 أو 01288212101"
+                  value={settings.social_whatsapp || "https://wa.me/201288212101"}
+                  onChange={(e) => handleChange("social_whatsapp", e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-[#25D366] text-left font-mono"
+                  dir="ltr"
+                />
+                <p className="text-[11px] text-gray-400">
+                  يمكنك كتابة الرقم مباشرة أو وضع رابط مباشر لمحادثة أو جروب واتساب.
+                </p>
+              </div>
+
+              {/* Facebook Link Input */}
+              <div className="p-4 rounded-xl bg-[#161b24] border border-gray-800 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-black text-[#1877F2]">
+                  <ExternalLink className="w-4 h-4" />
+                  <span>رابط فيسبوك (Facebook):</span>
+                </div>
+                <input
+                  type="text"
+                  placeholder="https://facebook.com/your-page"
+                  value={settings.social_facebook || "https://facebook.com"}
+                  onChange={(e) => handleChange("social_facebook", e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-[#1877F2] text-left font-mono"
+                  dir="ltr"
+                />
+                <p className="text-[11px] text-gray-400">
+                  رابط الصفحة الرسمية أو جروب المتجر على فيسبوك.
+                </p>
+              </div>
+
+              {/* TikTok Link Input */}
+              <div className="p-4 rounded-xl bg-[#161b24] border border-gray-800 space-y-2">
+                <div className="flex items-center gap-2 text-xs font-black text-[#FE2C55]">
+                  <Flame className="w-4 h-4" />
+                  <span>رابط تيك توك (TikTok):</span>
+                </div>
+                <input
+                  type="text"
+                  placeholder="https://tiktok.com/@your-account"
+                  value={settings.social_tiktok || "https://tiktok.com"}
+                  onChange={(e) => handleChange("social_tiktok", e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-[#FE2C55] text-left font-mono"
+                  dir="ltr"
+                />
+                <p className="text-[11px] text-gray-400">
+                  رابط حساب تيك توك الخاص باستعراض السيارات والتصاميم.
+                </p>
+              </div>
+            </div>
+
+            {/* Promotional CTA Text */}
+            <div className="p-4 rounded-xl bg-[#161b24] border border-gray-800 space-y-2">
+              <label className="block text-xs font-bold text-amber-400">
+                النص الدعائي الترويجي أسفل أزرار المنصات (Call to Action):
+              </label>
+              <textarea
+                rows={2}
+                value={
+                  settings.social_cta_text ||
+                  "انضم لمجتمعنا الرسمي وتابع أقوى العروض الحصرية، مسابقات الكوينز، وتسليمات السيارات أولاً بأول! 🚀🔥"
+                }
+                onChange={(e) => handleChange("social_cta_text", e.target.value)}
+                placeholder="انضم لمجتمعنا الرسمي وتابع أقوى العروض..."
+                className="w-full p-3 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right leading-relaxed"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: STORE LOGO */}
         {activeTab === "LOGO" && (
           <div className="p-6 rounded-2xl bg-[#12161f] border border-gray-800 space-y-6">
             <div className="border-b border-gray-800 pb-3 flex items-center justify-between">
@@ -388,44 +639,38 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
                   />
                 </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-gray-800">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-200 mb-1">
-                        اسم المتجر (الظاهر بجانب اللوجو):
-                      </label>
-                      <input
-                        type="text"
-                        value={settings.store_name || ""}
-                        onChange={(e) => handleChange("store_name", e.target.value)}
-                        placeholder="مثال: EGY CPM"
-                        className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right font-bold"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-200 mb-1">
-                        الكلمة التوضيحية تحت اللوجو (Slogan):
-                      </label>
-                      <input
-                        type="text"
-                        value={settings.store_slogan || ""}
-                        onChange={(e) => handleChange("store_slogan", e.target.value)}
-                        placeholder="مثال: Car Parking Marketplace"
-                        className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right font-mono"
-                      />
-                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-gray-800">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-200 mb-1">
+                      اسم المتجر (الظاهر بجانب اللوجو):
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.store_name || ""}
+                      onChange={(e) => handleChange("store_name", e.target.value)}
+                      placeholder="مثال: EGY CPM"
+                      className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right font-bold"
+                    />
                   </div>
-
-                  <div className="p-3 rounded-xl bg-red-950/20 border border-red-500/30 text-xs text-gray-300 space-y-1">
-                  <p className="font-bold text-red-400">⚡ ميزات الشعار في المتجر:</p>
-                  <p className="text-[11px] text-gray-400 leading-relaxed">
-                    يظهر اللوجو في أعلى المتجر (الهيدر)، والفوتر، وصفحات الطلبات، ويتم تحميله مباشرة وبسرعة فائقة من سيرفرات Cloudinary العالمية بدون أي استهلاك لباقة Vercel أو قاعدة بيانات Supabase.
-                  </p>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-200 mb-1">
+                      الكلمة التوضيحية تحت اللوجو (Slogan):
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.store_slogan || ""}
+                      onChange={(e) => handleChange("store_slogan", e.target.value)}
+                      placeholder="مثال: Car Parking Marketplace"
+                      className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right font-mono"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         )}
-        {/* TAB 1: HERO SLIDER & VEHICLE IMAGES */}
+
+        {/* TAB 4: HERO SLIDER */}
         {activeTab === "SLIDER" && (
           <div className="p-6 rounded-2xl bg-[#12161f] border border-gray-800 space-y-6">
             <div className="border-b border-gray-800 pb-3">
@@ -500,7 +745,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
                   <span>إضافة بالرابط</span>
                 </button>
 
-                <label className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-black rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0">
+                <label className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0">
                   {isUploading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
@@ -541,7 +786,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
                         alt={`Slide ${idx + 1}`}
                         className="w-full h-full object-cover"
                       />
-                      <span className="absolute top-1.5 right-1.5 px-2 py-0.5 rounded-md bg-black/80 text-orange-500 font-mono font-bold text-[10px]">
+                      <span className="absolute top-1.5 right-1.5 px-2 py-0.5 rounded-md bg-black/80 text-red-400 font-mono font-bold text-[10px]">
                         #{idx + 1}
                       </span>
                     </div>
@@ -585,12 +830,12 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
           </div>
         )}
 
-        {/* TAB 2: STORE TEXTS & CMS */}
+        {/* TAB 5: STORE TEXTS & CMS */}
         {activeTab === "TEXTS" && (
           <div className="p-6 rounded-2xl bg-[#12161f] border border-gray-800 space-y-6">
             <div className="border-b border-gray-800 pb-3">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Type className="w-5 h-5 text-orange-500" />
+                <Type className="w-5 h-5 text-blue-400" />
                 <span>نصوص وهوية المتجر والشاشة الرئيسية (CMS)</span>
               </h3>
               <p className="text-xs text-gray-400">
@@ -612,7 +857,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
                     type="text"
                     value={settings.store_name || "EGY CPM"}
                     onChange={(e) => handleChange("store_name", e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-orange-500 text-right font-bold"
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right font-bold"
                   />
                 </div>
 
@@ -622,7 +867,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
                     type="text"
                     value={settings.store_slogan || "Car Parking Marketplace"}
                     onChange={(e) => handleChange("store_slogan", e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-orange-500 text-right font-mono"
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right font-mono"
                   />
                 </div>
               </div>
@@ -633,7 +878,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
                   type="text"
                   value={settings.hero_badge || "متجر وورشة Car Parking Multiplayer الرسمية"}
                   onChange={(e) => handleChange("hero_badge", e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-orange-500 text-right"
+                  className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right"
                 />
               </div>
 
@@ -643,7 +888,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
                   type="text"
                   value={settings.hero_title || "المنصة الأولى لخدمات وتعديل سيارات اللعبة"}
                   onChange={(e) => handleChange("hero_title", e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-orange-500 text-right font-bold"
+                  className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right font-bold"
                 />
               </div>
 
@@ -653,7 +898,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
                   rows={3}
                   value={settings.hero_description || "المتجر الرائد لتعديل محركات السيارات 1695HP، وتصاميم الفينيل الحصرية، وشحن الكاش والكوينز وتفعيل الكينج رانك، مع حماية تامة وأمان معتمد 100%."}
                   onChange={(e) => handleChange("hero_description", e.target.value)}
-                  className="w-full p-3 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-orange-500 text-right leading-relaxed"
+                  className="w-full p-3 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right leading-relaxed"
                 />
               </div>
 
@@ -761,86 +1006,10 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
               </div>
             </div>
 
-            {/* SECTION 3: HOW IT WORKS */}
+            {/* SECTION 3: FOOTER COPY */}
             <div className="space-y-4 p-4 rounded-xl bg-[#161b24] border border-gray-800">
               <h4 className="text-xs font-extrabold text-orange-400 flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>3. قسم كيف يعمل المتجر (How It Works)</span>
-              </h4>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">شارة القسم</label>
-                  <input
-                    type="text"
-                    value={settings.how_badge || "خطوات الشراء والتسليم"}
-                    onChange={(e) => handleChange("how_badge", e.target.value)}
-                    className="w-full px-3 py-1.5 bg-[#0f1218] border border-gray-700 rounded-lg text-xs text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">عنوان القسم</label>
-                  <input
-                    type="text"
-                    value={settings.how_title || "كيف يعمل المتجر؟"}
-                    onChange={(e) => handleChange("how_title", e.target.value)}
-                    className="w-full px-3 py-1.5 bg-[#0f1218] border border-gray-700 rounded-lg text-xs text-white font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">وصف القسم</label>
-                  <input
-                    type="text"
-                    value={settings.how_subtitle || "4 خطوات سهلة ومباشرة تفصلك عن استلام وتطوير سيارتك"}
-                    onChange={(e) => handleChange("how_subtitle", e.target.value)}
-                    className="w-full px-3 py-1.5 bg-[#0f1218] border border-gray-700 rounded-lg text-xs text-white"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* SECTION 4: WHY CHOOSE US */}
-            <div className="space-y-4 p-4 rounded-xl bg-[#161b24] border border-gray-800">
-              <h4 className="text-xs font-extrabold text-orange-400 flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4" />
-                <span>4. قسم لماذا تختارنا (Why Choose Us)</span>
-              </h4>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">شارة القسم</label>
-                  <input
-                    type="text"
-                    value={settings.why_badge || "لماذا تختار ورشة ومتجر EGY CPM؟"}
-                    onChange={(e) => handleChange("why_badge", e.target.value)}
-                    className="w-full px-3 py-1.5 bg-[#0f1218] border border-gray-700 rounded-lg text-xs text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">عنوان القسم</label>
-                  <input
-                    type="text"
-                    value={settings.why_title || "المتجر المعتمد للاعبي Car Parking"}
-                    onChange={(e) => handleChange("why_title", e.target.value)}
-                    className="w-full px-3 py-1.5 bg-[#0f1218] border border-gray-700 rounded-lg text-xs text-white font-bold"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-400 mb-1">وصف القسم</label>
-                  <input
-                    type="text"
-                    value={settings.why_subtitle || "أمان فائق، دقة في التنفيذ، وأعلى جودة في السيارات والتعديلات الحصرية."}
-                    onChange={(e) => handleChange("why_subtitle", e.target.value)}
-                    className="w-full px-3 py-1.5 bg-[#0f1218] border border-gray-700 rounded-lg text-xs text-white"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* SECTION 5: FOOTER COPY */}
-            <div className="space-y-4 p-4 rounded-xl bg-[#161b24] border border-gray-800">
-              <h4 className="text-xs font-extrabold text-orange-400 flex items-center gap-1.5">
-                <span>5. نصوص الفوتر وحقوق الملكية (Footer)</span>
+                <span>3. نصوص الفوتر وحقوق الملكية (Footer)</span>
               </h4>
 
               <div>
@@ -849,7 +1018,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
                   rows={2}
                   value={settings.footer_bio || "المتجر الأول والمتخصص في خدمات لعبة Car Parking Multiplayer على الهواتف. سيارات مرسومة، تعديل محركات 1695HP، كينج رانك، شحن كاش وكوينز بأمان 100%."}
                   onChange={(e) => handleChange("footer_bio", e.target.value)}
-                  className="w-full p-3 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-orange-500 text-right leading-relaxed"
+                  className="w-full p-3 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right leading-relaxed"
                 />
               </div>
 
@@ -860,7 +1029,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
                     type="text"
                     value={settings.footer_guarantee || "ضمان ضد الباند 100% وتسليم فوري"}
                     onChange={(e) => handleChange("footer_guarantee", e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-orange-500 text-right"
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right"
                   />
                 </div>
 
@@ -870,7 +1039,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
                     type="text"
                     value={settings.footer_copyright || "© 2026 EGY CPM. جميع الحقوق محفوظة لمتجر كار باركينج."}
                     onChange={(e) => handleChange("footer_copyright", e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-orange-500 text-right"
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right"
                   />
                 </div>
               </div>
@@ -878,13 +1047,13 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
           </div>
         )}
 
-        {/* TAB 3: THEME & COLORS */}
+        {/* TAB 6: THEME & COLORS */}
         {activeTab === "THEME" && (
           <div className="p-6 rounded-2xl bg-[#12161f] border border-gray-800 space-y-6">
             <div className="flex items-center justify-between border-b border-gray-800 pb-3">
               <div className="space-y-0.5">
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Palette className="w-5 h-5 text-orange-500" />
+                  <Palette className="w-5 h-5 text-purple-400" />
                   <span>إدارة ألوان وثيم المتجر بالكامل</span>
                 </h3>
                 <p className="text-xs text-gray-400">
@@ -932,13 +1101,13 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
-                    value={settings.theme_primary_color || "#ff6600"}
+                    value={settings.theme_primary_color || "#e8161f"}
                     onChange={(e) => handleChange("theme_primary_color", e.target.value)}
                     className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
                   />
                   <input
                     type="text"
-                    value={settings.theme_primary_color || "#ff6600"}
+                    value={settings.theme_primary_color || "#e8161f"}
                     onChange={(e) => handleChange("theme_primary_color", e.target.value)}
                     className="flex-1 px-3 py-2 bg-[#0f1218] border border-gray-700 rounded-lg text-xs text-white font-mono text-center"
                   />
@@ -950,13 +1119,13 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
-                    value={settings.theme_btn_color || "#ff6600"}
+                    value={settings.theme_btn_color || "#e8161f"}
                     onChange={(e) => handleChange("theme_btn_color", e.target.value)}
                     className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
                   />
                   <input
                     type="text"
-                    value={settings.theme_btn_color || "#ff6600"}
+                    value={settings.theme_btn_color || "#e8161f"}
                     onChange={(e) => handleChange("theme_btn_color", e.target.value)}
                     className="flex-1 px-3 py-2 bg-[#0f1218] border border-gray-700 rounded-lg text-xs text-white font-mono text-center"
                   />
@@ -984,12 +1153,12 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
           </div>
         )}
 
-        {/* TAB 4: PAYMENT & CASH NUMBERS */}
+        {/* TAB 7: PAYMENT & CASH NUMBERS */}
         {activeTab === "PAYMENT" && (
           <div className="p-6 rounded-2xl bg-[#12161f] border border-gray-800 space-y-5">
             <div className="border-b border-gray-800 pb-3">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-orange-500" />
+                <CreditCard className="w-5 h-5 text-green-400" />
                 <span>أرقام التحويل وطرق الدفع والاتصال</span>
               </h3>
               <p className="text-xs text-gray-400">
@@ -1004,7 +1173,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
                   type="text"
                   value={settings.vodafone_cash || "01288212101"}
                   onChange={(e) => handleChange("vodafone_cash", e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-orange-500 text-right dir-ltr font-mono"
+                  className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right dir-ltr font-mono"
                 />
               </div>
 
@@ -1014,7 +1183,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
                   type="text"
                   value={settings.orange_cash || "01288212101"}
                   onChange={(e) => handleChange("orange_cash", e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-orange-500 text-right dir-ltr font-mono"
+                  className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right dir-ltr font-mono"
                 />
               </div>
 
@@ -1024,7 +1193,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
                   type="text"
                   value={settings.etisalat_cash || "01288212101"}
                   onChange={(e) => handleChange("etisalat_cash", e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-orange-500 text-right dir-ltr font-mono"
+                  className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right dir-ltr font-mono"
                 />
               </div>
 
@@ -1034,7 +1203,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
                   type="text"
                   value={settings.we_pay || "01288212101"}
                   onChange={(e) => handleChange("we_pay", e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-orange-500 text-right dir-ltr font-mono"
+                  className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right dir-ltr font-mono"
                 />
               </div>
 
@@ -1044,7 +1213,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
                   type="number"
                   value={settings.min_deposit || "50"}
                   onChange={(e) => handleChange("min_deposit", e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-orange-500 text-right font-mono"
+                  className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right font-mono"
                 />
               </div>
 
@@ -1054,17 +1223,17 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
                   type="number"
                   value={settings.max_deposit || "20000"}
                   onChange={(e) => handleChange("max_deposit", e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-orange-500 text-right font-mono"
+                  className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right font-mono"
                 />
               </div>
             </div>
           </div>
         )}
 
-        {/* TAB 5: BACKUP */}
+        {/* TAB 8: BACKUP */}
         {activeTab === "BACKUP" && (
           <div className="p-6 rounded-2xl bg-[#12161f] border border-gray-800 space-y-4">
-            <div className="flex items-center gap-2 text-orange-400 font-bold text-sm">
+            <div className="flex items-center gap-2 text-cyan-400 font-bold text-sm">
               <Database className="w-5 h-5" />
               <span>النسخ الاحتياطي لقاعدة البيانات (Database Backup)</span>
             </div>
@@ -1077,7 +1246,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
               type="button"
               onClick={handleDownloadBackup}
               disabled={isExporting}
-              className="w-full py-3.5 rounded-xl bg-orange-500 text-black font-bold text-xs flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.98] transition disabled:opacity-50"
+              className="w-full py-3.5 rounded-xl bg-cyan-600 text-white font-bold text-xs flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.98] transition disabled:opacity-50"
             >
               {isExporting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -1096,7 +1265,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
           <button
             type="submit"
             disabled={isSaving}
-            className="w-full py-4 rounded-2xl bg-orange-500 hover:bg-orange-600 text-black font-black text-sm hover:scale-[1.01] active:scale-[0.98] transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-md"
+            className="w-full py-4 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black text-sm hover:scale-[1.01] active:scale-[0.98] transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-md shadow-red-600/30"
           >
             {isSaving ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -1112,4 +1281,3 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
     </div>
   );
 }
-
