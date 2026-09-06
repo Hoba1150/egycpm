@@ -165,12 +165,20 @@ export default function CheckoutPage() {
   useEffect(() => {
     fetchSession();
 
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchSession();
+      }
+    };
+
     window.addEventListener("cpm_auth_changed", fetchSession);
     window.addEventListener("focus", fetchSession);
+    document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
       window.removeEventListener("cpm_auth_changed", fetchSession);
       window.removeEventListener("focus", fetchSession);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);
 
@@ -737,7 +745,12 @@ export default function CheckoutPage() {
             {paymentMethod === "TELEGRAM_STARS" && (
               <TelegramLinkCard
                 compact
-                onLinkStatusChange={(linked) => setIsTelegramLinked(linked)}
+                onLinkStatusChange={(linked) => {
+                  setIsTelegramLinked(linked);
+                  if (linked) {
+                    fetchSession();
+                  }
+                }}
               />
             )}
 

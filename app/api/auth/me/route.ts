@@ -31,9 +31,12 @@ export async function GET() {
         id: dbUser.id,
         email: dbUser.email,
         name: dbUser.name,
+        phone: dbUser.phone,
         image: dbUser.image,
         role: dbUser.role,
         status: dbUser.status,
+        telegramUserId: dbUser.telegramUserId,
+        telegramUsername: dbUser.telegramUsername,
         wallet: {
           balance,
           giftBalance,

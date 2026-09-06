@@ -58,6 +58,20 @@ export default function TelegramLinkCard({
 
   useEffect(() => {
     fetchStatus();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchStatus();
+      }
+    };
+
+    window.addEventListener("focus", fetchStatus);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.removeEventListener("focus", fetchStatus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, []);
 
   // Polling when waiting for user to click /start in bot
@@ -71,6 +85,11 @@ export default function TelegramLinkCard({
         setLinkUrl(null);
         toast.success("🎉 تم ربط حساب Telegram بنجاح!");
 
+        // Dispatch auth changed event so checkout and entire app updates immediately
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("cpm_auth_changed"));
+        }
+
         // Auto-redirect to checkout page if not already there
         if (redirectToCheckout && pathname !== "/checkout") {
           toast.info("جاري تحويلك إلى صفحة إتمام الدفع (Checkout)...");
@@ -79,7 +98,7 @@ export default function TelegramLinkCard({
           }, 1000);
         }
       }
-    }, 2500);
+    }, 2000);
 
     const timeout = setTimeout(() => {
       setIsWaitingForAuth(false);
