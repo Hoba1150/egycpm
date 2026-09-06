@@ -295,11 +295,32 @@ export async function createTelegramStarsOrder(input: CreateStarsOrderInput) {
     photoUrl: primaryImage,
   });
 
+  const itemsListFormatted = dbProducts
+    .map((p) => {
+      const it = input.items.find((i) => i.productId === p.id);
+      const qty = it ? it.quantity : 1;
+      const stars = Math.floor(p.starsPrice || 0) * qty;
+      return `• <b>${p.name}</b> (x${qty}) - ${stars} ⭐`;
+    })
+    .join("\n");
+
+  const userAdminCheck = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { role: true },
+  });
+  const isUserAdmin = userAdminCheck?.role === "SUPER_ADMIN" || userAdminCheck?.role === "ADMIN";
+
   // Non-blocking notification to Telegram chat
   sendOrderNotification({
     telegramUserId: dbUser.telegramUserId,
     orderNumber: order.orderNumber,
     status: "PENDING_PAYMENT",
+    amount: finalStarsTotal,
+    starsTotal: finalStarsTotal,
+    paymentMethod: "⭐ Telegram Stars (XTR)",
+    productsList: itemsListFormatted,
+    gameUsername: input.gameUsername || undefined,
+    isAdmin: isUserAdmin,
     extraLines: [
       `⭐ <b>المبلغ المطلوب:</b> ${finalStarsTotal} Telegram Stars${starsDiscount > 0 ? ` (بعد خصم ${starsDiscount} ⭐)` : ""}`,
       `⏳ في انتظار إتمام الدفع داخل تطبيق تيليجرام`,

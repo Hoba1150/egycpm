@@ -60,6 +60,10 @@ const MOCK_VARS: Record<string, string> = {
   amount: "350",
   status: "قيد التنفيذ باللعبة ⚙️",
   siteUrl: "https://egycpm.com",
+  productsList: "• باقة 50 مليون كاش + مرسيدس AMG GT (x1) - 350 ج.م",
+  paymentMethod: "نجوم تيليجرام ⭐ (Telegram Stars)",
+  deliveredCredentials: "🔑 بيانات الحساب المسلّم:\n📧 الإيميل: user123@cpm.com\n🔒 كلمة السر: Pass#9921",
+  gameUsername: "player_cpm_2026@gmail.com",
 };
 
 export default function TelegramBotManagerClient({ initialConfig }: Props) {
@@ -579,6 +583,52 @@ export default function TelegramBotManagerClient({ initialConfig }: Props) {
           {/* TAB 3: Orders & Stars Payment Notifications */}
           {activeTab === "orders" && (
             <div className="space-y-6">
+              {/* Telegram Stars Balance & Payout Guide for Admin */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-[#0e1420] to-[#0b0e14] border border-amber-500/30 text-xs space-y-3 shadow-lg">
+                <div className="flex items-center gap-2.5 text-amber-400 font-bold">
+                  <div className="w-7 h-7 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-sm">
+                    ⭐
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white">
+                      دليل تحصيل وسحب أرباح نجوم تيليجرام (Telegram Stars) للإدارة
+                    </h3>
+                    <span className="text-[10px] text-amber-400/80 font-normal">
+                      كيف تصلك أموال النجوم المدفوعة من العملاء؟
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-gray-300 leading-relaxed text-[11px] pt-1">
+                  <div className="p-3 rounded-xl bg-black/40 border border-gray-800 space-y-1.5">
+                    <strong className="text-amber-300 font-bold block">1. أين تذهب النجوم بعد دفع العميل؟</strong>
+                    <p className="text-gray-400">
+                      عندما يدفع العميل بالنجوم، تُضاف مباشرة إلى رصيد بوت المتجر الرسمي على خوادم شركة Telegram المركزية، ولا تضاف إلى محفظة الجنيهات العادية بالموقع.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-black/40 border border-gray-800 space-y-1.5">
+                    <strong className="text-amber-300 font-bold block">2. كيفية سحب وتحويل النجوم لحسابك:</strong>
+                    <p className="text-gray-400">
+                      افتح بوت <code className="text-sky-400 font-bold">@BotFather</code> في تيليجرام ⬅️ أرسل <code className="text-sky-400">/mybots</code> ⬅️ اختر بوت المتجر ⬅️ <strong className="text-white">Bot Settings</strong> ⬅️ <strong className="text-white">Payments</strong> ⬅️ <strong className="text-white">Balance & Earnings</strong>.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200/90 text-[11px] flex items-center justify-between gap-2">
+                  <span>💡 <strong>ملاحظة سياسة تيليجرام:</strong> تصبح النجوم قابلة للسحب إلى محفظة TON أو منصة Fragment بعد 21 يوماً من استلامها.</span>
+                  <a
+                    href="https://t.me/BotFather"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="shrink-0 px-3 py-1 rounded-lg bg-amber-500 text-black font-extrabold hover:bg-amber-400 transition flex items-center gap-1 text-[10px]"
+                  >
+                    <span>فتح BotFather</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+
               {/* Payment Success */}
               <div className="bg-[#0b0e14] border border-gray-800/80 rounded-2xl p-5 space-y-4">
                 <div className="flex items-center justify-between">
@@ -599,12 +649,12 @@ export default function TelegramBotManagerClient({ initialConfig }: Props) {
                 </div>
 
                 <p className="text-xs text-gray-400">
-                  تُرسل تلقائياً للعميل فور نجاح عملية الدفع عبر Telegram Stars مباشرة.
+                  تُرسل تلقائياً للعميل فور نجاح عملية الدفع عبر Telegram Stars مباشرة مع تفاصيل المنتجات وبيانات الحساب المسلم فوراً إن وجد.
                 </p>
 
                 <div className="flex flex-wrap items-center gap-1.5 p-2.5 rounded-xl bg-gray-900/50 border border-gray-800">
                   <span className="text-[11px] font-bold text-gray-400 ml-1">المتغيرات:</span>
-                  {["orderNumber", "amount", "siteUrl"].map((v) => (
+                  {["orderNumber", "amount", "productsList", "paymentMethod", "deliveredCredentials", "siteUrl"].map((v) => (
                     <button
                       key={v}
                       type="button"
@@ -618,7 +668,7 @@ export default function TelegramBotManagerClient({ initialConfig }: Props) {
                 </div>
 
                 <textarea
-                  rows={6}
+                  rows={8}
                   dir="ltr"
                   value={config.paymentSuccess}
                   onChange={(e) => {
@@ -635,7 +685,7 @@ export default function TelegramBotManagerClient({ initialConfig }: Props) {
                   <div className="flex items-center gap-2">
                     <ShoppingBag className="w-4 h-4 text-purple-400" />
                     <h3 className="text-sm font-black text-white">
-                      إشعار إنشاء فاتورة دفع Stars جديدة
+                      إشعار إنشاء فاتورة دفع Stars جديدة (بانتظار السداد)
                     </h3>
                   </div>
                   <button
@@ -654,7 +704,7 @@ export default function TelegramBotManagerClient({ initialConfig }: Props) {
 
                 <div className="flex flex-wrap items-center gap-1.5 p-2.5 rounded-xl bg-gray-900/50 border border-gray-800">
                   <span className="text-[11px] font-bold text-gray-400 ml-1">المتغيرات:</span>
-                  {["orderNumber", "amount", "siteUrl"].map((v) => (
+                  {["orderNumber", "amount", "productsList", "gameUsername", "siteUrl"].map((v) => (
                     <button
                       key={v}
                       type="button"
@@ -668,7 +718,7 @@ export default function TelegramBotManagerClient({ initialConfig }: Props) {
                 </div>
 
                 <textarea
-                  rows={5}
+                  rows={6}
                   dir="ltr"
                   value={config.orderCreatedPending}
                   onChange={(e) => {
@@ -700,7 +750,7 @@ export default function TelegramBotManagerClient({ initialConfig }: Props) {
 
                 <div className="flex flex-wrap items-center gap-1.5 p-2.5 rounded-xl bg-gray-900/50 border border-gray-800">
                   <span className="text-[11px] font-bold text-gray-400 ml-1">المتغيرات:</span>
-                  {["orderNumber", "status", "siteUrl"].map((v) => (
+                  {["orderNumber", "status", "productsList", "siteUrl"].map((v) => (
                     <button
                       key={v}
                       type="button"
@@ -714,7 +764,7 @@ export default function TelegramBotManagerClient({ initialConfig }: Props) {
                 </div>
 
                 <textarea
-                  rows={4}
+                  rows={5}
                   dir="ltr"
                   value={config.orderStatusUpdate}
                   onChange={(e) => {
@@ -746,7 +796,7 @@ export default function TelegramBotManagerClient({ initialConfig }: Props) {
 
                 <div className="flex flex-wrap items-center gap-1.5 p-2.5 rounded-xl bg-gray-900/50 border border-gray-800">
                   <span className="text-[11px] font-bold text-gray-400 ml-1">المتغيرات:</span>
-                  {["orderNumber", "siteUrl"].map((v) => (
+                  {["orderNumber", "productsList", "deliveredCredentials", "siteUrl"].map((v) => (
                     <button
                       key={v}
                       type="button"
@@ -760,7 +810,7 @@ export default function TelegramBotManagerClient({ initialConfig }: Props) {
                 </div>
 
                 <textarea
-                  rows={4}
+                  rows={6}
                   dir="ltr"
                   value={config.orderDelivered}
                   onChange={(e) => {

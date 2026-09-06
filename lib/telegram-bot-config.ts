@@ -53,31 +53,44 @@ export const DEFAULT_TELEGRAM_BOT_CONFIG: TelegramBotConfig = {
 
 للحصول على رابط جديد، يرجى العودة للمتجر والضغط على زر <b>"ربط Telegram"</b> مرة أخرى.`,
 
-  orderCreatedPending: `🏎️ <b>متجر EgyCPM — فاتورة جديدة</b> ⭐
+  orderCreatedPending: `🏎️ <b>متجر EgyCPM — فاتورة دفع جديدة</b> ⭐
 
 📦 <b>رقم الطلب:</b> #{orderNumber}
 📌 <b>الحالة:</b> ⭐ بانتظار دفع النجوم
 💵 <b>المبلغ المطلوب:</b> {amount} Telegram Stars
+🚗 <b>المنتجات المطلوبة:</b>
+{productsList}
+
 ⏳ في انتظار إتمام الدفع داخل تطبيق تيليجرام`,
 
   paymentSuccess: `✅ <b>تم استلام وتأكيد دفعتك بنجاح!</b> ⭐
 
 📦 <b>رقم الطلب:</b> #{orderNumber}
 ⭐ <b>المبلغ المدفوع:</b> {amount} Telegram Stars
+💳 <b>طريقة الدفع:</b> {paymentMethod}
+🚗 <b>تفاصيل المنتجات:</b>
+{productsList}
+{deliveredCredentials}
 
 شكراً لتسوقك من <b>EgyCPM</b>! 🏎️
-اضغط على الزر أدناه لمشاهدة تفاصيل طلبك واستلام حسابك أو بيانات التنفيذ:`,
+اضغط على الزر أدناه لمشاهدة تفاصيل طلبك:`,
 
   orderStatusUpdate: `🏎️ <b>متجر EgyCPM — تحديث حالة الطلب</b>
 
 📦 <b>رقم الطلب:</b> #{orderNumber}
-📌 <b>الحالة الجديدة:</b> {status}`,
+📌 <b>الحالة الجديدة:</b> {status}
+🚗 <b>المنتجات:</b>
+{productsList}`,
 
   orderDelivered: `🎉 <b>تم تسليم طلبك بنجاح!</b> 🚀
 
 📦 <b>رقم الطلب:</b> #{orderNumber}
 📌 <b>الحالة:</b> مكتمل وتم التسليم
-📧 <b>بيانات الاستلام:</b> تفضل بمراجعة تفاصيل طلبك عبر الرابط أدناه.`,
+🚗 <b>المنتجات:</b>
+{productsList}
+{deliveredCredentials}
+
+شكراً لثقتكم بمتجر <b>EgyCPM</b>! 🏎️`,
 
   balanceMessage: `💰 <b>محفظتك المالية في متجر EgyCPM</b> 🏎️
 

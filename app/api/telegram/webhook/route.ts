@@ -194,13 +194,14 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: true });
       }
 
+      // Delivery variables to capture from transaction
+      let hasGameAccount = false;
+      let deliveredAccountEmail: string | null = null;
+      let deliveredAccountPasswordEncrypted: string | null = null;
+      let deliveredAccountNotes: string | null = null;
+
       // Execute Atomic Fulfillment Transaction
       await prisma.$transaction(async (tx) => {
-        let hasGameAccount = false;
-        let deliveredAccountEmail: string | null = null;
-        let deliveredAccountPasswordEncrypted: string | null = null;
-        let deliveredAccountNotes: string | null = null;
-
         // 1. Decrement Stock and Process Instant Account Delivery
         for (const item of order.items) {
           const prod = await tx.product.findUnique({ where: { id: item.productId } });
@@ -354,9 +355,25 @@ export async function POST(req: Request) {
       const orderLink = `${siteUrl}/orders/${order.orderNumber}`;
       const botConfig = await getTelegramBotConfig();
 
+      const itemsSummary = (order.items || [])
+        .map((i: any) => `• <b>${i.name || i.productName}</b> (x${i.quantity})`)
+        .join("\n");
+
+      let credsText = "";
+      if (hasGameAccount && deliveredAccountEmail) {
+        const decryptedPass = deliveredAccountPasswordEncrypted
+          ? decryptData(deliveredAccountPasswordEncrypted)
+          : "";
+        credsText = `\n🔑 <b>بيانات الحساب المسلم:</b>\n📧 البريد: <code>${deliveredAccountEmail}</code>\n🔑 كلمة السر: <code>${decryptedPass || "لا توجد"}</code>\n${deliveredAccountNotes ? `📝 ملاحظات: ${deliveredAccountNotes}\n` : ""}`;
+      }
+
       const telegramMsg = interpolateTemplate(botConfig.paymentSuccess, {
         orderNumber: order.orderNumber,
         amount: starsAmount,
+        starsTotal: starsAmount,
+        paymentMethod: "⭐ Telegram Stars (XTR)",
+        productsList: itemsSummary,
+        deliveredCredentials: credsText,
         siteUrl,
       });
 

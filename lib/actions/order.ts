@@ -128,6 +128,12 @@ export async function createOrder(input: CreateOrderInput) {
   const encryptedPassword = input.gamePassword ? encryptData(input.gamePassword) : null;
   const orderNumber = generateOrderNumber();
 
+  // Delivery variables to capture from transaction for notification
+  let hasGameAccount = false;
+  let deliveredAccountEmail: string | null = null;
+  let deliveredAccountPasswordEncrypted: string | null = null;
+  let deliveredAccountNotes: string | null = null;
+
   // 4. Execute ATOMIC PRISMA TRANSACTION (Zero double-spending)
   const result = await prisma.$transaction(async (tx) => {
     // A. Fetch current user wallet with lock
@@ -172,11 +178,6 @@ export async function createOrder(input: CreateOrderInput) {
     });
 
     // C. Check for Game Accounts and Process Instant Delivery
-    let hasGameAccount = false;
-    let deliveredAccountEmail: string | null = null;
-    let deliveredAccountPasswordEncrypted: string | null = null;
-    let deliveredAccountNotes: string | null = null;
-
     // E. Decrement Stock, Update Product, and Deliver Account
     for (const item of input.items) {
       // Re-fetch product inside transaction to guarantee atomic lock
@@ -366,16 +367,33 @@ export async function createOrder(input: CreateOrderInput) {
   const createdOrder = result as any;
   const dbUser = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { telegramUserId: true },
+    select: { telegramUserId: true, role: true },
   });
   if (dbUser?.telegramUserId) {
+    const isUserAdmin = dbUser.role === "SUPER_ADMIN" || dbUser.role === "ADMIN";
     const statusLabel = createdOrder.status === "COMPLETED"
       ? "🎉 تم التسليم الفوري"
       : "🔄 جاري تجهيز الطلب";
+    const productsFormatted = orderItemsData
+      .map((it) => `• <b>${it.name}</b> (x${it.quantity}) - ${it.total} ج.م`)
+      .join("\n");
+
+    let credsFormatted = "";
+    if (hasGameAccount && deliveredAccountEmail) {
+      const decryptedPass = deliveredAccountPasswordEncrypted ? decryptData(deliveredAccountPasswordEncrypted) : "";
+      credsFormatted = `\n🔑 <b>بيانات الحساب المسلم:</b>\n📧 البريد: <code>${deliveredAccountEmail}</code>\n🔑 كلمة السر: <code>${decryptedPass || "لا توجد"}</code>\n${deliveredAccountNotes ? `📝 ملاحظات: ${deliveredAccountNotes}\n` : ""}`;
+    }
+
     sendOrderNotification({
       telegramUserId: dbUser.telegramUserId,
       orderNumber: createdOrder.orderNumber,
       status: createdOrder.status,
+      amount: `${finalTotal} ج.م`,
+      paymentMethod: "💰 رصيد المحفظة (خصم فوري)",
+      productsList: productsFormatted,
+      deliveredCredentials: credsFormatted,
+      gameUsername: input.gameUsername || undefined,
+      isAdmin: isUserAdmin,
       extraLines: [`💳 <b>طريقة الدفع:</b> رصيد المحفظة`, `📊 <b>الحالة:</b> ${statusLabel}`],
     }).catch(() => {});
   }
@@ -569,6 +587,7 @@ export async function updateOrderStatus(data: {
 
   const order = await prisma.order.findUnique({
     where: { id: data.orderId },
+    include: { items: true },
   });
 
   if (!order) throw new Error("الطلب غير موجود.");
@@ -664,25 +683,37 @@ export async function updateOrderStatus(data: {
   // Fire Telegram notification to customer (non-blocking)
   const orderUser = await prisma.user.findUnique({
     where: { id: order.userId },
-    select: { telegramUserId: true },
+    select: { telegramUserId: true, role: true },
   });
   if (orderUser?.telegramUserId) {
-    const extraLines: string[] = [];
-    if (data.status === "COMPLETED") {
-      if (data.deliveredEmail || order.deliveredAccountEmail) {
-        extraLines.push(`📧 <b>البريد:</b> ${data.deliveredEmail || order.deliveredAccountEmail}`);
-      }
-      if (data.deliveredNotes || order.deliveredAccountNotes) {
-        extraLines.push(`📝 <b>ملاحظات:</b> ${data.deliveredNotes || order.deliveredAccountNotes}`);
-      }
+    const isUserAdmin = orderUser.role === "SUPER_ADMIN" || orderUser.role === "ADMIN";
+    const productsFormatted = (order.items || [])
+      .map((it: any) => `• <b>${it.productName || it.name}</b> (x${it.quantity})`)
+      .join("\n");
+
+    let credsFormatted = "";
+    if (data.status === "COMPLETED" && (data.deliveredEmail || order.deliveredAccountEmail)) {
+      const emailToUse = data.deliveredEmail || order.deliveredAccountEmail;
+      const passToUse = data.deliveredPassword || (order.deliveredAccountPasswordEncrypted ? decryptData(order.deliveredAccountPasswordEncrypted) : null);
+      credsFormatted = `\n🔑 <b>بيانات الحساب المسلم:</b>\n📧 البريد: <code>${emailToUse}</code>\n🔑 كلمة السر: <code>${passToUse || "لا توجد"}</code>\n${data.deliveredNotes || order.deliveredAccountNotes ? `📝 ملاحظات: ${data.deliveredNotes || order.deliveredAccountNotes}\n` : ""}`;
     }
+
+    const extraLines: string[] = [];
     if (data.adminNotes) {
       extraLines.push(`💬 <b>ملاحظة الإدارة:</b> ${data.adminNotes}`);
     }
+
     sendOrderNotification({
       telegramUserId: orderUser.telegramUserId,
       orderNumber: order.orderNumber,
       status: data.status,
+      amount: order.starsTotal ? `${order.starsTotal} ⭐` : `${order.total} ج.م`,
+      starsTotal: order.starsTotal || undefined,
+      paymentMethod: order.paymentMethod === "TELEGRAM_STARS" ? "⭐ Telegram Stars" : "💰 رصيد المحفظة",
+      productsList: productsFormatted,
+      deliveredCredentials: credsFormatted,
+      gameUsername: order.gameUsername || undefined,
+      isAdmin: isUserAdmin,
       extraLines,
     }).catch(() => {});
   }

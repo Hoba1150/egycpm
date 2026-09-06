@@ -23,6 +23,7 @@ import {
   MoreVertical,
   User,
   ShoppingBag,
+  AlertCircle,
 } from "lucide-react";
 
 export default function OrderPipelineClient({ initialOrders }: { initialOrders: any[] }) {
@@ -203,6 +204,83 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
     }
   };
 
+  const getPaymentMethodBadge = (methodOrOrder: any, starsTotal?: number) => {
+    const isStars =
+      typeof methodOrOrder === "object" && methodOrOrder !== null
+        ? methodOrOrder.paymentMethod === "TELEGRAM_STARS" || (methodOrOrder.starsTotal && methodOrOrder.starsTotal > 0)
+        : methodOrOrder === "TELEGRAM_STARS" || (starsTotal && starsTotal > 0);
+
+    if (isStars) {
+      return (
+        <span className="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] font-bold inline-flex items-center gap-1">
+          <span>⭐</span>
+          <span>Telegram Stars</span>
+        </span>
+      );
+    }
+    return (
+      <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold inline-flex items-center gap-1">
+        <span>💰</span>
+        <span>المحفظة</span>
+      </span>
+    );
+  };
+
+  const getOrderStatusBadge = (status: string) => {
+    switch (status) {
+      case "PENDING_PAYMENT":
+        return (
+          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse inline-flex items-center gap-1">
+            <span>⏳</span>
+            <span>بانتظار دفع النجوم</span>
+          </span>
+        );
+      case "PAID":
+        return (
+          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            تم الدفع بنجاح ✅
+          </span>
+        );
+      case "PROCESSING":
+        return (
+          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+            جاري التجهيز ⏳
+          </span>
+        );
+      case "IN_PROGRESS":
+        return (
+          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">
+            قيد التنفيذ باللعبة ⚙️
+          </span>
+        );
+      case "COMPLETED":
+        return (
+          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-green-500/20 text-green-400 border border-green-500/30">
+            مكتمل وتم التسليم 🎉
+          </span>
+        );
+      case "REFUNDED":
+        return (
+          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-orange-500/10 text-orange-400 border border-orange-500/30">
+            مسترجع 💸
+          </span>
+        );
+      case "CANCELLED":
+      case "REJECTED":
+        return (
+          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30">
+            ملغي / مرفوض ❌
+          </span>
+        );
+      default:
+        return (
+          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-gray-500/20 text-gray-300">
+            {status}
+          </span>
+        );
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Filters and Search Bar */}
@@ -210,6 +288,7 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
         <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
           {[
             { key: "ALL", label: "الكل" },
+            { key: "PENDING_PAYMENT", label: "بانتظار دفع النجوم ⭐" },
             { key: "PROCESSING", label: "جاري التجهيز ⏳" },
             { key: "IN_PROGRESS", label: "قيد التنفيذ 🚀" },
             { key: "COMPLETED", label: "المكتملة ✅" },
@@ -248,27 +327,20 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
           filtered.map((o) => (
             <div
               key={o.id}
-              className="p-3.5 rounded-2xl bg-[#12161f] border border-gray-800/90 shadow-sm space-y-2.5 text-right relative overflow-hidden"
+              className={`p-3.5 rounded-2xl bg-[#12161f] border shadow-sm space-y-2.5 text-right relative overflow-hidden ${
+                o.status === "PENDING_PAYMENT" ? "border-amber-500/40 bg-amber-950/10" : "border-gray-800/90"
+              }`}
             >
-              {/* Card Header: Order Number & Status */}
+              {/* Card Header: Order Number, Method & Status */}
               <div className="flex items-center justify-between gap-2 border-b border-gray-800/70 pb-2">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="font-mono font-black text-orange-500 text-xs">#{o.orderNumber}</span>
+                  {getPaymentMethodBadge(o)}
                   {getFulfillmentBadge(o.fulfillmentType)}
                 </div>
 
                 <div className="flex items-center gap-1">
-                  <span
-                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                      o.status === "COMPLETED"
-                        ? "bg-green-500/20 text-green-400"
-                        : o.status === "REFUNDED"
-                        ? "bg-orange-500/10 text-orange-400"
-                        : "bg-orange-500/10 text-orange-500 animate-pulse"
-                    }`}
-                  >
-                    {o.status}
-                  </span>
+                  {getOrderStatusBadge(o.status)}
 
                   {/* Mobile Actions Menu Trigger Button */}
                   <button
@@ -291,8 +363,15 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
                 </div>
 
                 <div className="text-left">
-                  <span className="text-[10px] text-gray-400 block">المبلغ الإجمالي:</span>
-                  <span className="font-black text-green-400 font-mono text-sm">{formatCurrency(o.total)}</span>
+                  <span className="text-[10px] text-gray-400 block">المبلغ المطلوب:</span>
+                  {o.paymentMethod === "TELEGRAM_STARS" ? (
+                    <div>
+                      <span className="font-black text-amber-400 font-mono text-sm block">{o.starsTotal ? `${o.starsTotal} ⭐` : `${formatCurrency(o.total)}`}</span>
+                      <span className="text-[9px] text-gray-500 font-mono">({formatCurrency(o.total)})</span>
+                    </div>
+                  ) : (
+                    <span className="font-black text-green-400 font-mono text-sm block">{formatCurrency(o.total)}</span>
+                  )}
                   <span className="text-[9px] text-gray-500 font-mono block">{formatDate(o.createdAt)}</span>
                 </div>
               </div>
@@ -323,7 +402,7 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
                 >
                   معاينة وتحديث الحالة ⚙️
                 </button>
-                {o.status !== "REFUNDED" && (
+                {o.status !== "REFUNDED" && o.status !== "PENDING_PAYMENT" && (
                   <button
                     onClick={() => {
                       setRefundModalOrder(o);
@@ -361,6 +440,7 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
                 <tr className="border-b border-gray-800 bg-garage-950/60 text-gray-400 font-bold">
                   <th className="p-4">رقم الطلب</th>
                   <th className="p-4">العميل</th>
+                  <th className="p-4">طريقة الدفع</th>
                   <th className="p-4">المنتجات المطلوبة</th>
                   <th className="p-4">الإجمالي</th>
                   <th className="p-4">حساب اللعبة</th>
@@ -371,7 +451,7 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
               </thead>
               <tbody className="divide-y divide-gray-800/60">
                 {filtered.map((o) => (
-                  <tr key={o.id} className="hover:bg-[#1a202c]/50 transition">
+                  <tr key={o.id} className={`hover:bg-[#1a202c]/50 transition ${o.status === "PENDING_PAYMENT" ? "bg-amber-950/5" : ""}`}>
                     <td className="p-4 font-mono font-black text-orange-500">#{o.orderNumber}</td>
                     <td className="p-4">
                       <div className="space-y-0.5">
@@ -379,13 +459,30 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
                         <span className="text-[10px] text-gray-400 font-mono">{o.user?.email}</span>
                       </div>
                     </td>
+                    <td className="p-4">
+                      <div className="space-y-1">
+                        {getPaymentMethodBadge(o)}
+                        {o.telegramPaymentChargeId && (
+                          <span className="text-[9px] text-gray-400 font-mono block">
+                            ID: {o.telegramPaymentChargeId.slice(0, 10)}...
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="p-4 max-w-xs">
                       <span className="text-gray-200 block truncate">
                         {o.items.map((it: any) => `${it.productName} (x${it.quantity})`).join(", ")}
                       </span>
                     </td>
-                    <td className="p-4 font-black text-sm text-green-400 font-mono">
-                      {formatCurrency(o.total)}
+                    <td className="p-4 font-mono">
+                      {o.paymentMethod === "TELEGRAM_STARS" ? (
+                        <div>
+                          <span className="font-black text-sm text-amber-400 block">{o.starsTotal ? `${o.starsTotal} ⭐` : `${formatCurrency(o.total)}`}</span>
+                          <span className="text-[10px] text-gray-500 block">({formatCurrency(o.total)})</span>
+                        </div>
+                      ) : (
+                        <span className="font-black text-sm text-green-400">{formatCurrency(o.total)}</span>
+                      )}
                     </td>
                     <td className="p-4">
                       {o.gameUsername ? (
@@ -402,17 +499,7 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
                       )}
                     </td>
                     <td className="p-4">
-                      <span
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${
-                          o.status === "COMPLETED"
-                            ? "bg-green-500/20 text-green-400"
-                            : o.status === "REFUNDED"
-                            ? "bg-orange-500/10 text-orange-400"
-                            : "bg-orange-500/10 text-orange-500 animate-pulse"
-                        }`}
-                      >
-                        {o.status}
-                      </span>
+                      {getOrderStatusBadge(o.status)}
                     </td>
                     <td className="p-4 text-[10px] text-gray-500 font-mono">{formatDate(o.createdAt)}</td>
                     <td className="p-4">
@@ -424,7 +511,7 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
                           معاينة وتحديث
                         </button>
 
-                        {o.status !== "REFUNDED" && (
+                        {o.status !== "REFUNDED" && o.status !== "PENDING_PAYMENT" && (
                           <button
                             onClick={() => {
                               setRefundModalOrder(o);
@@ -474,6 +561,20 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
               </button>
             </div>
 
+            {/* Pending Payment Warning Banner */}
+            {selectedOrder.status === "PENDING_PAYMENT" && (
+              <div className="p-4 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="text-xs space-y-1">
+                  <div className="font-black text-amber-200 text-sm">⚠️ تنبيه للإدارة: الطلب بانتظار إتمام الدفع بنجوم تيليجرام</div>
+                  <p className="text-amber-300/90 leading-relaxed text-[11px]">
+                    هذا الطلب تم إنشاؤه عبر بوت تيليجرام بالنجوم (Telegram Stars) ولكن العميل <strong>لم يقم بتأكيد ودفع الفاتورة داخل تيليجرام بعد</strong>. 
+                    يرجى عدم تنفيذ أو تسليم بيانات هذا الطلب حتى تكتمل عملية الدفع بنجاح وتتحول حالته تلقائياً إلى <strong>مدفوع / جاري التجهيز</strong>.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Customer & Order Items Info */}
             <div className="p-4 rounded-xl bg-[#12161f] border border-gray-800 space-y-3 text-xs">
               <div className="flex items-center justify-between border-b border-gray-800/80 pb-2.5">
@@ -481,12 +582,39 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
                   <span className="text-[10px] text-gray-400 block">العميل صاحب الطلب:</span>
                   <span className="font-bold text-white">{selectedOrder.user?.name || "عميل بدون اسم"}</span>
                   <span className="text-[10px] text-gray-400 font-mono block">{selectedOrder.user?.email}</span>
+                  {selectedOrder.user?.telegramUsername && (
+                    <span className="text-[10px] text-sky-400 font-mono block mt-0.5">
+                      تيليجرام: @{selectedOrder.user.telegramUsername}
+                    </span>
+                  )}
                 </div>
-                <div className="text-left">
-                  <span className="text-[10px] text-gray-400 block">إجمالي المبلغ:</span>
-                  <span className="font-black text-green-400 font-mono text-sm">{formatCurrency(selectedOrder.total)}</span>
+                <div className="text-left space-y-1">
+                  <span className="text-[10px] text-gray-400 block">طريقة وإجمالي الدفع:</span>
+                  {selectedOrder.paymentMethod === "TELEGRAM_STARS" || (selectedOrder.starsTotal && selectedOrder.starsTotal > 0) ? (
+                    <div>
+                      <div className="flex items-center justify-end gap-1 text-amber-400 font-black text-sm">
+                        <span>{selectedOrder.starsTotal}</span>
+                        <span>⭐</span>
+                      </div>
+                      <span className="text-[10px] text-gray-400 block">
+                        (يعادل {formatCurrency(selectedOrder.total)})
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="font-black text-green-400 font-mono text-sm">{formatCurrency(selectedOrder.total)}</span>
+                  )}
+                  <div className="pt-1 flex justify-end">
+                    {getPaymentMethodBadge(selectedOrder.paymentMethod, selectedOrder.starsTotal)}
+                  </div>
                 </div>
               </div>
+
+              {selectedOrder.telegramPaymentChargeId && (
+                <div className="p-2 rounded bg-sky-950/40 border border-sky-800/50 text-[11px] font-mono text-sky-300">
+                  <span className="text-[10px] text-gray-400 block">معرف عملية دفع تيليجرام (Telegram Charge ID):</span>
+                  <span className="font-bold select-all break-all">{selectedOrder.telegramPaymentChargeId}</span>
+                </div>
+              )}
 
               <div>
                 <span className="text-[10px] text-gray-400 block mb-1.5 font-bold">المنتجات المشتراة:</span>

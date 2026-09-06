@@ -211,7 +211,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 /**
- * Send a structured order notification to the user via Telegram.
+ * Send a structured order notification to the user or admin via Telegram.
  * Safe: silently returns null if telegramUserId is absent or API fails.
  */
 export async function sendOrderNotification(params: {
@@ -221,12 +221,38 @@ export async function sendOrderNotification(params: {
   extraLines?: string[];
   siteUrl?: string;
   amount?: string | number;
+  isAdmin?: boolean;
+  productsList?: string;
+  paymentMethod?: string;
+  starsTotal?: string | number;
+  gameUsername?: string;
+  deliveredCredentials?: string;
 }) {
-  const { telegramUserId, orderNumber, status, extraLines = [], siteUrl, amount } = params;
+  const {
+    telegramUserId,
+    orderNumber,
+    status,
+    extraLines = [],
+    siteUrl,
+    amount,
+    isAdmin = false,
+    productsList,
+    paymentMethod,
+    starsTotal,
+    gameUsername,
+    deliveredCredentials,
+  } = params;
   if (!telegramUserId) return null;
 
-  const base = siteUrl || process.env.NEXT_PUBLIC_SITE_URL || "https://egycpm.vercel.app";
-  const orderUrl = `${base.replace(/\/$/, "")}/orders/${orderNumber}`;
+  const base = (siteUrl || process.env.NEXT_PUBLIC_SITE_URL || "https://egycpm.vercel.app").replace(/\/$/, "");
+  // If recipient is admin, direct them to the admin order dashboard; otherwise, direct to customer order tracker
+  const destinationUrl = isAdmin
+    ? `${base}/admin/orders?search=${orderNumber}`
+    : `${base}/orders/${orderNumber}`;
+  const buttonLabel = isAdmin
+    ? "📋 فتح وإدارة الطلب في لوحة الأدمن ⚙️"
+    : "📋 عرض تفاصيل الطلب واستلام الحساب 🚀";
+
   const label = STATUS_LABELS[status] || status;
 
   let headerText = `🏎️ <b>متجر EgyCPM — تحديث طلبك</b>\n\n📦 <b>رقم الطلب:</b> #${orderNumber}\n📌 <b>الحالة الجديدة:</b> ${label}`;
@@ -236,12 +262,24 @@ export async function sendOrderNotification(params: {
     const { getTelegramBotConfig } = await import("@/lib/actions/telegram-bot-settings");
     const { interpolateTemplate } = await import("@/lib/telegram-bot-config");
     const config = await getTelegramBotConfig();
+    const templateVars = {
+      orderNumber,
+      status: label,
+      amount: amount || starsTotal || "",
+      starsTotal: starsTotal || amount || "",
+      paymentMethod: paymentMethod || "⭐ Telegram Stars",
+      productsList: productsList || "",
+      gameUsername: gameUsername || "",
+      deliveredCredentials: deliveredCredentials || "",
+      siteUrl: base,
+    };
+
     if (status === "PENDING_PAYMENT" && config.orderCreatedPending) {
-      headerText = interpolateTemplate(config.orderCreatedPending, { orderNumber, status: label, amount, siteUrl: base });
+      headerText = interpolateTemplate(config.orderCreatedPending, templateVars);
     } else if (status === "COMPLETED" && config.orderDelivered) {
-      headerText = interpolateTemplate(config.orderDelivered, { orderNumber, status: label, amount, siteUrl: base });
+      headerText = interpolateTemplate(config.orderDelivered, templateVars);
     } else if (config.orderStatusUpdate) {
-      headerText = interpolateTemplate(config.orderStatusUpdate, { orderNumber, status: label, amount, siteUrl: base });
+      headerText = interpolateTemplate(config.orderStatusUpdate, templateVars);
     }
   } catch {}
 
@@ -249,7 +287,7 @@ export async function sendOrderNotification(params: {
     headerText,
     ...extraLines,
     ``,
-    `🔗 <a href="${orderUrl}">تتبع تفاصيل الطلب هنا</a>`,
+    `🔗 <a href="${destinationUrl}">${isAdmin ? "إدارة الطلب من لوحة الأدمن" : "تتبع تفاصيل الطلب هنا"}</a>`,
   ];
 
   return sendTelegramMessage({
@@ -257,7 +295,7 @@ export async function sendOrderNotification(params: {
     text: lines.join("\n"),
     parseMode: "HTML",
     replyMarkup: {
-      inline_keyboard: [[{ text: "📋 عرض تفاصيل الطلب", url: orderUrl }]],
+      inline_keyboard: [[{ text: buttonLabel, url: destinationUrl }]],
     },
   });
 }
