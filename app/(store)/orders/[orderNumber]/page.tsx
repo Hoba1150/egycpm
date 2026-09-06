@@ -9,6 +9,13 @@ import {
   Headphones,
   Key,
   ArrowRight,
+  Wallet,
+  Sparkles,
+  AlertCircle,
+  ExternalLink,
+  CheckCircle2,
+  RefreshCw,
+  XCircle,
 } from "lucide-react";
 import OrderTrackerClient from "./OrderTrackerClient";
 
@@ -35,6 +42,7 @@ export default async function OrderTrackingPage({ params }: OrderTrackingPagePro
   }
 
   const isCompleted = order.status === "COMPLETED";
+  const isStarsOrder = order.paymentMethod === "TELEGRAM_STARS" || Boolean(order.starsTotal && order.starsTotal > 0);
 
   // Check if any digital account secret was delivered
   const deliveredAccounts = order.items
@@ -43,6 +51,53 @@ export default async function OrderTrackingPage({ params }: OrderTrackingPagePro
       name: i.productName,
       data: i.deliveredDataEncrypted,
     }));
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "PENDING_PAYMENT":
+        return (
+          <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/40 text-xs font-bold inline-flex items-center gap-1 animate-pulse">
+            <span>⏳</span>
+            <span>بانتظار دفع النجوم</span>
+          </span>
+        );
+      case "COMPLETED":
+        return (
+          <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-bold inline-flex items-center gap-1">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>مكتمل ومسلّم ✅</span>
+          </span>
+        );
+      case "PROCESSING":
+      case "IN_PROGRESS":
+        return (
+          <span className="px-2.5 py-1 rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/30 text-xs font-bold inline-flex items-center gap-1">
+            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            <span>جاري التجهيز والتنفيذ ⏳</span>
+          </span>
+        );
+      case "REFUNDED":
+        return (
+          <span className="px-2.5 py-1 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/30 text-xs font-bold">
+            مسترجع 💰
+          </span>
+        );
+      case "CANCELLED":
+      case "REJECTED":
+        return (
+          <span className="px-2.5 py-1 rounded-lg bg-red-500/10 text-red-400 border border-red-500/30 text-xs font-bold inline-flex items-center gap-1">
+            <XCircle className="w-3.5 h-3.5" />
+            <span>ملغي / مرفوض</span>
+          </span>
+        );
+      default:
+        return (
+          <span className="px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/30 text-xs font-bold">
+            تم تأكيد الطلب ✅
+          </span>
+        );
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-8 text-right space-y-6">
@@ -57,10 +112,24 @@ export default async function OrderTrackingPage({ params }: OrderTrackingPagePro
             <span>/</span>
             <span>تتبع الطلب</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white flex items-center gap-2">
-            <span>طلب رقم:</span>
-            <span className="font-mono text-orange-500 font-bold">{order.orderNumber}</span>
-          </h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white flex items-center gap-2">
+              <span>طلب رقم:</span>
+              <span className="font-mono text-orange-500 font-bold">{order.orderNumber}</span>
+            </h1>
+            {getStatusBadge(order.status)}
+            {isStarsOrder ? (
+              <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/30 text-xs font-bold inline-flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>دفع Telegram Stars ⭐</span>
+              </span>
+            ) : (
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-bold inline-flex items-center gap-1">
+                <Wallet className="w-3.5 h-3.5" />
+                <span>دفع محفظة المتجر 💰</span>
+              </span>
+            )}
+          </div>
         </div>
 
         <Link
@@ -71,6 +140,30 @@ export default async function OrderTrackingPage({ params }: OrderTrackingPagePro
           <span>مساعدة بخصوص هذا الطلب</span>
         </Link>
       </div>
+
+      {/* Pending Payment Alert Card for Telegram Stars */}
+      {order.status === "PENDING_PAYMENT" && isStarsOrder && (
+        <div className="p-5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-[#1a140b] to-[#0f1218] border-2 border-amber-500/40 text-amber-300 space-y-3 shadow-lg">
+          <div className="flex items-center gap-2.5">
+            <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
+            <h3 className="text-sm font-black text-white">الطلب بانتظار إتمام الدفع بالنجوم في Telegram ⭐</h3>
+          </div>
+          <p className="text-xs text-amber-300/90 leading-relaxed">
+            تم إنشاء هذا الطلب وفاتورة الدفع بنجوم تيليجرام ({order.starsTotal || "—"} ⭐). يرجى فتح تيليجرام وتأكيد دفع الفاتورة ليتم البدء بتجهيز طلبك وتسليمك فوراً.
+          </p>
+          <div className="pt-1">
+            <a
+              href="https://t.me/EgycpmBot"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs transition shadow-md"
+            >
+              <span>فتح بوت Telegram لإتمام الدفع 🚀</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* Live Timeline */}
       <div className="p-5 sm:p-7 rounded-2xl bg-[#0f1218] border border-gray-800 shadow-sm space-y-5">
@@ -92,7 +185,7 @@ export default async function OrderTrackingPage({ params }: OrderTrackingPagePro
               <div key={idx} className="relative group">
                 {/* Step Node Marker */}
                 <div
-                  className={`absolute -right-[31px] top-0.5 w-4 h-4 rounded-full border-2 border-[#0f1218] border-[#0f1218] ${
+                  className={`absolute -right-[31px] top-0.5 w-4 h-4 rounded-full border-2 border-[#0f1218] ${
                     isLast
                       ? "bg-orange-500"
                       : "bg-emerald-500"
@@ -224,8 +317,33 @@ export default async function OrderTrackingPage({ params }: OrderTrackingPagePro
       <div className="p-5 sm:p-6 rounded-2xl bg-[#0f1218] border border-gray-800 shadow-sm space-y-4">
         <h3 className="text-base font-extrabold text-white border-b border-gray-800 pb-3 flex items-center gap-2">
           <ShoppingBag className="w-4 h-4 text-orange-500" />
-          <span>تفاصيل المنتجات المشتراة</span>
+          <span>تفاصيل المنتجات وطريقة الدفع</span>
         </h3>
+
+        {/* Payment Method Details Box */}
+        <div className="p-4 rounded-xl bg-[#121620] border border-gray-800 space-y-2 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-400 font-medium">وسيلة الدفع المعتمدة:</span>
+            {isStarsOrder ? (
+              <span className="font-black text-amber-400 inline-flex items-center gap-1 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>نجوم تيليجرام (Telegram Stars ⭐)</span>
+              </span>
+            ) : (
+              <span className="font-black text-emerald-400 inline-flex items-center gap-1 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                <Wallet className="w-3.5 h-3.5" />
+                <span>رصيد محفظة المتجر 💰</span>
+              </span>
+            )}
+          </div>
+
+          {isStarsOrder && order.telegramPaymentChargeId && (
+            <div className="flex items-center justify-between text-[11px] font-mono text-gray-400 pt-1 border-t border-gray-800">
+              <span>رقم عملية دفع تيليجرام:</span>
+              <span className="text-sky-300 font-bold select-all break-all">{order.telegramPaymentChargeId}</span>
+            </div>
+          )}
+        </div>
 
         <div className="divide-y divide-gray-800">
           {order.items.map((item) => (
@@ -253,10 +371,28 @@ export default async function OrderTrackingPage({ params }: OrderTrackingPagePro
               <span className="font-mono text-sm">-{formatCurrency(order.discount)}</span>
             </div>
           )}
-          <div className="flex justify-between items-center text-sm font-black text-white pt-3 border-t border-gray-800">
-            <span>الإجمالي المدفوع بالمحفظة:</span>
-            <span className="text-orange-500 text-xl font-mono font-black tracking-tight">{formatCurrency(order.total)}</span>
-          </div>
+
+          {isStarsOrder ? (
+            <div className="flex justify-between items-center text-sm font-black text-white pt-3 border-t border-gray-800">
+              <div className="space-y-0.5">
+                <span className="block text-amber-300">
+                  {order.status === "PENDING_PAYMENT" ? "الإجمالي المطلوب بالنجوم:" : "الإجمالي المدفوع بنجوم تيليجرام ⭐:"}
+                </span>
+                <span className="text-[10px] text-gray-400 font-normal block">
+                  (يعادل {formatCurrency(order.total)})
+                </span>
+              </div>
+              <span className="text-amber-400 text-xl font-mono font-black tracking-tight flex items-center gap-1">
+                <span>{order.starsTotal}</span>
+                <span>⭐</span>
+              </span>
+            </div>
+          ) : (
+            <div className="flex justify-between items-center text-sm font-black text-white pt-3 border-t border-gray-800">
+              <span>الإجمالي المدفوع من محفظة المتجر 💰:</span>
+              <span className="text-orange-500 text-xl font-mono font-black tracking-tight">{formatCurrency(order.total)}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
