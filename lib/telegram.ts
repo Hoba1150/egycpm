@@ -1,0 +1,140 @@
+/**
+ * Telegram Bot API Client (Zero External Dependencies)
+ * Handles Telegram Stars (XTR) invoices, webhook verification, and message notifications.
+ */
+
+const TELEGRAM_API_BASE = "https://api.telegram.org/bot";
+
+export function getTelegramBotToken(): string {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) {
+    console.warn("⚠️ TELEGRAM_BOT_TOKEN is not configured in environment variables.");
+  }
+  return token || "";
+}
+
+export function getTelegramBotUsername(): string {
+  return (process.env.TELEGRAM_BOT_USERNAME || "EgyCpmBot").replace("@", "").trim();
+}
+
+export function getTelegramWebhookSecret(): string {
+  return process.env.TELEGRAM_WEBHOOK_SECRET || "egycpm_telegram_secret_2026";
+}
+
+/**
+ * Execute a Telegram Bot API method
+ */
+export async function telegramApiRequest(method: string, body: Record<string, any> = {}) {
+  const token = getTelegramBotToken();
+  if (!token) {
+    throw new Error("TELEGRAM_BOT_TOKEN غير مضبوط في متغيرات البيئة.");
+  }
+
+  const url = `${TELEGRAM_API_BASE}${token}/${method}`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+
+  const data = await response.json();
+  if (!data.ok) {
+    console.error(`Telegram API Error on ${method}:`, data);
+    throw new Error(data.description || `فشل تنفيذ طلب ${method} على تيليجرام.`);
+  }
+
+  return data.result;
+}
+
+/**
+ * Create a Telegram Stars (XTR) Invoice Link
+ */
+export async function createStarsInvoiceLink(params: {
+  title: string;
+  description: string;
+  payload: string;
+  starsAmount: number;
+  photoUrl?: string;
+}): Promise<string> {
+  const { title, description, payload, starsAmount, photoUrl } = params;
+
+  if (starsAmount <= 0) {
+    throw new Error("سعر النجوم يجب أن يكون أكبر من الصفر.");
+  }
+
+  const body: Record<string, any> = {
+    title: title.slice(0, 32), // Telegram title max length is 32 chars
+    description: description.slice(0, 255), // Telegram description max length 255 chars
+    payload,
+    provider_token: "", // REQUIRED: Empty string for Telegram Stars (XTR)
+    currency: "XTR", // Official currency for Telegram Stars
+    prices: [
+      {
+        label: title.slice(0, 32),
+        amount: Math.round(starsAmount), // 1 Star = 1 unit for XTR
+      },
+    ],
+  };
+
+  if (photoUrl && photoUrl.startsWith("http")) {
+    body.photo_url = photoUrl;
+  }
+
+  const link = await telegramApiRequest("createInvoiceLink", body);
+  return link;
+}
+
+/**
+ * Answer Telegram Pre-Checkout Query (Must be answered within 10 seconds)
+ */
+export async function answerPreCheckoutQuery(params: {
+  preCheckoutQueryId: string;
+  ok: boolean;
+  errorMessage?: string;
+}) {
+  const { preCheckoutQueryId, ok, errorMessage } = params;
+  return await telegramApiRequest("answerPreCheckoutQuery", {
+    pre_checkout_query_id: preCheckoutQueryId,
+    ok,
+    error_message: errorMessage || undefined,
+  });
+}
+
+/**
+ * Send Direct Telegram Message to User
+ */
+export async function sendTelegramMessage(params: {
+  chatId: string | number;
+  text: string;
+  parseMode?: "HTML" | "Markdown" | "MarkdownV2";
+}) {
+  try {
+    const { chatId, text, parseMode = "HTML" } = params;
+    return await telegramApiRequest("sendMessage", {
+      chat_id: chatId,
+      text,
+      parse_mode: parseMode,
+      disable_web_page_preview: false,
+    });
+  } catch (err) {
+    console.error("Failed to send telegram message:", err);
+    return null;
+  }
+}
+
+/**
+ * Refund Telegram Stars Payment
+ */
+export async function refundTelegramStarPayment(params: {
+  userId: number | string;
+  telegramPaymentChargeId: string;
+}) {
+  const { userId, telegramPaymentChargeId } = params;
+  return await telegramApiRequest("refundStarPayment", {
+    user_id: Number(userId),
+    telegram_payment_charge_id: telegramPaymentChargeId,
+  });
+}

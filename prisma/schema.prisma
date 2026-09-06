@@ -18,6 +18,10 @@ model User {
   plainPasswordEncrypted String?
   role                   String           @default("CUSTOMER")
   status                 String           @default("ACTIVE")
+  telegramUserId         String?          @unique
+  telegramUsername       String?
+  telegramLinkToken      String?          @unique
+  telegramLinkExpires    DateTime?
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
   wallet                 Wallet?
@@ -98,6 +102,7 @@ model Product {
   slug                    String      @unique
   description             String
   price                   Float
+  starsPrice              Int?
   originalPrice           Float?
   discountPercent         Float?
   images                  String
@@ -130,6 +135,9 @@ model Order {
   discount                            Float       @default(0.0)
   couponCode                          String?
   paymentMethod                       String?     @default("WALLET")
+  starsTotal                          Int?
+  telegramPaymentChargeId             String?     @unique
+  telegramUserId                      String?
   fulfillmentType                     String?     @default("EXISTING_ACCOUNT")
   gameUsername                        String?
   gameId                              String?

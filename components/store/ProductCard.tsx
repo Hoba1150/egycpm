@@ -15,6 +15,7 @@ interface ProductCardProps {
     slug: string;
     description: string;
     price: number;
+    starsPrice?: number | null;
     originalPrice?: number | null;
     discountPercent?: number | null;
     productType: string;
@@ -148,7 +149,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           </Link>
 
           {/* Price */}
-          <div className="flex items-baseline gap-1.5 sm:gap-2 pt-0.5">
+          <div className="flex items-center gap-1.5 sm:gap-2 pt-0.5 flex-wrap">
             <span className="product-price-lg text-[13px] sm:text-base md:text-lg">
               {formatCurrency(product.price)}
             </span>
@@ -157,6 +158,12 @@ export default function ProductCard({ product }: ProductCardProps) {
                 {formatCurrency(product.originalPrice)}
               </span>
             )}
+            {product.starsPrice ? (
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-[10px] sm:text-[11px] font-bold">
+                <span>{product.starsPrice}</span>
+                <span>⭐</span>
+              </span>
+            ) : null}
           </div>
         </div>
 

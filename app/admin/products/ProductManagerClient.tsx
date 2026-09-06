@@ -60,6 +60,7 @@ export default function ProductManagerClient({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState<number | "">(150);
+  const [starsPrice, setStarsPrice] = useState<number | "">("");
   const [originalPrice, setOriginalPrice] = useState<number | "">("");
   const [discountPercent, setDiscountPercent] = useState<number | "">(0);
   const [categoryId, setCategoryId] = useState(categories[0]?.id || "");
@@ -87,6 +88,7 @@ export default function ProductManagerClient({
     setName("");
     setDescription("");
     setPrice(150);
+    setStarsPrice("");
     setOriginalPrice("");
     setDiscountPercent(0);
     setCategoryId(categories[0]?.id || "");
@@ -112,6 +114,7 @@ export default function ProductManagerClient({
     setName(p.name);
     setDescription(p.description);
     setPrice(p.price);
+    setStarsPrice(p.starsPrice || "");
     setOriginalPrice(p.originalPrice || "");
     setDiscountPercent(p.discountPercent || 0);
     setCategoryId(p.categoryId);
@@ -219,6 +222,7 @@ export default function ProductManagerClient({
           name,
           description,
           price: Number(price),
+          starsPrice: starsPrice ? Number(starsPrice) : null,
           originalPrice: originalPrice ? Number(originalPrice) : null,
           discountPercent: Number(discountPercent || 0),
           categoryId,
@@ -243,6 +247,7 @@ export default function ProductManagerClient({
           name,
           description,
           price: Number(price),
+          starsPrice: starsPrice ? Number(starsPrice) : null,
           originalPrice: originalPrice ? Number(originalPrice) : null,
           discountPercent: Number(discountPercent || 0),
           categoryId,
@@ -629,7 +634,7 @@ export default function ProductManagerClient({
                 </select>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-300 mb-1">السعر (ج.م) *</label>
                   <input
@@ -639,6 +644,20 @@ export default function ProductManagerClient({
                     value={price}
                     onChange={(e) => setPrice(Number(e.target.value))}
                     className="w-full px-3 py-2 bg-[#12161f] border border-gray-700 rounded-xl text-xs text-white text-right font-mono font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-amber-400 mb-1 flex items-center gap-1">
+                    <span>سعر النجوم (Stars ⭐)</span>
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={starsPrice}
+                    onChange={(e) => setStarsPrice(e.target.value ? Number(e.target.value) : "")}
+                    placeholder="تلقائي إن ترك فارغاً"
+                    className="w-full px-3 py-2 bg-[#12161f] border border-amber-500/40 focus:border-amber-400 rounded-xl text-xs text-amber-300 text-right font-mono"
                   />
                 </div>
 

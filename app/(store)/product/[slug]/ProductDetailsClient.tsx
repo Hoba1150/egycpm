@@ -444,6 +444,18 @@ export default function ProductDetailsClient({ product, user }: ProductDetailsCl
             </div>
           </div>
 
+          {product.starsPrice ? (
+            <div className="flex items-center justify-between pt-2 border-t border-gray-800/80">
+              <span className="text-xs text-amber-400 font-bold flex items-center gap-1">
+                <span>أو الدفع عبر Telegram Stars:</span>
+              </span>
+              <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-400 font-mono font-black text-sm flex items-center gap-1">
+                <span>{product.starsPrice * quantity}</span>
+                <span>⭐ Stars</span>
+              </span>
+            </div>
+          ) : null}
+
           {/* Sold Out Notice */}
           {isSoldOut ? (
             <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-center space-y-1">

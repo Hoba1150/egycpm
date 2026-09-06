@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import Link from "next/link";
+import TelegramLinkCard from "@/components/store/TelegramLinkCard";
 import {
   User as UserIcon,
   Wallet,
@@ -84,6 +85,9 @@ export default async function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Telegram Account Linking Card */}
+      <TelegramLinkCard />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">

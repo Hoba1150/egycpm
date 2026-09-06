@@ -5,6 +5,7 @@ import { useCartStore } from "@/lib/store";
 import { formatCurrency } from "@/lib/utils";
 import { createOrder } from "@/lib/actions/order";
 import { validateCouponCode } from "@/lib/actions/coupon";
+import { createTelegramStarsOrder, checkOrderStatus } from "@/lib/actions/telegram-payment";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
@@ -20,8 +21,19 @@ import {
   User as UserIcon,
   Phone,
   CheckCircle2,
+  ExternalLink,
+  Sparkles,
 } from "lucide-react";
 import AuthModal from "@/components/shared/AuthModal";
+import TelegramLinkCard from "@/components/store/TelegramLinkCard";
+
+function TelegramIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className || "w-4 h-4"} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
+    </svg>
+  );
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -38,6 +50,18 @@ export default function CheckoutPage() {
   const [user, setUser] = useState<any>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  // Payment Method: "WALLET" or "TELEGRAM_STARS"
+  const [paymentMethod, setPaymentMethod] = useState<"WALLET" | "TELEGRAM_STARS">("WALLET");
+  const [isTelegramLinked, setIsTelegramLinked] = useState(false);
+
+  // Stars Payment Pending State
+  const [pendingStarsOrder, setPendingStarsOrder] = useState<{
+    orderNumber: string;
+    invoiceUrl: string;
+    starsTotal: number;
+  } | null>(null);
+  const [isPollingStars, setIsPollingStars] = useState(false);
 
   // Form Fields
   const [fulfillmentType, setFulfillmentType] = useState<
@@ -67,6 +91,12 @@ export default function CheckoutPage() {
   const discount = getDiscount();
   const total = getTotal();
 
+  // Calculate estimated Stars total
+  const estimatedStarsTotal = items.reduce((acc, it: any) => {
+    const unitStars = it.starsPrice && it.starsPrice > 0 ? it.starsPrice : Math.max(1, Math.ceil(it.price / 2));
+    return acc + unitStars * it.quantity;
+  }, 0);
+
   // Fetch session & live wallet
   const fetchSession = async () => {
     try {
@@ -74,6 +104,7 @@ export default function CheckoutPage() {
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
+        setIsTelegramLinked(Boolean(data.user?.telegramUserId));
         if (data.user?.name && !customerName) setCustomerName(data.user.name);
         if (data.user?.phone && !customerPhone) setCustomerPhone(data.user.phone);
       }
@@ -95,6 +126,39 @@ export default function CheckoutPage() {
       window.removeEventListener("focus", fetchSession);
     };
   }, []);
+
+  // Polling for Stars payment confirmation
+  useEffect(() => {
+    if (!pendingStarsOrder || !isPollingStars) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await checkOrderStatus(pendingStarsOrder.orderNumber);
+        if (res?.isPaid) {
+          setIsPollingStars(false);
+          try {
+            confetti({
+              particleCount: 120,
+              spread: 80,
+              origin: { y: 0.6 },
+            });
+          } catch {}
+
+          toast.success(
+            isGameAccountOrder
+              ? "🎉 تم تأكيد الدفع بنجوم تيليجرام واستلام حسابك بنجاح!"
+              : `🎉 تم تأكيد الدفع بنجوم تيليجرام للطلب #${pendingStarsOrder.orderNumber} بنجاح!`
+          );
+          clearCart();
+          router.push(`/orders/${pendingStarsOrder.orderNumber}`);
+        }
+      } catch {
+        // ignore polling errors
+      }
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [pendingStarsOrder, isPollingStars, isGameAccountOrder]);
 
   const walletBalance = user?.wallet?.totalAvailable || 0;
   const isBalanceSufficient = walletBalance >= total;
@@ -126,6 +190,40 @@ export default function CheckoutPage() {
     }
   };
 
+  const validateFulfillmentInputs = () => {
+    if (isGameAccountOrder) {
+      if (!customerName.trim()) {
+        toast.error("يرجى إدخال اسمك للتسجيل.");
+        return false;
+      }
+      if (!customerPhone.trim() || customerPhone.trim().length < 8) {
+        toast.error("يرجى إدخال رقم هاتف صحيح.");
+        return false;
+      }
+    } else {
+      if (fulfillmentType === "EXISTING_ACCOUNT") {
+        if (!gameUsername.trim() || !gameUsername.includes("@")) {
+          toast.error("يرجى إدخال البريد الإلكتروني المسجل في حساب اللعبة الحالي.");
+          return false;
+        }
+        if (!gamePassword || gamePassword.trim().length < 3) {
+          toast.error("يرجى إدخال كلمة مرور حساب اللعبة.");
+          return false;
+        }
+      } else if (fulfillmentType === "NEW_ACCOUNT_CUSTOM") {
+        if (!gameUsername.trim() || !gameUsername.includes("@")) {
+          toast.error("يرجى إدخال البريد الإلكتروني المطلوب للحساب الجديد.");
+          return false;
+        }
+        if (!gamePassword || gamePassword.trim().length < 4) {
+          toast.error("يرجى إدخال كلمة المرور المطلوبة للحساب الجديد (4 أحرف/أرقام على الأقل).");
+          return false;
+        }
+      }
+    }
+    return true;
+  };
+
   const handleConfirmOrder = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -140,41 +238,57 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!isBalanceSufficient) {
-      toast.error("رصيد المحفظة غير كافٍ لإتمام عملية الشراء. يرجى شحن محفظتك أولاً.");
+    if (!validateFulfillmentInputs()) {
       return;
     }
 
-    // Validation
-    if (isGameAccountOrder) {
-      if (!customerName.trim()) {
-        toast.error("يرجى إدخال اسمك للتسجيل.");
+    // ─── 1. Telegram Stars Payment Flow ───
+    if (paymentMethod === "TELEGRAM_STARS") {
+      if (!isTelegramLinked) {
+        toast.error("يرجى ربط حسابك في Telegram أولاً للدفع بنجوم تيليجرام.");
         return;
       }
-      if (!customerPhone.trim() || customerPhone.trim().length < 8) {
-        toast.error("يرجى إدخال رقم هاتف صحيح.");
-        return;
+
+      setIsSubmitting(true);
+      try {
+        const formattedNotes = isGameAccountOrder
+          ? `الاسم: ${customerName} | الهاتف: ${customerPhone}${customerNotes.trim() ? ` | ملاحظات: ${customerNotes.trim()}` : ""}`
+          : customerNotes.trim() || null;
+
+        const res = await createTelegramStarsOrder({
+          items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+          couponCode: appliedCoupon?.code || null,
+          fulfillmentType: isGameAccountOrder ? "INSTANT_GAME_ACCOUNT" : fulfillmentType,
+          gameUsername: isGameAccountOrder || fulfillmentType === "NEW_ACCOUNT_AUTO" ? null : gameUsername.trim(),
+          gamePassword: isGameAccountOrder || fulfillmentType === "NEW_ACCOUNT_AUTO" ? null : gamePassword,
+          gamePlayerId: isGameAccountOrder ? null : (gamePlayerId.trim() || null),
+          customerNotes: formattedNotes,
+        });
+
+        if (res.success && res.invoiceUrl) {
+          setPendingStarsOrder({
+            orderNumber: res.orderNumber,
+            invoiceUrl: res.invoiceUrl,
+            starsTotal: res.starsTotal,
+          });
+          setIsPollingStars(true);
+
+          // Open invoice in telegram
+          window.open(res.invoiceUrl, "_blank");
+          toast.info("تم فتح فاتورة Telegram Stars. ادفع داخل التطبيق وسيتم تحديث الطلب تلقائياً.");
+        }
+      } catch (err: any) {
+        toast.error(err.message || "حدث خطأ أثناء إنشاء فاتورة النجوم.");
+      } finally {
+        setIsSubmitting(false);
       }
-    } else {
-      if (fulfillmentType === "EXISTING_ACCOUNT") {
-        if (!gameUsername.trim() || !gameUsername.includes("@")) {
-          toast.error("يرجى إدخال البريد الإلكتروني المسجل في حساب اللعبة الحالي.");
-          return;
-        }
-        if (!gamePassword || gamePassword.trim().length < 3) {
-          toast.error("يرجى إدخال كلمة مرور حساب اللعبة.");
-          return;
-        }
-      } else if (fulfillmentType === "NEW_ACCOUNT_CUSTOM") {
-        if (!gameUsername.trim() || !gameUsername.includes("@")) {
-          toast.error("يرجى إدخال البريد الإلكتروني المطلوب للحساب الجديد.");
-          return;
-        }
-        if (!gamePassword || gamePassword.trim().length < 4) {
-          toast.error("يرجى إدخال كلمة المرور المطلوبة للحساب الجديد (4 أحرف/أرقام على الأقل).");
-          return;
-        }
-      }
+      return;
+    }
+
+    // ─── 2. Wallet Balance Payment Flow ───
+    if (!isBalanceSufficient) {
+      toast.error("رصيد المحفظة غير كافٍ لإتمام عملية الشراء. يرجى شحن محفظتك أولاً.");
+      return;
     }
 
     setIsSubmitting(true);
@@ -200,13 +314,11 @@ export default function CheckoutPage() {
             spread: 70,
             origin: { y: 0.6 },
           });
-        } catch {
-          // ignore
-        }
+        } catch {}
 
         toast.success(
           isGameAccountOrder
-            ? `🎉 تم شراء الحساب بنجاح! تم إرسال بيانات الدخول إلى مركز الإشعارات.`
+            ? "🎉 تم شراء الحساب بنجاح! تم إرسال بيانات الدخول إلى مركز الإشعارات."
             : `تم إنشاء الطلب رقم ${res.order.orderNumber} بنجاح! 🚀`
         );
         clearCart();
@@ -219,7 +331,7 @@ export default function CheckoutPage() {
     }
   };
 
-  if (items.length === 0 && !isSubmitting) {
+  if (items.length === 0 && !isSubmitting && !pendingStarsOrder) {
     return (
       <div className="max-w-md mx-auto px-4 py-20 text-center space-y-4">
         <h2 className="text-xl font-black text-white">لا توجد منتجات للدفع</h2>
@@ -252,7 +364,7 @@ export default function CheckoutPage() {
               <div className="p-5 rounded-2xl bg-[#0f1218] border border-orange-500/30 flex items-center justify-between shadow-sm">
                 <div className="space-y-1">
                   <h4 className="text-sm font-bold text-white">يجب تسجيل الدخول أولاً</h4>
-                  <p className="text-xs text-gray-400">لحفظ طلباتك وإتمام الدفع من رصيد محفظتك</p>
+                  <p className="text-xs text-gray-400">لحفظ طلباتك وإتمام الدفع بنجاح</p>
                 </div>
                 <button
                   type="button"
@@ -263,16 +375,26 @@ export default function CheckoutPage() {
                 </button>
               </div>
             ) : (
-              <div className="p-4 rounded-2xl bg-[#0f1218] border border-gray-800 flex items-center gap-3 shadow-sm">
-                <img
-                  src={user.image || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"}
-                  alt={user.name}
-                  className="w-10 h-10 rounded-xl object-cover border border-orange-500/40"
-                />
-                <div>
-                  <span className="text-[10px] text-gray-400 block">حساب المشتري:</span>
-                  <h4 className="text-xs font-bold text-white">{user.name} ({user.email})</h4>
+              <div className="p-4 rounded-2xl bg-[#0f1218] border border-gray-800 flex items-center justify-between shadow-sm">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={user.image || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100"}
+                    alt={user.name}
+                    className="w-10 h-10 rounded-xl object-cover border border-orange-500/40"
+                  />
+                  <div>
+                    <span className="text-[10px] text-gray-400 block">حساب المشتري:</span>
+                    <h4 className="text-xs font-bold text-white">{user.name} ({user.email})</h4>
+                  </div>
                 </div>
+
+                {/* Telegram mini badge */}
+                {isTelegramLinked && (
+                  <span className="px-2.5 py-1 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-400 text-[10px] font-bold flex items-center gap-1">
+                    <TelegramIcon className="w-3 h-3" />
+                    <span>Telegram مربوط</span>
+                  </span>
+                )}
               </div>
             )}
 
@@ -290,7 +412,7 @@ export default function CheckoutPage() {
                     <span>تسليم إلكتروني مباشر وتلقائي:</span>
                   </div>
                   <p className="text-[11px] text-gray-300 leading-relaxed">
-                    هذا المنتج عبارة عن <strong>حساب جاهز</strong>. ستستلم (البريد الإلكتروني وكلمة المرور) فوراً داخل <strong>مركز الإشعارات</strong> وصفحة الطلب بمجرد تأكيد الدفع من رصيد محفظتك، دون انتظار أي موافقة.
+                    هذا المنتج عبارة عن <strong>حساب جاهز</strong>. ستستلم (البريد الإلكتروني وكلمة المرور) فوراً داخل <strong>مركز الإشعارات</strong> وصفحة الطلب بمجرد تأكيد الدفع، دون انتظار أي موافقة.
                   </p>
                 </div>
 
@@ -502,60 +624,139 @@ export default function CheckoutPage() {
             )}
           </div>
 
-          {/* Right Column: Wallet Deduction, Coupon & Order Summary */}
-          <div className="lg:col-span-5 space-y-6">
-            {/* Wallet Balance Card */}
-            <div className="p-5 sm:p-6 rounded-2xl bg-[#0f1218] border border-gray-800 shadow-sm space-y-4 relative overflow-hidden card-drift-accent">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Wallet className="w-5 h-5 text-orange-500" />
-                  <h3 className="font-black text-sm text-white">الدفع من رصيد المحفظة</h3>
-                </div>
-                <span className="text-[10px] text-orange-500 font-bold bg-orange-500/10 px-2 py-0.5 rounded-md border border-orange-500/20">
-                  الوسيلة المعتمدة
-                </span>
-              </div>
+          {/* Right Column: Payment Method Selection & Summary */}
+          <div className="lg:col-span-5 space-y-5">
+            {/* Payment Method Selector */}
+            <div className="p-5 rounded-2xl bg-[#0f1218] border border-gray-800 shadow-sm space-y-3">
+              <span className="text-xs font-bold text-gray-400 block">اختر طريقة الدفع:</span>
 
-              {/* Financial Balance Overview */}
-              <div className="p-4 rounded-xl bg-[#161b24] border border-gray-700 space-y-3 text-xs">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400 font-medium">رصيد محفظتك الحالي:</span>
-                  <span className="font-black text-base text-orange-500 font-mono">
-                    {formatCurrency(walletBalance)}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400 font-medium">إجمالي الطلب المطلوب:</span>
-                  <span className="font-black text-base text-red-500 font-mono">
-                    -{formatCurrency(total)}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center pt-2 border-t border-gray-700 text-sm">
-                  <span className="font-bold text-gray-300">الرصيد المتبقي بعد الشراء:</span>
-                  <span className={`font-black font-mono text-base ${isBalanceSufficient ? "text-white" : "text-red-500"}`}>
-                    {formatCurrency(remainingBalance)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Insufficient Balance Alert */}
-              {!isBalanceSufficient && (
-                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-bold text-red-500">
-                    <AlertTriangle className="w-4 h-4 shrink-0" />
-                    <span>رصيد المحفظة غير كافٍ لإتمام عملية الشراء.</span>
+              <div className="grid grid-cols-2 gap-2.5">
+                {/* Method 1: Wallet */}
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("WALLET")}
+                  className={`p-3 rounded-xl border text-right transition flex flex-col justify-between gap-1.5 ${
+                    paymentMethod === "WALLET"
+                      ? "bg-orange-500/15 border-orange-500 text-white shadow-[0_0_15px_rgba(255,102,0,0.15)]"
+                      : "bg-[#161b24] border-gray-800 text-gray-400 hover:border-gray-700 hover:text-gray-300"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Wallet className="w-4 h-4 text-orange-500" />
+                      <span className="text-xs font-black text-white">رصيد المحفظة</span>
+                    </div>
+                    <span className={`w-3 h-3 rounded-full border flex items-center justify-center ${paymentMethod === "WALLET" ? "border-orange-500 bg-orange-500" : "border-gray-600"}`}>
+                      {paymentMethod === "WALLET" && <span className="w-1 h-1 bg-black rounded-full" />}
+                    </span>
                   </div>
-                  <p className="text-[11px] text-gray-300">
-                    المبلغ المتبقي للشحن: <strong className="font-mono font-black text-white">{formatCurrency(total - walletBalance)}</strong>
+                  <span className="text-[10px] text-gray-400 font-mono">
+                    المتاح: {formatCurrency(walletBalance)}
+                  </span>
+                </button>
+
+                {/* Method 2: Telegram Stars */}
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("TELEGRAM_STARS")}
+                  className={`p-3 rounded-xl border text-right transition flex flex-col justify-between gap-1.5 ${
+                    paymentMethod === "TELEGRAM_STARS"
+                      ? "bg-amber-500/15 border-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.15)]"
+                      : "bg-[#161b24] border-gray-800 text-gray-400 hover:border-gray-700 hover:text-gray-300"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm">⭐</span>
+                      <span className="text-xs font-black text-amber-300">Telegram Stars</span>
+                    </div>
+                    <span className={`w-3 h-3 rounded-full border flex items-center justify-center ${paymentMethod === "TELEGRAM_STARS" ? "border-amber-500 bg-amber-500" : "border-gray-600"}`}>
+                      {paymentMethod === "TELEGRAM_STARS" && <span className="w-1 h-1 bg-black rounded-full" />}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-amber-400/80 font-mono">
+                    دفع فوري عبر تيليجرام
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Telegram Linking Prompt if Telegram Stars selected and not linked */}
+            {paymentMethod === "TELEGRAM_STARS" && (
+              <TelegramLinkCard
+                compact
+                onLinkStatusChange={(linked) => setIsTelegramLinked(linked)}
+              />
+            )}
+
+            {/* Main Payment Card */}
+            <div className="p-5 sm:p-6 rounded-2xl bg-[#0f1218] border border-gray-800 shadow-sm space-y-4 relative overflow-hidden card-drift-accent">
+              {paymentMethod === "WALLET" ? (
+                /* WALLET DETAILS */
+                <div className="space-y-3">
+                  <div className="p-4 rounded-xl bg-[#161b24] border border-gray-700 space-y-3 text-xs">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 font-medium">رصيد محفظتك الحالي:</span>
+                      <span className="font-black text-base text-orange-500 font-mono">
+                        {formatCurrency(walletBalance)}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 font-medium">إجمالي الطلب المطلوب:</span>
+                      <span className="font-black text-base text-red-500 font-mono">
+                        -{formatCurrency(total)}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-700 text-sm">
+                      <span className="font-bold text-gray-300">الرصيد المتبقي بعد الشراء:</span>
+                      <span className={`font-black font-mono text-base ${isBalanceSufficient ? "text-white" : "text-red-500"}`}>
+                        {formatCurrency(remainingBalance)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Insufficient Balance Alert */}
+                  {!isBalanceSufficient && (
+                    <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 space-y-3">
+                      <div className="flex items-center gap-2 text-xs font-bold text-red-500">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        <span>رصيد المحفظة غير كافٍ لإتمام عملية الشراء.</span>
+                      </div>
+                      <p className="text-[11px] text-gray-300">
+                        المبلغ المتبقي للشحن: <strong className="font-mono font-black text-white">{formatCurrency(total - walletBalance)}</strong>
+                      </p>
+                      <Link
+                        href="/deposit"
+                        className="w-full py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-black font-black text-xs text-center block shadow-sm transition"
+                      >
+                        شحن رصيد المحفظة الآن ⚡
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* TELEGRAM STARS DETAILS */
+                <div className="p-4 rounded-xl bg-[#161b24] border border-amber-500/30 space-y-3 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-300 font-medium">وسيلة الدفع:</span>
+                    <span className="font-black text-amber-400 flex items-center gap-1 font-mono">
+                      <span>Telegram Stars (XTR)</span>
+                      <span>⭐</span>
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-2 border-t border-gray-700">
+                    <span className="text-gray-300 font-bold">إجمالي النجوم المطلوبة:</span>
+                    <span className="font-black text-xl text-amber-400 font-mono">
+                      {estimatedStarsTotal} ⭐
+                    </span>
+                  </div>
+
+                  <p className="text-[10px] text-gray-400 leading-relaxed pt-1">
+                    ⚡ عند الضغط على زر الشراء، سيتم إنشاء فاتورة فورية وفتح تطبيق تيليجرام لإتمام الدفع بالنجوم، وسيتم تأكيد واستلام طلبك تلقائياً وبأقصى سرعة.
                   </p>
-                  <Link
-                    href="/deposit"
-                    className="w-full py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-black font-black text-xs text-center block shadow-sm transition"
-                  >
-                    شحن رصيد المحفظة الآن ⚡
-                  </Link>
                 </div>
               )}
 
@@ -617,31 +818,90 @@ export default function CheckoutPage() {
               {/* Products Mini List */}
               <div className="space-y-2 pt-2 border-t border-gray-800 text-xs">
                 <span className="text-gray-400 font-bold block mb-1">عناصر الطلب ({items.length}):</span>
-                {items.map((it) => (
+                {items.map((it: any) => (
                   <div key={it.productId} className="flex justify-between text-gray-300">
                     <span className="truncate max-w-[200px]">{it.name} (x{it.quantity})</span>
-                    <span className="font-black text-orange-500 font-mono text-xs">{formatCurrency(it.price * it.quantity)}</span>
+                    <div className="flex items-center gap-2">
+                      {paymentMethod === "TELEGRAM_STARS" && (
+                        <span className="text-amber-400 font-mono text-[11px] font-bold">
+                          {((it.starsPrice && it.starsPrice > 0 ? it.starsPrice : Math.max(1, Math.ceil(it.price / 2))) * it.quantity)} ⭐
+                        </span>
+                      )}
+                      <span className="font-black text-orange-500 font-mono text-xs">{formatCurrency(it.price * it.quantity)}</span>
+                    </div>
                   </div>
                 ))}
               </div>
 
               {/* Confirm and Pay Button */}
-              <button
-                type="button"
-                onClick={handleConfirmOrder}
-                disabled={isSubmitting || (!isBalanceSufficient && Boolean(user))}
-                className="w-full py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-black font-black text-sm shadow-sm active:scale-[0.98] transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <Zap className="w-4 h-4" />
-                    <span>تأكيد الخصم والشراء الفوري ({formatCurrency(total)})</span>
-                  </>
-                )}
-              </button>
+              {paymentMethod === "TELEGRAM_STARS" ? (
+                <button
+                  type="button"
+                  onClick={handleConfirmOrder}
+                  disabled={isSubmitting || !isTelegramLinked || !user}
+                  className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-black text-sm shadow-lg shadow-amber-500/20 active:scale-[0.98] transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      <span>الدفع بنجوم تيليجرام ({estimatedStarsTotal} ⭐)</span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleConfirmOrder}
+                  disabled={isSubmitting || (!isBalanceSufficient && Boolean(user))}
+                  className="w-full py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-black font-black text-sm shadow-sm active:scale-[0.98] transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4" />
+                      <span>تأكيد الخصم والشراء الفوري ({formatCurrency(total)})</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
+
+            {/* Pending Stars Order Modal / Alert */}
+            {pendingStarsOrder && (
+              <div className="p-5 rounded-2xl bg-[#0c1424] border-2 border-amber-500/40 shadow-xl space-y-3 text-center">
+                <div className="flex items-center justify-center gap-2 text-amber-400 font-black text-sm">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>بانتظار تأكيد الدفع في تيليجرام...</span>
+                </div>
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  تم إنشاء فاتورة الدفع لطلب رقم <strong>#{pendingStarsOrder.orderNumber}</strong> بمبلغ <strong>{pendingStarsOrder.starsTotal} ⭐</strong>.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-2 justify-center pt-1">
+                  <a
+                    href={pendingStarsOrder.invoiceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-black text-xs inline-flex items-center justify-center gap-1.5 shadow-md"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>إعادة فتح الفاتورة في Telegram</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPendingStarsOrder(null);
+                      setIsPollingStars(false);
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs"
+                  >
+                    إلغاء المتابعة
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -650,4 +910,3 @@ export default function CheckoutPage() {
     </>
   );
 }
-
