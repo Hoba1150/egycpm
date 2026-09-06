@@ -227,7 +227,7 @@ export async function getAdminSidebarCounts(): Promise<Record<string, number>> {
       "/admin/tickets": openTickets,
       "/admin/giveaways": activeGiveaways,
       "/admin/customers": newCustomers,
-      "/admin/cpm2": cpm2Products,
+      "/admin/cpm2": 0,
       "/admin/reviews": totalReviews,
       "_newOrdersToday": newOrdersToday,
     };

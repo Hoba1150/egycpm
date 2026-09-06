@@ -255,11 +255,19 @@ export default function AdminTopbar({ user }: { user: any }) {
                   </div>
                   {unreadCount > 0 && (
                     <button
-                      onClick={() => setUnreadCount(0)}
-                      className="text-[10px] text-gray-400 hover:text-orange-400 flex items-center gap-1 transition"
+                      onClick={() => {
+                        setUnreadCount(0);
+                        setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+                        try {
+                          localStorage.setItem("cpm_admin_seen_counts", JSON.stringify(lastCountsRef.current));
+                          window.dispatchEvent(new CustomEvent("cpm_admin_mark_all_read"));
+                        } catch {}
+                        toast.success("تم مسح العدادات وتحديد الكل كمقروء.");
+                      }}
+                      className="text-[10px] text-gray-400 hover:text-orange-400 flex items-center gap-1 transition font-bold"
                     >
-                      <CheckCheck className="w-3 h-3" />
-                      <span>قراءة الكل</span>
+                      <CheckCheck className="w-3.5 h-3.5" />
+                      <span>قراءة الكل ومسح العدادات</span>
                     </button>
                   )}
                 </div>

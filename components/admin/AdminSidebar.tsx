@@ -20,25 +20,92 @@ import {
   Gamepad2,
   TrendingUp,
   X,
+  CheckCheck,
 } from "lucide-react";
 import { getAdminSidebarCounts } from "@/lib/actions/settings";
+import { toast } from "sonner";
 
 export default function AdminSidebar({ user }: { user: any }) {
   const pathname = usePathname();
   const userRole = user?.role || "CUSTOMER";
-  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [rawCounts, setRawCounts] = useState<Record<string, number>>({});
+  const [seenCounts, setSeenCounts] = useState<Record<string, number>>({});
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
+  // Load seen counts from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("cpm_admin_seen_counts");
+      if (stored) {
+        setSeenCounts(JSON.parse(stored));
+      }
+    } catch {}
+  }, []);
+
   const refreshCounts = useCallback(() => {
-    getAdminSidebarCounts().then(setCounts).catch(() => {});
+    getAdminSidebarCounts()
+      .then((res) => {
+        setRawCounts(res);
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
     refreshCounts();
-    // Poll every 90s — TopBar already polls at 60s; combined DB load stays well within pool limits
-    const interval = setInterval(refreshCounts, 90000);
+    const interval = setInterval(refreshCounts, 60000);
     return () => clearInterval(interval);
   }, [refreshCounts]);
+
+  // When admin navigates to a section, mark that section as seen
+  const markSectionAsSeen = useCallback((href: string) => {
+    setSeenCounts((prev) => {
+      const currentVal = rawCounts[href] || 0;
+      if (prev[href] === currentVal) return prev;
+      const updated = { ...prev, [href]: currentVal };
+      try {
+        localStorage.setItem("cpm_admin_seen_counts", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  }, [rawCounts]);
+
+  useEffect(() => {
+    if (pathname) {
+      markSectionAsSeen(pathname);
+    }
+  }, [pathname, markSectionAsSeen]);
+
+  // Listen for global mark-all-read event from AdminTopbar
+  useEffect(() => {
+    const handleMarkAll = () => {
+      setSeenCounts(rawCounts);
+      try {
+        localStorage.setItem("cpm_admin_seen_counts", JSON.stringify(rawCounts));
+      } catch {}
+    };
+    window.addEventListener("cpm_admin_mark_all_read", handleMarkAll);
+    return () => window.removeEventListener("cpm_admin_mark_all_read", handleMarkAll);
+  }, [rawCounts]);
+
+  const handleMarkAllAsRead = () => {
+    setSeenCounts(rawCounts);
+    try {
+      localStorage.setItem("cpm_admin_seen_counts", JSON.stringify(rawCounts));
+      window.dispatchEvent(new CustomEvent("cpm_admin_mark_all_read"));
+    } catch {}
+    toast.success("تم مسح العدادات وتحديد جميع الأقسام كمقروءة.");
+  };
+
+  const getEffectiveBadge = (href: string) => {
+    const total = rawCounts[href] || 0;
+    const seen = seenCounts[href] || 0;
+    return Math.max(0, total - seen);
+  };
+
+  const totalUnreadBadges = Object.keys(rawCounts).reduce(
+    (acc, href) => acc + getEffectiveBadge(href),
+    0
+  );
 
   // Role permissions map
   const rolePermissions: Record<string, string[]> = {
@@ -75,13 +142,14 @@ export default function AdminSidebar({ user }: { user: any }) {
   const renderLink = (link: { name: string; href: string; icon: any }) => {
     const Icon = link.icon;
     const isActive = pathname === link.href || (link.href !== "/admin" && pathname.startsWith(link.href));
-    const badgeCount = counts[link.href];
+    const badgeCount = getEffectiveBadge(link.href);
     const isCpm2 = link.href.startsWith("/admin/cpm2");
 
     return (
       <Link
         key={link.href}
         href={link.href}
+        onClick={() => markSectionAsSeen(link.href)}
         className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold transition ${
           isActive
             ? isCpm2
@@ -95,7 +163,7 @@ export default function AdminSidebar({ user }: { user: any }) {
           <span className="truncate">{link.name}</span>
         </div>
 
-        {badgeCount !== undefined && badgeCount > 0 && (
+        {badgeCount > 0 && (
           <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-black shadow-sm shrink-0 ${
             isCpm2 ? "bg-purple-500 text-white" : "bg-orange-500 text-black"
           }`}>
@@ -118,9 +186,9 @@ export default function AdminSidebar({ user }: { user: any }) {
         >
           <LayoutDashboard className="w-5 h-5 text-black" />
           {/* Badge if any pending */}
-          {Object.values(counts).some((v) => v > 0) && (
+          {totalUnreadBadges > 0 && (
             <span className="absolute -top-1 -right-1 min-w-[18px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center font-mono">
-              {Object.values(counts).reduce((a, b) => a + (b > 0 ? b : 0), 0)}
+              {totalUnreadBadges}
             </span>
           )}
         </button>
@@ -137,15 +205,26 @@ export default function AdminSidebar({ user }: { user: any }) {
             {/* Drawer Panel */}
             <div className="fixed inset-x-0 bottom-0 z-50 bg-[#0d1117] rounded-t-3xl border-t border-gray-800 shadow-2xl text-right max-h-[80vh] overflow-y-auto">
               {/* Handle + Header */}
-              <div className="sticky top-0 bg-[#0d1117] border-b border-gray-800 px-5 pt-4 pb-3 rounded-t-3xl">
+              <div className="sticky top-0 bg-[#0d1117] border-b border-gray-800 px-5 pt-4 pb-3 rounded-t-3xl z-10">
                 <div className="w-10 h-1.5 bg-gray-700 rounded-full mx-auto mb-3" />
                 <div className="flex items-center justify-between">
-                  <button
-                    onClick={() => setMobileNavOpen(false)}
-                    className="p-1.5 rounded-xl bg-gray-800 text-gray-400 hover:text-white"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setMobileNavOpen(false)}
+                      className="p-1.5 rounded-xl bg-gray-800 text-gray-400 hover:text-white"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                    {totalUnreadBadges > 0 && (
+                      <button
+                        onClick={handleMarkAllAsRead}
+                        className="px-2.5 py-1 rounded-lg bg-orange-500/15 border border-orange-500/30 text-orange-400 text-[10px] font-bold flex items-center gap-1 active:scale-95"
+                      >
+                        <CheckCheck className="w-3 h-3" />
+                        <span>مسح العدادات</span>
+                      </button>
+                    )}
+                  </div>
                   <div>
                     <span className="text-xs font-mono font-bold text-orange-500 block text-right">ADMIN NAVIGATION</span>
                     <h3 className="text-sm font-black text-white text-right">أقسام لوحة الإدارة</h3>
@@ -158,13 +237,16 @@ export default function AdminSidebar({ user }: { user: any }) {
                 {visibleMainLinks.map((link) => {
                   const Icon = link.icon;
                   const isActive = pathname === link.href || (link.href !== "/admin" && pathname.startsWith(link.href));
-                  const badgeCount = counts[link.href];
+                  const badgeCount = getEffectiveBadge(link.href);
 
                   return (
                     <Link
                       key={link.href}
                       href={link.href}
-                      onClick={() => setMobileNavOpen(false)}
+                      onClick={() => {
+                        markSectionAsSeen(link.href);
+                        setMobileNavOpen(false);
+                      }}
                       className={`relative flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border text-center transition active:scale-95 ${
                         isActive
                           ? "bg-orange-500/15 border-orange-500/50 text-orange-400"
@@ -175,7 +257,7 @@ export default function AdminSidebar({ user }: { user: any }) {
                       <span className="text-[11px] font-bold leading-tight">
                         {link.name.replace(/إدارة |مركز |مراجعة |تقييمات و|سجل |\(Audit Logs\)/g, "").trim()}
                       </span>
-                      {badgeCount !== undefined && badgeCount > 0 && (
+                      {badgeCount > 0 && (
                         <span className="absolute top-2 right-2 min-w-[20px] h-5 px-1.5 rounded-full bg-orange-500 text-black text-[10px] font-black font-mono flex items-center justify-center">
                           {badgeCount}
                         </span>
@@ -187,13 +269,16 @@ export default function AdminSidebar({ user }: { user: any }) {
                 {visibleCpm2Links.map((link) => {
                   const Icon = link.icon;
                   const isActive = pathname.startsWith(link.href);
-                  const badgeCount = counts[link.href];
+                  const badgeCount = getEffectiveBadge(link.href);
 
                   return (
                     <Link
                       key={link.href}
                       href={link.href}
-                      onClick={() => setMobileNavOpen(false)}
+                      onClick={() => {
+                        markSectionAsSeen(link.href);
+                        setMobileNavOpen(false);
+                      }}
                       className={`relative flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border text-center transition active:scale-95 ${
                         isActive
                           ? "bg-purple-500/15 border-purple-500/50 text-purple-400"
@@ -202,7 +287,7 @@ export default function AdminSidebar({ user }: { user: any }) {
                     >
                       <Icon className={`w-5 h-5 ${isActive ? "text-purple-400" : "text-purple-400/70"}`} />
                       <span className="text-[11px] font-bold leading-tight">إدارة CPM 2</span>
-                      {badgeCount !== undefined && badgeCount > 0 && (
+                      {badgeCount > 0 && (
                         <span className="absolute top-2 right-2 min-w-[20px] h-5 px-1.5 rounded-full bg-purple-500 text-white text-[10px] font-black font-mono flex items-center justify-center">
                           {badgeCount}
                         </span>
@@ -249,14 +334,27 @@ export default function AdminSidebar({ user }: { user: any }) {
             </div>
           </Link>
 
-          {/* Live Stats Bar */}
-          {(counts as any)["_newOrdersToday"] !== undefined && (
-            <div className="mt-2 flex items-center gap-1.5 text-[10px] text-gray-400">
-              <TrendingUp className="w-3 h-3 text-green-400" />
-              <span className="text-green-400 font-bold">{(counts as any)["_newOrdersToday"]}</span>
-              <span>طلب جديد اليوم</span>
-            </div>
-          )}
+          {/* Live Stats Bar & Quick Clear */}
+          <div className="mt-2 flex items-center justify-between text-[10px]">
+            {(rawCounts as any)["_newOrdersToday"] !== undefined && (
+              <div className="flex items-center gap-1.5 text-gray-400">
+                <TrendingUp className="w-3 h-3 text-green-400" />
+                <span className="text-green-400 font-bold">{(rawCounts as any)["_newOrdersToday"]}</span>
+                <span>طلب جديد اليوم</span>
+              </div>
+            )}
+            {totalUnreadBadges > 0 && (
+              <button
+                type="button"
+                onClick={handleMarkAllAsRead}
+                className="text-orange-400 hover:text-orange-300 font-bold flex items-center gap-0.5 transition"
+                title="تحديد الكل كمقروء ومسح العدادات"
+              >
+                <CheckCheck className="w-3 h-3" />
+                <span>مسح</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Nav Menu */}

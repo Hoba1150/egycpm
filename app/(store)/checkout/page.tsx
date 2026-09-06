@@ -37,15 +37,10 @@ function TelegramIcon({ className }: { className?: string }) {
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const {
-    items,
-    appliedCoupon,
-    applyCoupon,
-    getSubtotal,
-    getDiscount,
-    getTotal,
-    clearCart,
-  } = useCartStore();
+  const { items, appliedCoupon, applyCoupon, getSubtotal, getDiscount, getTotal, clearCart } = useCartStore();
+
+  // Fresh starsPrice fetched from server (overrides stale localStorage values)
+  const [starsPriceMap, setStarsPriceMap] = useState<Record<string, number | null>>({});
 
   const [user, setUser] = useState<any>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
@@ -91,17 +86,37 @@ export default function CheckoutPage() {
   const discount = getDiscount();
   const total = getTotal();
 
+  // Helper: get effective starsPrice for an item (server value if available, else cart value)
+  const getStarsPrice = (it: { productId: string; starsPrice?: number | null }) =>
+    starsPriceMap.hasOwnProperty(it.productId)
+      ? starsPriceMap[it.productId]
+      : it.starsPrice;
+
   // Check if ALL products in cart have a valid starsPrice (> 0)
-  const isStarsEligible = items.length > 0 && items.every((it) => typeof it.starsPrice === "number" && it.starsPrice > 0);
+  const isStarsEligible = items.length > 0 && items.every((it) => {
+    const sp = getStarsPrice(it);
+    return typeof sp === "number" && sp > 0;
+  });
   const estimatedStarsTotal = isStarsEligible
-    ? items.reduce((acc, it) => acc + (it.starsPrice || 0) * it.quantity, 0)
+    ? items.reduce((acc, it) => acc + ((getStarsPrice(it) || 0)) * it.quantity, 0)
     : 0;
+
+  // Fetch fresh starsPrice from server to override stale localStorage values
+  useEffect(() => {
+    if (items.length === 0) return;
+    const ids = items.map((i) => i.productId).join(",");
+    fetch(`/api/products/stars-prices?ids=${ids}`)
+      .then((r) => r.json())
+      .then((data: Record<string, number | null>) => setStarsPriceMap(data))
+      .catch(() => {/* ignore, fall back to cart values */});
+  }, [items.length]);
 
   useEffect(() => {
     if (!isStarsEligible && paymentMethod === "TELEGRAM_STARS") {
       setPaymentMethod("WALLET");
     }
   }, [isStarsEligible, paymentMethod]);
+
 
   // Fetch session & live wallet
   const fetchSession = async () => {
