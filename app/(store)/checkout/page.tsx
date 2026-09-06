@@ -97,9 +97,21 @@ export default function CheckoutPage() {
     const sp = getStarsPrice(it);
     return typeof sp === "number" && sp > 0;
   });
-  const estimatedStarsTotal = isStarsEligible
+  const starsSubtotal = isStarsEligible
     ? items.reduce((acc, it) => acc + ((getStarsPrice(it) || 0)) * it.quantity, 0)
     : 0;
+
+  // Apply coupon discount to stars (proportionally: same % as EGP discount)
+  const starsDiscountStars = (() => {
+    if (!appliedCoupon || starsSubtotal === 0 || subtotal === 0) return 0;
+    if (appliedCoupon.discountType === "PERCENTAGE") {
+      return Math.floor(starsSubtotal * (appliedCoupon.discountValue / 100));
+    }
+    // FIXED: convert proportionally
+    const ratio = Math.min(appliedCoupon.discountAmount / subtotal, 1);
+    return Math.floor(starsSubtotal * ratio);
+  })();
+  const estimatedStarsTotal = Math.max(1, starsSubtotal - starsDiscountStars);
 
   // Fetch fresh starsPrice from server to override stale localStorage values
   useEffect(() => {
@@ -808,7 +820,12 @@ export default function CheckoutPage() {
 
                 {appliedCoupon && (
                   <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs text-emerald-400 font-bold">
-                    <span>كوبون: <strong>{appliedCoupon.code}</strong> (-{formatCurrency(appliedCoupon.discountAmount)})</span>
+                    <span>
+                      كوبون: <strong>{appliedCoupon.code}</strong>{" "}
+                      {paymentMethod === "TELEGRAM_STARS"
+                        ? `(-${starsDiscountStars} ⭐)`
+                        : `(-${formatCurrency(appliedCoupon.discountAmount)})`}
+                    </span>
                     <button
                       type="button"
                       onClick={() => applyCoupon(null)}
@@ -821,22 +838,43 @@ export default function CheckoutPage() {
               </div>
 
               {/* Pricing breakdown */}
-              <div className="space-y-1.5 pt-2 border-t border-gray-800 text-xs text-gray-300">
-                <div className="flex justify-between">
-                  <span>المجموع الفرعي:</span>
-                  <span className="font-mono text-white">{formatCurrency(subtotal)}</span>
-                </div>
-                {discount > 0 && (
-                  <div className="flex justify-between text-emerald-400 font-bold">
-                    <span>خصم الكوبون:</span>
-                    <span className="font-mono">-{formatCurrency(discount)}</span>
+              {paymentMethod === "TELEGRAM_STARS" ? (
+                /* ── Stars Pricing Breakdown ── */
+                <div className="space-y-1.5 pt-2 border-t border-gray-800 text-xs text-gray-300">
+                  <div className="flex justify-between">
+                    <span>المجموع بالنجوم:</span>
+                    <span className="font-mono text-amber-300">{starsSubtotal.toLocaleString()} ⭐</span>
                   </div>
-                )}
-                <div className="flex justify-between font-black text-white pt-1 text-sm">
-                  <span>الإجمالي:</span>
-                  <span className="text-orange-500 text-base font-mono">{formatCurrency(total)}</span>
+                  {starsDiscountStars > 0 && (
+                    <div className="flex justify-between text-emerald-400 font-bold">
+                      <span>خصم الكوبون:</span>
+                      <span className="font-mono">-{starsDiscountStars} ⭐</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-black text-white pt-1 text-sm border-t border-gray-800">
+                    <span>الإجمالي بالنجوم:</span>
+                    <span className="text-amber-400 text-base font-mono">{estimatedStarsTotal} ⭐</span>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                /* ── EGP Pricing Breakdown ── */
+                <div className="space-y-1.5 pt-2 border-t border-gray-800 text-xs text-gray-300">
+                  <div className="flex justify-between">
+                    <span>المجموع الفرعي:</span>
+                    <span className="font-mono text-white">{formatCurrency(subtotal)}</span>
+                  </div>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-emerald-400 font-bold">
+                      <span>خصم الكوبون:</span>
+                      <span className="font-mono">-{formatCurrency(discount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-black text-white pt-1 text-sm">
+                    <span>الإجمالي:</span>
+                    <span className="text-orange-500 text-base font-mono">{formatCurrency(total)}</span>
+                  </div>
+                </div>
+              )}
 
               {/* Products Mini List */}
               <div className="space-y-2 pt-2 border-t border-gray-800 text-xs">
@@ -844,14 +882,13 @@ export default function CheckoutPage() {
                 {items.map((it: any) => (
                   <div key={it.productId} className="flex justify-between text-gray-300">
                     <span className="truncate max-w-[200px]">{it.name} (x{it.quantity})</span>
-                    <div className="flex items-center gap-2">
-                      {paymentMethod === "TELEGRAM_STARS" && (
-                        <span className="text-amber-400 font-mono text-[11px] font-bold">
-                          {((it.starsPrice && it.starsPrice > 0 ? it.starsPrice : Math.max(1, Math.ceil(it.price / 2))) * it.quantity)} ⭐
-                        </span>
-                      )}
+                    {paymentMethod === "TELEGRAM_STARS" ? (
+                      <span className="text-amber-400 font-mono text-[11px] font-bold">
+                        {((getStarsPrice(it) || 0) * it.quantity)} ⭐
+                      </span>
+                    ) : (
                       <span className="font-black text-orange-500 font-mono text-xs">{formatCurrency(it.price * it.quantity)}</span>
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>
