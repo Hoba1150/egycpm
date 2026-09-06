@@ -7,7 +7,10 @@ import { revalidatePath } from "next/cache";
 /**
  * Validate Coupon Code for Checkout
  */
-export async function validateCouponCode(code: string, currentTotal: number) {
+/**
+ * Validate Coupon Code for Checkout
+ */
+export async function validateCouponCode(code: string, currentTotal: number, currentStarsTotal?: number) {
   if (!code || !code.trim()) {
     return { valid: false, message: "يرجى إدخال كود الكوبون." };
   }
@@ -41,6 +44,7 @@ export async function validateCouponCode(code: string, currentTotal: number) {
     };
   }
 
+  // Calculate EGP discount
   let discountAmount = 0;
   if (coupon.discountType === "PERCENTAGE") {
     discountAmount = (currentTotal * coupon.discountValue) / 100;
@@ -51,13 +55,41 @@ export async function validateCouponCode(code: string, currentTotal: number) {
     discountAmount = Math.min(coupon.discountValue, currentTotal);
   }
 
+  // Calculate Stars discount (independent or fallback)
+  const starsTotal = currentStarsTotal || 0;
+  let starsDiscountAmount = 0;
+  const starsType = coupon.starsDiscountType || coupon.discountType;
+
+  if (coupon.starsDiscountValue !== null && coupon.starsDiscountValue !== undefined && coupon.starsDiscountValue > 0) {
+    if (starsType === "PERCENTAGE") {
+      let sd = (starsTotal * coupon.starsDiscountValue) / 100;
+      if (coupon.starsMaxDiscount && sd > coupon.starsMaxDiscount) {
+        sd = coupon.starsMaxDiscount;
+      }
+      starsDiscountAmount = Math.floor(sd);
+    } else {
+      starsDiscountAmount = Math.min(Math.floor(coupon.starsDiscountValue), starsTotal);
+    }
+  } else {
+    // Fallback: use main discount rule proportionally
+    if (coupon.discountType === "PERCENTAGE") {
+      starsDiscountAmount = Math.floor((starsTotal * coupon.discountValue) / 100);
+    } else {
+      const ratio = currentTotal > 0 ? Math.min(discountAmount / currentTotal, 1) : 0;
+      starsDiscountAmount = Math.floor(starsTotal * ratio);
+    }
+  }
+
   return {
     valid: true,
     code: coupon.code,
     discountType: coupon.discountType,
     discountValue: coupon.discountValue,
     discountAmount,
-    message: `تم تطبيق خصم بقيمة ${discountAmount} ج.م بنجاح!`,
+    starsDiscountType: coupon.starsDiscountType || null,
+    starsDiscountValue: coupon.starsDiscountValue ?? null,
+    starsDiscountAmount,
+    message: `تم تطبيق كود الخصم "${coupon.code}" بنجاح!`,
   };
 }
 
@@ -70,6 +102,10 @@ export async function createCoupon(data: {
   discountValue: number;
   minOrderValue?: number;
   maxDiscount?: number;
+  starsDiscountType?: "PERCENTAGE" | "FIXED";
+  starsDiscountValue?: number;
+  starsMinOrderValue?: number;
+  starsMaxDiscount?: number;
   maxUses?: number;
   expiresAt?: string;
   categoryId?: string;
@@ -86,6 +122,10 @@ export async function createCoupon(data: {
       discountValue: Number(data.discountValue),
       minOrderValue: data.minOrderValue ? Number(data.minOrderValue) : 0,
       maxDiscount: data.maxDiscount ? Number(data.maxDiscount) : null,
+      starsDiscountType: data.starsDiscountType || null,
+      starsDiscountValue: data.starsDiscountValue ? Number(data.starsDiscountValue) : null,
+      starsMinOrderValue: data.starsMinOrderValue ? Number(data.starsMinOrderValue) : null,
+      starsMaxDiscount: data.starsMaxDiscount ? Number(data.starsMaxDiscount) : null,
       maxUses: data.maxUses ? Number(data.maxUses) : 100,
       expiresAt: data.expiresAt ? new Date(data.expiresAt) : null,
       categoryId: data.categoryId || null,

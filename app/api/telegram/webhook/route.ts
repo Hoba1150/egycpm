@@ -290,6 +290,29 @@ export async function POST(req: Request) {
           },
         });
 
+        // 3.5. Record Coupon Usage if coupon was applied
+        if (order.couponCode) {
+          try {
+            const coupon = await tx.coupon.findUnique({ where: { code: order.couponCode } });
+            if (coupon) {
+              await tx.coupon.update({
+                where: { id: coupon.id },
+                data: { usedCount: coupon.usedCount + 1 },
+              });
+              await tx.couponUsage.create({
+                data: {
+                  couponId: coupon.id,
+                  userId: order.userId,
+                  orderId: order.id,
+                  discountAmount: order.discount,
+                },
+              });
+            }
+          } catch (couponErr) {
+            console.warn("Failed to record coupon usage on telegram stars order:", couponErr);
+          }
+        }
+
         // 4. Create Web Store Notification
         if (hasGameAccount) {
           const decryptedPass = deliveredAccountPasswordEncrypted

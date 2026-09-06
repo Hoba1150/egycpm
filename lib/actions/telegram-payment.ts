@@ -184,6 +184,51 @@ export async function createTelegramStarsOrder(input: CreateStarsOrderInput) {
     throw new Error("إجمالي النجوم غير صالح.");
   }
 
+  // 2. Validate Coupon if provided
+  let discount = 0;
+  let starsDiscount = 0;
+  let validatedCoupon: any = null;
+
+  if (input.couponCode && input.couponCode.trim()) {
+    const code = input.couponCode.trim().toUpperCase();
+    const coupon = await prisma.coupon.findUnique({
+      where: { code, isActive: true },
+    });
+
+    if (coupon) {
+      const now = new Date();
+      const isExpired = coupon.expiresAt && coupon.expiresAt < now;
+      const isMaxed = coupon.maxUses && coupon.usedCount >= coupon.maxUses;
+      const meetsMin = !coupon.minOrderValue || subtotal >= coupon.minOrderValue;
+      const meetsStarsMin = !coupon.starsMinOrderValue || starsTotal >= coupon.starsMinOrderValue;
+
+      if (!isExpired && !isMaxed && meetsMin && meetsStarsMin) {
+        // Independent Stars Discount
+        const starsType = coupon.starsDiscountType || coupon.discountType;
+        if (coupon.starsDiscountValue !== null && coupon.starsDiscountValue !== undefined && coupon.starsDiscountValue > 0) {
+          if (starsType === "PERCENTAGE") {
+            let sd = (starsTotal * coupon.starsDiscountValue) / 100;
+            if (coupon.starsMaxDiscount && sd > coupon.starsMaxDiscount) sd = coupon.starsMaxDiscount;
+            starsDiscount = Math.floor(sd);
+          } else {
+            starsDiscount = Math.min(Math.floor(coupon.starsDiscountValue), starsTotal);
+          }
+        } else {
+          // Fallback:
+          if (coupon.discountType === "PERCENTAGE") {
+            starsDiscount = Math.floor((starsTotal * coupon.discountValue) / 100);
+          } else {
+            const ratio = subtotal > 0 ? Math.min(coupon.discountValue / subtotal, 1) : 0;
+            starsDiscount = Math.floor(starsTotal * ratio);
+          }
+        }
+        validatedCoupon = coupon;
+      }
+    }
+  }
+
+  const finalStarsTotal = Math.max(1, starsTotal - starsDiscount);
+
   const orderNumber = generateOrderNumber();
   const encryptedPassword = input.gamePassword ? encryptData(input.gamePassword) : null;
 
@@ -196,20 +241,21 @@ export async function createTelegramStarsOrder(input: CreateStarsOrderInput) {
     {
       status: "PENDING_PAYMENT",
       title: "تم إنشاء فاتورة Telegram Stars ⭐",
-      description: `بانتظار إتمام دفع ${starsTotal} نجمة عبر تيليجرام`,
+      description: `بانتظار إتمام دفع ${finalStarsTotal} نجمة عبر تيليجرام${starsDiscount > 0 ? ` (تم تطبيق خصم ${starsDiscount} نجمة)` : ""}`,
       timestamp: new Date().toISOString(),
     },
   ]);
 
-  // 2. Create Order in DB in PENDING_PAYMENT status
+  // 3. Create Order in DB in PENDING_PAYMENT status
   const order = await prisma.order.create({
     data: {
       orderNumber,
       userId: user.id,
       subtotal,
-      discount: 0,
+      discount: starsDiscount,
       total: subtotal,
-      starsTotal,
+      starsTotal: finalStarsTotal,
+      couponCode: validatedCoupon?.code || null,
       status: "PENDING_PAYMENT",
       paymentMethod: "TELEGRAM_STARS",
       telegramUserId: dbUser.telegramUserId,
@@ -245,7 +291,7 @@ export async function createTelegramStarsOrder(input: CreateStarsOrderInput) {
     title: productTitle,
     description: productDesc,
     payload: invoicePayload,
-    starsAmount: starsTotal,
+    starsAmount: finalStarsTotal,
     photoUrl: primaryImage,
   });
 
@@ -255,7 +301,7 @@ export async function createTelegramStarsOrder(input: CreateStarsOrderInput) {
     orderNumber: order.orderNumber,
     status: "PENDING_PAYMENT",
     extraLines: [
-      `⭐ <b>المبلغ المطلوب:</b> ${starsTotal} Telegram Stars`,
+      `⭐ <b>المبلغ المطلوب:</b> ${finalStarsTotal} Telegram Stars${starsDiscount > 0 ? ` (بعد خصم ${starsDiscount} ⭐)` : ""}`,
       `⏳ في انتظار إتمام الدفع داخل تطبيق تيليجرام`,
     ],
   }).catch(() => {});
@@ -264,7 +310,7 @@ export async function createTelegramStarsOrder(input: CreateStarsOrderInput) {
     success: true,
     orderNumber: order.orderNumber,
     orderId: order.id,
-    starsTotal,
+    starsTotal: finalStarsTotal,
     invoiceUrl,
   };
 }

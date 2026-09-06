@@ -176,24 +176,28 @@ model OrderItem {
 }
 
 model Coupon {
-  id             String        @id @default(cuid())
-  code           String        @unique
-  discountType   String
-  discountValue  Float
-  minOrderAmount Float         @default(0.0)
-  minOrderValue  Float?
-  maxDiscount    Float?
-  usageLimit     Int?
-  usageCount     Int           @default(0)
-  maxUses        Int?
-  usedCount      Int           @default(0)
-  startDate      DateTime?
-  isActive       Boolean       @default(true)
-  expiresAt      DateTime?
-  categoryId     String?
-  productId      String?
-  createdAt      DateTime      @default(now())
-  usages         CouponUsage[]
+  id                  String        @id @default(cuid())
+  code                String        @unique
+  discountType        String
+  discountValue       Float
+  minOrderAmount      Float         @default(0.0)
+  minOrderValue       Float?
+  maxDiscount         Float?
+  starsDiscountType   String?
+  starsDiscountValue  Float?
+  starsMinOrderValue  Float?
+  starsMaxDiscount    Float?
+  usageLimit          Int?
+  usageCount          Int           @default(0)
+  maxUses             Int?
+  usedCount           Int           @default(0)
+  startDate           DateTime?
+  isActive            Boolean       @default(true)
+  expiresAt           DateTime?
+  categoryId          String?
+  productId           String?
+  createdAt           DateTime      @default(now())
+  usages              CouponUsage[]
 }
 
 model CouponUsage {

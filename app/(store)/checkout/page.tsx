@@ -101,14 +101,28 @@ export default function CheckoutPage() {
     ? items.reduce((acc, it) => acc + ((getStarsPrice(it) || 0)) * it.quantity, 0)
     : 0;
 
-  // Apply coupon discount to stars (proportionally: same % as EGP discount)
+  // Apply coupon discount to stars (independent stars discount if configured, or proportional fallback)
   const starsDiscountStars = (() => {
-    if (!appliedCoupon || starsSubtotal === 0 || subtotal === 0) return 0;
+    if (!appliedCoupon || starsSubtotal === 0) return 0;
+
+    // 1. Independent Stars Discount configured on coupon
+    if (
+      appliedCoupon.starsDiscountValue !== null &&
+      appliedCoupon.starsDiscountValue !== undefined &&
+      appliedCoupon.starsDiscountValue > 0
+    ) {
+      if (appliedCoupon.starsDiscountType === "PERCENTAGE") {
+        return Math.floor(starsSubtotal * (appliedCoupon.starsDiscountValue / 100));
+      } else {
+        return Math.min(Math.floor(appliedCoupon.starsDiscountValue), starsSubtotal);
+      }
+    }
+
+    // 2. Fallback: use EGP discount rule
     if (appliedCoupon.discountType === "PERCENTAGE") {
       return Math.floor(starsSubtotal * (appliedCoupon.discountValue / 100));
     }
-    // FIXED: convert proportionally
-    const ratio = Math.min(appliedCoupon.discountAmount / subtotal, 1);
+    const ratio = subtotal > 0 ? Math.min(appliedCoupon.discountAmount / subtotal, 1) : 0;
     return Math.floor(starsSubtotal * ratio);
   })();
   const estimatedStarsTotal = Math.max(1, starsSubtotal - starsDiscountStars);
@@ -203,13 +217,16 @@ export default function CheckoutPage() {
 
     setIsValidatingCoupon(true);
     try {
-      const res = await validateCouponCode(couponInput, subtotal);
+      const res = await validateCouponCode(couponInput, subtotal, starsSubtotal);
       if (res.valid) {
         applyCoupon({
           code: res.code!,
           discountType: res.discountType as any,
           discountValue: res.discountValue!,
           discountAmount: res.discountAmount!,
+          starsDiscountType: (res.starsDiscountType as any) || null,
+          starsDiscountValue: res.starsDiscountValue ?? null,
+          starsDiscountAmount: res.starsDiscountAmount ?? null,
         });
         toast.success(res.message);
         setCouponInput("");

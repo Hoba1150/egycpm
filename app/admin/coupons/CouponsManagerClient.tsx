@@ -18,6 +18,14 @@ export default function CouponsManagerClient({ initialCoupons }: { initialCoupon
   const [minOrderValue, setMinOrderValue] = useState<number | "">(100);
   const [maxDiscount, setMaxDiscount] = useState<number | "">(150);
   const [maxUses, setMaxUses] = useState<number | "">(200);
+
+  // Independent Stars Discount
+  const [hasStarsDiscount, setHasStarsDiscount] = useState(false);
+  const [starsDiscountType, setStarsDiscountType] = useState<"PERCENTAGE" | "FIXED">("PERCENTAGE");
+  const [starsDiscountValue, setStarsDiscountValue] = useState<number | "">("");
+  const [starsMinOrderValue, setStarsMinOrderValue] = useState<number | "">("");
+  const [starsMaxDiscount, setStarsMaxDiscount] = useState<number | "">("");
+
   const [isSaving, setIsSaving] = useState(false);
 
   const handleCreateCoupon = async (e: React.FormEvent) => {
@@ -32,11 +40,19 @@ export default function CouponsManagerClient({ initialCoupons }: { initialCoupon
         discountValue: Number(discountValue),
         minOrderValue: minOrderValue ? Number(minOrderValue) : undefined,
         maxDiscount: maxDiscount ? Number(maxDiscount) : undefined,
+        starsDiscountType: hasStarsDiscount ? starsDiscountType : undefined,
+        starsDiscountValue: hasStarsDiscount && starsDiscountValue !== "" ? Number(starsDiscountValue) : undefined,
+        starsMinOrderValue: hasStarsDiscount && starsMinOrderValue !== "" ? Number(starsMinOrderValue) : undefined,
+        starsMaxDiscount: hasStarsDiscount && starsMaxDiscount !== "" ? Number(starsMaxDiscount) : undefined,
         maxUses: maxUses ? Number(maxUses) : 100,
       });
       toast.success("تم إنشاء الكوبون بنجاح!");
       setIsAddModalOpen(false);
       setCode("");
+      setHasStarsDiscount(false);
+      setStarsDiscountValue("");
+      setStarsMinOrderValue("");
+      setStarsMaxDiscount("");
       router.refresh();
     } catch (err: any) {
       toast.error(err.message || "فشل إنشاء الكوبون.");
@@ -97,7 +113,23 @@ export default function CouponsManagerClient({ initialCoupons }: { initialCoupon
                 <tr key={c.id} className="hover:bg-[#1a202c]/50 transition">
                   <td className="p-4 font-mono font-black text-sm text-orange-500">{c.code}</td>
                   <td className="p-4 font-bold text-white">
-                    {c.discountType === "PERCENTAGE" ? `${c.discountValue}%` : `${c.discountValue} ج.م`}
+                    <div className="space-y-1">
+                      <div className="text-orange-400 font-bold">
+                        {c.discountType === "PERCENTAGE" ? `${c.discountValue}%` : `${c.discountValue} ج.م`}
+                      </div>
+                      {c.starsDiscountValue && c.starsDiscountValue > 0 ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-mono font-bold">
+                          <span>⭐</span>
+                          <span>
+                            {c.starsDiscountType === "PERCENTAGE" ? `${c.starsDiscountValue}%` : `${c.starsDiscountValue} نجمة`}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-gray-500 block font-mono">
+                          ⭐ تلقائي ({c.discountType === "PERCENTAGE" ? `${c.discountValue}%` : "تناسبي"})
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="p-4 text-gray-300 font-mono">
                     {c.minOrderValue ? `${c.minOrderValue} ج.م` : "بدون حد أدنى"}
@@ -186,7 +218,7 @@ export default function CouponsManagerClient({ initialCoupons }: { initialCoupon
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1">الحد الأدنى للطلب</label>
+                  <label className="block text-xs font-medium text-gray-300 mb-1">الحد الأدنى للطلب (ج.م)</label>
                   <input
                     type="number"
                     value={minOrderValue}
@@ -204,6 +236,87 @@ export default function CouponsManagerClient({ initialCoupons }: { initialCoupon
                     className="w-full px-3 py-2 bg-[#12161f] border border-gray-700 rounded-xl text-xs text-white text-right font-mono"
                   />
                 </div>
+              </div>
+
+              {/* Independent Stars Discount Section */}
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">⭐</span>
+                    <div>
+                      <span className="text-xs font-black text-amber-300 block">خصم مخصص لنجوم تيليجرام (Stars)</span>
+                      <span className="text-[10px] text-gray-400">تحديد نسبة مئوية أو عدد نجوم مستقل عن الجنيهات</span>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={hasStarsDiscount}
+                      onChange={(e) => setHasStarsDiscount(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                  </label>
+                </div>
+
+                {hasStarsDiscount && (
+                  <div className="space-y-3 pt-2 border-t border-amber-500/20">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-300 mb-1">نوع خصم النجوم</label>
+                        <select
+                          value={starsDiscountType}
+                          onChange={(e) => setStarsDiscountType(e.target.value as any)}
+                          className="w-full px-3 py-2 bg-[#12161f] border border-gray-700 rounded-xl text-xs text-white text-right"
+                        >
+                          <option value="PERCENTAGE">نسبة مئوية (%)</option>
+                          <option value="FIXED">عدد نجوم ثابت (⭐ Stars)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-300 mb-1">
+                          قيمة خصم النجوم {starsDiscountType === "PERCENTAGE" ? "(%)" : "(⭐ نجوم)"} *
+                        </label>
+                        <input
+                          type="number"
+                          required={hasStarsDiscount}
+                          min={1}
+                          placeholder={starsDiscountType === "PERCENTAGE" ? "مثال: 20" : "مثال: 15"}
+                          value={starsDiscountValue}
+                          onChange={(e) => setStarsDiscountValue(e.target.value ? Number(e.target.value) : "")}
+                          className="w-full px-3 py-2 bg-[#12161f] border border-gray-700 rounded-xl text-xs text-white text-right font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-300 mb-1">الحد الأدنى بالنجوم (اختياري)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          placeholder="مثال: 50 ⭐"
+                          value={starsMinOrderValue}
+                          onChange={(e) => setStarsMinOrderValue(e.target.value ? Number(e.target.value) : "")}
+                          className="w-full px-3 py-2 bg-[#12161f] border border-gray-700 rounded-xl text-xs text-white text-right font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-300 mb-1">أقصى خصم بالنجوم (اختياري)</label>
+                        <input
+                          type="number"
+                          min={1}
+                          placeholder="مثال: 100 ⭐"
+                          value={starsMaxDiscount}
+                          onChange={(e) => setStarsMaxDiscount(e.target.value ? Number(e.target.value) : "")}
+                          className="w-full px-3 py-2 bg-[#12161f] border border-gray-700 rounded-xl text-xs text-white text-right font-mono"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2 pt-3 border-t border-gray-800">

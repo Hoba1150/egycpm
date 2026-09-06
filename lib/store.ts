@@ -21,6 +21,9 @@ interface AppliedCoupon {
   discountType: "PERCENTAGE" | "FIXED";
   discountValue: number;
   discountAmount: number;
+  starsDiscountType?: "PERCENTAGE" | "FIXED" | null;
+  starsDiscountValue?: number | null;
+  starsDiscountAmount?: number | null;
 }
 
 interface CartStore {
