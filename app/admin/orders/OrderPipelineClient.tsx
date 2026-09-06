@@ -437,97 +437,123 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
           <div className="overflow-x-auto">
             <table className="w-full text-right text-xs">
               <thead>
-                <tr className="border-b border-gray-800 bg-garage-950/60 text-gray-400 font-bold">
-                  <th className="p-4">رقم الطلب</th>
-                  <th className="p-4">العميل</th>
-                  <th className="p-4">طريقة الدفع</th>
-                  <th className="p-4">المنتجات المطلوبة</th>
-                  <th className="p-4">الإجمالي</th>
-                  <th className="p-4">حساب اللعبة</th>
-                  <th className="p-4">الحالة</th>
-                  <th className="p-4">التاريخ</th>
-                  <th className="p-4 text-center">الإجراءات</th>
+                <tr className="border-b border-gray-800 bg-[#0c1017] text-gray-400 font-bold text-[11px]">
+                  <th className="px-3 py-3 whitespace-nowrap">رقم الطلب</th>
+                  <th className="px-3 py-3">العميل</th>
+                  <th className="px-3 py-3 whitespace-nowrap">الدفع / الإجمالي</th>
+                  <th className="px-3 py-3">المنتجات</th>
+                  <th className="px-3 py-3 whitespace-nowrap">حساب اللعبة</th>
+                  <th className="px-3 py-3 whitespace-nowrap">الحالة</th>
+                  <th className="px-3 py-3 whitespace-nowrap">التاريخ</th>
+                  <th className="px-3 py-3 text-center whitespace-nowrap">الإجراءات</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800/60">
+              <tbody className="divide-y divide-gray-800/50">
                 {filtered.map((o) => (
-                  <tr key={o.id} className={`hover:bg-[#1a202c]/50 transition ${o.status === "PENDING_PAYMENT" ? "bg-amber-950/5" : ""}`}>
-                    <td className="p-4 font-mono font-black text-orange-500">#{o.orderNumber}</td>
-                    <td className="p-4">
-                      <div className="space-y-0.5">
-                        <span className="font-bold text-white block">{o.user?.name || "عميل"}</span>
-                        <span className="text-[10px] text-gray-400 font-mono">{o.user?.email}</span>
-                      </div>
+                  <tr
+                    key={o.id}
+                    className={`hover:bg-white/[0.02] transition ${
+                      o.status === "PENDING_PAYMENT" ? "bg-amber-950/10 border-r-2 border-r-amber-500/50" : ""
+                    }`}
+                  >
+                    {/* Order Number */}
+                    <td className="px-3 py-3 font-mono font-black text-orange-500 whitespace-nowrap text-[11px]">
+                      #{o.orderNumber}
                     </td>
-                    <td className="p-4">
-                      <div className="space-y-1">
-                        {getPaymentMethodBadge(o)}
-                        {o.telegramPaymentChargeId && (
-                          <span className="text-[9px] text-gray-400 font-mono block">
-                            ID: {o.telegramPaymentChargeId.slice(0, 10)}...
-                          </span>
+
+                    {/* Customer */}
+                    <td className="px-3 py-3" style={{ maxWidth: "140px" }}>
+                      <div>
+                        <span className="font-bold text-white block truncate text-[11px]">{o.user?.name || "عميل"}</span>
+                        <span className="text-[9px] text-gray-400 font-mono block truncate">{o.user?.email}</span>
+                        {(o.user as any)?.telegramUsername && (
+                          <span className="text-[9px] text-blue-400 block">@{(o.user as any).telegramUsername}</span>
                         )}
                       </div>
                     </td>
-                    <td className="p-4 max-w-xs">
-                      <span className="text-gray-200 block truncate">
+
+                    {/* Payment + Total (merged column) */}
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      <div className="space-y-1">
+                        {getPaymentMethodBadge(o)}
+                        {o.paymentMethod === "TELEGRAM_STARS" ? (
+                          <div>
+                            <span className="font-black text-amber-400 font-mono block text-[11px]">
+                              {o.starsTotal ? `${o.starsTotal} ⭐` : formatCurrency(o.total)}
+                            </span>
+                            <span className="text-[9px] text-gray-500 font-mono">({formatCurrency(o.total)})</span>
+                          </div>
+                        ) : (
+                          <span className="font-black text-green-400 font-mono text-[11px]">{formatCurrency(o.total)}</span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Products */}
+                    <td className="px-3 py-3" style={{ maxWidth: "200px" }}>
+                      <span
+                        className="text-gray-200 block truncate text-[11px] cursor-help"
+                        title={o.items.map((it: any) => `${it.productName} (x${it.quantity})`).join(", ")}
+                      >
                         {o.items.map((it: any) => `${it.productName} (x${it.quantity})`).join(", ")}
                       </span>
                     </td>
-                    <td className="p-4 font-mono">
-                      {o.paymentMethod === "TELEGRAM_STARS" ? (
-                        <div>
-                          <span className="font-black text-sm text-amber-400 block">{o.starsTotal ? `${o.starsTotal} ⭐` : `${formatCurrency(o.total)}`}</span>
-                          <span className="text-[10px] text-gray-500 block">({formatCurrency(o.total)})</span>
-                        </div>
-                      ) : (
-                        <span className="font-black text-sm text-green-400">{formatCurrency(o.total)}</span>
-                      )}
-                    </td>
-                    <td className="p-4">
+
+                    {/* Game Account */}
+                    <td className="px-3 py-3" style={{ maxWidth: "120px" }}>
                       {o.gameUsername ? (
-                        <div className="space-y-0.5 font-mono text-[11px]">
-                          <span className="text-cyan-300 block">{o.gameUsername}</span>
+                        <div className="font-mono text-[10px]">
+                          <span className="text-cyan-300 block truncate" title={o.gameUsername}>{o.gameUsername}</span>
                           {o.decryptedPassword && (
-                            <span className="text-purple-300 text-[10px]">
-                              [كلمة السر متوفرة]
-                            </span>
+                            <span className="text-purple-300 text-[9px]">🔑 متوفرة</span>
                           )}
                         </div>
                       ) : (
-                        <span className="text-gray-500 text-[10px]">-</span>
+                        <span className="text-gray-600">—</span>
                       )}
                     </td>
-                    <td className="p-4">
+
+                    {/* Status */}
+                    <td className="px-3 py-3 whitespace-nowrap">
                       {getOrderStatusBadge(o.status)}
                     </td>
-                    <td className="p-4 text-[10px] text-gray-500 font-mono">{formatDate(o.createdAt)}</td>
-                    <td className="p-4">
-                      <div className="flex items-center justify-center gap-2">
+
+                    {/* Date */}
+                    <td className="px-3 py-3 text-[10px] text-gray-500 font-mono whitespace-nowrap">
+                      {formatDate(o.createdAt)}
+                    </td>
+
+                    {/* ─── Actions ─── icon-only, always visible, fixed width */}
+                    <td className="px-3 py-3">
+                      <div className="flex items-center justify-center gap-1.5 flex-nowrap">
+                        {/* 1. Preview / Update */}
                         <button
                           onClick={() => openOrderDetails(o)}
-                          className="px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 border border-orange-500/30 text-xs font-bold transition"
+                          title="معاينة وتحديث الحالة"
+                          className="flex-shrink-0 p-2 rounded-lg bg-orange-500/10 text-orange-400 hover:bg-orange-500/25 border border-orange-500/30 transition active:scale-95"
                         >
-                          معاينة وتحديث
+                          <Eye className="w-3.5 h-3.5" />
                         </button>
 
-                        {o.status !== "REFUNDED" && o.status !== "PENDING_PAYMENT" && (
+                        {/* 2. Refund — conditional */}
+                        {/* 2. Refund — conditional with placeholder */}
+                        {o.status !== "REFUNDED" && o.status !== "PENDING_PAYMENT" ? (
                           <button
-                            onClick={() => {
-                              setRefundModalOrder(o);
-                              setRefundReason("");
-                            }}
-                            className="px-2.5 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 text-xs font-bold transition"
+                            onClick={() => { setRefundModalOrder(o); setRefundReason(""); }}
                             title="استرجاع مالي للمحفظة"
+                            className="flex-shrink-0 p-2 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/25 border border-amber-500/30 transition active:scale-95"
                           >
                             <RotateCcw className="w-3.5 h-3.5" />
                           </button>
+                        ) : (
+                          <span className="flex-shrink-0 w-[30px]" />
                         )}
 
+                        {/* 3. Delete — always visible */}
                         <button
                           onClick={() => handleDeleteOrder(o.id, o.orderNumber)}
-                          className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition"
                           title="حذف الطلب نهائياً"
+                          className="flex-shrink-0 p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/25 border border-red-500/30 transition active:scale-95"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
