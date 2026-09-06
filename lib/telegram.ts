@@ -131,6 +131,56 @@ export async function sendTelegramMessage(params: {
 }
 
 /**
+ * Edit an existing Telegram Message in-place (prevents chat clutter)
+ */
+export async function editTelegramMessage(params: {
+  chatId: string | number;
+  messageId: number;
+  text: string;
+  parseMode?: "HTML" | "Markdown" | "MarkdownV2";
+  replyMarkup?: any;
+}) {
+  try {
+    const { chatId, messageId, text, parseMode = "HTML", replyMarkup } = params;
+    const body: Record<string, any> = {
+      chat_id: chatId,
+      message_id: messageId,
+      text,
+      parse_mode: parseMode,
+      disable_web_page_preview: false,
+    };
+    if (replyMarkup) {
+      body.reply_markup = replyMarkup;
+    }
+    return await telegramApiRequest("editMessageText", body);
+  } catch (err) {
+    console.error("Failed to edit telegram message:", err);
+    return null;
+  }
+}
+
+/**
+ * Answer Telegram Callback Query (stops the button loading spinner)
+ */
+export async function answerCallbackQuery(params: {
+  callbackQueryId: string;
+  text?: string;
+  showAlert?: boolean;
+}) {
+  try {
+    const { callbackQueryId, text, showAlert = false } = params;
+    return await telegramApiRequest("answerCallbackQuery", {
+      callback_query_id: callbackQueryId,
+      text: text || undefined,
+      show_alert: showAlert,
+    });
+  } catch (err) {
+    console.error("Failed to answer callback query:", err);
+    return null;
+  }
+}
+
+/**
  * Refund Telegram Stars Payment
  */
 export async function refundTelegramStarPayment(params: {
