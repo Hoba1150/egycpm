@@ -48,10 +48,14 @@ export async function createOrder(input: CreateOrderInput) {
   let subtotal = 0;
   const orderItemsData: {
     productId: string;
+    name: string;
+    price: number;
+    quantity: number;
+    productType: string;
     productName: string;
     productPrice: number;
-    quantity: number;
     total: number;
+    serviceRequirements?: string | null;
     deliveredDataEncrypted?: string | null;
   }[] = [];
 
@@ -185,7 +189,7 @@ export async function createOrder(input: CreateOrderInput) {
       const isGameAccount = prod.productType === "GAME_ACCOUNT" || prod.productType === "ACCOUNT" || Boolean(prod.accountDetailsEncrypted);
 
       let newStock = prod.stockQuantity;
-      let newActive = prod.isActive;
+      let newActive: boolean = prod.isActive;
 
       if (isGameAccount) {
         if (prod.stockQuantity <= 0) {

@@ -235,7 +235,7 @@ export default async function OrderTrackingPage({ params }: OrderTrackingPagePro
                 <span className="block text-[11px] text-gray-400">الكمية: {item.quantity}</span>
               </div>
               <span className="font-black text-sm text-emerald-500 font-mono">
-                {formatCurrency(item.total)}
+                {formatCurrency(item.total ?? 0)}
               </span>
             </div>
           ))}

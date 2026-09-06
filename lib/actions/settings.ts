@@ -160,7 +160,7 @@ export async function getAdminAnalytics() {
  * Admin: Get live notification counts for admin sidebar badges
  * All queries run in a single transaction → 1 DB connection instead of 8
  */
-export async function getAdminSidebarCounts() {
+export async function getAdminSidebarCounts(): Promise<Record<string, number>> {
   try {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
@@ -193,7 +193,7 @@ export async function getAdminSidebarCounts() {
       }),
       // Active giveaways
       prisma.giveaway.count({
-        where: { isActive: true },
+        where: { status: "ACTIVE" },
       }),
       // New customers in last 7 days
       prisma.user.count({

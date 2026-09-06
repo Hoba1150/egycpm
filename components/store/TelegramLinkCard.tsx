@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { generateTelegramLinkToken, getTelegramAccountStatus, unlinkTelegramAccount } from "@/lib/actions/telegram-payment";
-import { CheckCircle2, AlertCircle, ExternalLink, Loader2, Unlink } from "lucide-react";
+import { CheckCircle2, AlertCircle, ExternalLink, Loader2, Unlink, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 
 function TelegramLogo({ className }: { className?: string }) {
@@ -29,6 +29,8 @@ export default function TelegramLinkCard({ compact = false, onLinkStatusChange }
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUnlinking, setIsUnlinking] = useState(false);
   const [isWaitingForAuth, setIsWaitingForAuth] = useState(false);
+  const [linkUrl, setLinkUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const fetchStatus = async () => {
     try {
@@ -57,12 +59,14 @@ export default function TelegramLinkCard({ compact = false, onLinkStatusChange }
       const updated = await fetchStatus();
       if (updated?.isLinked) {
         setIsWaitingForAuth(false);
+        setLinkUrl(null);
         toast.success("🎉 تم ربط حساب Telegram بنجاح!");
       }
     }, 2500);
 
     const timeout = setTimeout(() => {
       setIsWaitingForAuth(false);
+      setLinkUrl(null);
     }, 15 * 60 * 1000); // 15 min timeout
 
     return () => {
@@ -76,15 +80,27 @@ export default function TelegramLinkCard({ compact = false, onLinkStatusChange }
     try {
       const res = await generateTelegramLinkToken();
       if (res.success && res.link) {
+        setLinkUrl(res.link);
         setIsWaitingForAuth(true);
-        // Open deep link in new tab or telegram
-        window.open(res.link, "_blank");
-        toast.info("تم فتح بوت تيليجرام. اضغط زر Start داخل التطبيق لإتمام الربط.");
+        // Try opening Telegram directly; works on mobile and desktop with app installed
+        window.open(res.link, "_blank", "noopener,noreferrer");
       }
     } catch (err: any) {
       toast.error(err.message || "فشل إنشاء رابط الربط.");
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (!linkUrl) return;
+    try {
+      await navigator.clipboard.writeText(linkUrl);
+      setCopied(true);
+      toast.success("تم نسخ رابط تيليجرام.");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("فشل نسخ الرابط.");
     }
   };
 
@@ -150,6 +166,26 @@ export default function TelegramLinkCard({ compact = false, onLinkStatusChange }
               {isUnlinking ? <Loader2 className="w-3 h-3 animate-spin" /> : <Unlink className="w-3 h-3" />}
               <span>إلغاء الربط</span>
             </button>
+          ) : isWaitingForAuth && linkUrl ? (
+            <div className="flex items-center gap-1.5">
+              <a
+                href={linkUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2.5 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-600 text-black font-bold text-[11px] transition flex items-center gap-1 shadow-sm"
+              >
+                <ExternalLink className="w-3 h-3" />
+                <span>فتح البوت</span>
+              </a>
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition border border-white/10"
+                title="نسخ رابط تيليجرام"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
+            </div>
           ) : (
             <button
               type="button"
@@ -157,10 +193,10 @@ export default function TelegramLinkCard({ compact = false, onLinkStatusChange }
               disabled={isGenerating || isWaitingForAuth}
               className="px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-600 text-black font-black text-xs transition flex items-center gap-1.5 shadow-sm"
             >
-              {isGenerating || isWaitingForAuth ? (
+              {isGenerating ? (
                 <>
                   <Loader2 className="w-3 h-3 animate-spin" />
-                  <span>بانتظار Start...</span>
+                  <span>جاري الإنشاء...</span>
                 </>
               ) : (
                 <>
@@ -255,11 +291,38 @@ export default function TelegramLinkCard({ compact = false, onLinkStatusChange }
         </div>
       ) : (
         isWaitingForAuth && (
-          <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2.5 text-xs text-amber-300">
-            <Loader2 className="w-4 h-4 animate-spin text-amber-400 shrink-0" />
-            <p className="text-[11px] leading-relaxed">
-              تم فتح البوت في نافذة جديدة. يرجى الضغط على زر <strong>Start</strong> في تيليجرام. ستتعرف هذه الصفحة على حسابك تلقائياً خلال لحظات دون الحاجة لإعادة التحميل.
-            </p>
+          <div className="p-4 rounded-2xl bg-sky-950/40 border border-sky-500/30 space-y-3">
+            <div className="flex items-center gap-2.5 text-xs text-sky-200">
+              <Loader2 className="w-4 h-4 animate-spin text-sky-400 shrink-0" />
+              <p className="text-[12px] leading-relaxed">
+                بانتظار الضغط على زر <strong>Start</strong> داخل بوت تيليجرام... سيتم تأكيد الربط فوراً.
+              </p>
+            </div>
+            
+            {linkUrl && (
+              <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-sky-500/20">
+                <a
+                  href={linkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-600 text-black font-bold text-xs flex items-center gap-1.5 transition"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>فتح Telegram مباشرة</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium text-xs flex items-center gap-1.5 border border-white/10 transition"
+                >
+                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copied ? "تم النسخ!" : "نسخ الرابط"}</span>
+                </button>
+                <span className="text-[11px] text-gray-400">
+                  (إذا لم يُفتح التطبيق تلقائياً، اضغط الزر أعلاه أو انسخ الرابط وافتحه في المتصفح)
+                </span>
+              </div>
+            )}
           </div>
         )
       )}
