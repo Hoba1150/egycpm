@@ -220,19 +220,33 @@ export async function sendOrderNotification(params: {
   status: string;
   extraLines?: string[];
   siteUrl?: string;
+  amount?: string | number;
 }) {
-  const { telegramUserId, orderNumber, status, extraLines = [], siteUrl } = params;
+  const { telegramUserId, orderNumber, status, extraLines = [], siteUrl, amount } = params;
   if (!telegramUserId) return null;
 
   const base = siteUrl || process.env.NEXT_PUBLIC_SITE_URL || "https://egycpm.vercel.app";
   const orderUrl = `${base.replace(/\/$/, "")}/orders/${orderNumber}`;
   const label = STATUS_LABELS[status] || status;
 
+  let headerText = `🏎️ <b>متجر EgyCPM — تحديث طلبك</b>\n\n📦 <b>رقم الطلب:</b> #${orderNumber}\n📌 <b>الحالة الجديدة:</b> ${label}`;
+
+  // Attempt dynamic template load
+  try {
+    const { getTelegramBotConfig } = await import("@/lib/actions/telegram-bot-settings");
+    const { interpolateTemplate } = await import("@/lib/telegram-bot-config");
+    const config = await getTelegramBotConfig();
+    if (status === "PENDING_PAYMENT" && config.orderCreatedPending) {
+      headerText = interpolateTemplate(config.orderCreatedPending, { orderNumber, status: label, amount, siteUrl: base });
+    } else if (status === "COMPLETED" && config.orderDelivered) {
+      headerText = interpolateTemplate(config.orderDelivered, { orderNumber, status: label, amount, siteUrl: base });
+    } else if (config.orderStatusUpdate) {
+      headerText = interpolateTemplate(config.orderStatusUpdate, { orderNumber, status: label, amount, siteUrl: base });
+    }
+  } catch {}
+
   const lines = [
-    `🏎️ <b>متجر EgyCPM — تحديث طلبك</b>`,
-    ``,
-    `📦 <b>رقم الطلب:</b> #${orderNumber}`,
-    `📌 <b>الحالة الجديدة:</b> ${label}`,
+    headerText,
     ...extraLines,
     ``,
     `🔗 <a href="${orderUrl}">تتبع تفاصيل الطلب هنا</a>`,
@@ -247,4 +261,5 @@ export async function sendOrderNotification(params: {
     },
   });
 }
+
 

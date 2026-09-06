@@ -8,6 +8,11 @@ import {
   editTelegramMessage,
   answerCallbackQuery,
 } from "@/lib/telegram";
+import { getTelegramBotConfig } from "@/lib/actions/telegram-bot-settings";
+import {
+  interpolateTemplate,
+  TelegramBotConfig,
+} from "@/lib/telegram-bot-config";
 
 export const dynamic = "force-dynamic";
 
@@ -347,8 +352,13 @@ export async function POST(req: Request) {
       // 5. Send Direct Confirmation on Telegram to the User
       const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://egycpm.vercel.app").replace(/\/$/, "");
       const orderLink = `${siteUrl}/orders/${order.orderNumber}`;
+      const botConfig = await getTelegramBotConfig();
 
-      const telegramMsg = `✅ <b>تم استلام وتأكيد دفعتك بنجاح!</b> ⭐\n\n📦 <b>رقم الطلب:</b> #${order.orderNumber}\n⭐ <b>المبلغ المدفوع:</b> ${starsAmount} Telegram Stars\n\nشكراً لتسوقك من <b>EgyCPM</b>! 🏎️\nاضغط على الزر أدناه لمشاهدة تفاصيل طلبك واستلام حسابك أو بيانات التنفيذ:`;
+      const telegramMsg = interpolateTemplate(botConfig.paymentSuccess, {
+        orderNumber: order.orderNumber,
+        amount: starsAmount,
+        siteUrl,
+      });
 
       await sendTelegramMessage({
         chatId,
@@ -375,6 +385,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    // Load Bot Dynamic Configuration
+    const botConfig = await getTelegramBotConfig();
+
     // =========================================================================
     // EVENT 3: Callback Queries (Interactive button navigation without chat clutter)
     // =========================================================================
@@ -396,15 +409,15 @@ export async function POST(req: Request) {
       let view: { text: string; keyboard: any[][] } | null = null;
 
       if (data === "menu_main") {
-        view = buildMainMenu(user, fromUser, siteUrl);
+        view = buildMainMenu(user, fromUser, siteUrl, botConfig);
       } else if (data === "menu_balance") {
-        view = buildBalanceMenu(user, siteUrl);
+        view = buildBalanceMenu(user, siteUrl, botConfig);
       } else if (data === "menu_orders") {
-        view = buildOrdersMenu(user, siteUrl);
+        view = buildOrdersMenu(user, siteUrl, botConfig);
       } else if (data === "menu_account") {
-        view = buildAccountMenu(user, fromUser, siteUrl);
+        view = buildAccountMenu(user, fromUser, siteUrl, botConfig);
       } else if (data === "menu_support") {
-        view = buildSupportMenu(siteUrl);
+        view = buildSupportMenu(siteUrl, botConfig);
       }
 
       if (view && messageId) {
@@ -485,36 +498,41 @@ export async function POST(req: Request) {
 
           const returnUrl = `${siteUrl}${returnPath}`;
 
+          const successText = interpolateTemplate(botConfig.linkingSuccess, {
+            name: fromUser.first_name || "عزيزي العميل",
+            email: userToLink.email,
+            siteUrl,
+          });
+
+          const successKeyboard: any[][] = [
+            [{ text: returnPath === "/checkout" ? "🛒 إتمام عملية الدفع الآن" : "🏠 العودة إلى المتجر", url: returnUrl }],
+          ];
+          const quickRow: any[] = [];
+          if (botConfig.buttons.orders.enabled) {
+            quickRow.push({ text: botConfig.buttons.orders.label, callback_data: "menu_orders" });
+          }
+          if (botConfig.buttons.balance.enabled) {
+            quickRow.push({ text: botConfig.buttons.balance.label, callback_data: "menu_balance" });
+          }
+          if (quickRow.length) successKeyboard.push(quickRow);
+          successKeyboard.push([{ text: "🏠 القائمة الرئيسية للبوت", callback_data: "menu_main" }]);
+
           await sendTelegramMessage({
             chatId,
-            text: [
-              `🎉 <b>تم ربط وتوثيق حسابك بنجاح!</b> 🏎️`,
-              ``,
-              `مرحباً بك <b>${fromUser.first_name || "عزيزي العميل"}</b> 👋`,
-              `حسابك في <b>متجر EgyCPM</b> مرتبط الآن بحساب تيليجرام وجاهز للشراء والدفع بنجوم تيليجرام ⭐ واستلام الإشعارات.`,
-              ``,
-              `اضغط الزر أدناه للعودة إلى المتجر ومتابعة طلبك:`,
-            ].join("\n"),
+            text: successText,
             parseMode: "HTML",
             replyMarkup: {
-              inline_keyboard: [
-                [{ text: returnPath === "/checkout" ? "🛒 إتمام عملية الدفع الآن" : "🏠 العودة إلى المتجر", url: returnUrl }],
-                [
-                  { text: "📦 طلباتي", callback_data: "menu_orders" },
-                  { text: "💰 رصيدي", callback_data: "menu_balance" },
-                ],
-                [{ text: "🏠 القائمة الرئيسية للبوت", callback_data: "menu_main" }],
-              ],
+              inline_keyboard: successKeyboard,
             },
           });
         } else {
+          const failedText = interpolateTemplate(botConfig.linkingFailed, {
+            siteUrl,
+          });
+
           await sendTelegramMessage({
             chatId,
-            text: [
-              `⚠️ <b>رابط الربط غير صالح أو انتهت مدته (15 دقيقة)</b>`,
-              ``,
-              `للحصول على رابط جديد، يرجى العودة للمتجر والضغط على زر <b>"ربط Telegram"</b> مرة أخرى.`,
-            ].join("\n"),
+            text: failedText,
             parseMode: "HTML",
             replyMarkup: {
               inline_keyboard: [[{ text: "🛒 فتح المتجر", url: siteUrl }]],
@@ -530,7 +548,7 @@ export async function POST(req: Request) {
 
       // ── /start or /menu — Welcome & Main Menu ─────────────────────────────
       if (text === "/start" || text.startsWith("/start ") || text === "/menu" || text === "/القائمة") {
-        const view = buildMainMenu(user, fromUser, siteUrl);
+        const view = buildMainMenu(user, fromUser, siteUrl, botConfig);
         await sendTelegramMessage({
           chatId,
           text: view.text,
@@ -542,7 +560,7 @@ export async function POST(req: Request) {
 
       // ── /balance or /رصيدي ────────────────────────────────────────────────
       if (text === "/balance" || text === "/رصيدي" || text === "/المحفظة") {
-        const view = buildBalanceMenu(user, siteUrl);
+        const view = buildBalanceMenu(user, siteUrl, botConfig);
         await sendTelegramMessage({
           chatId,
           text: view.text,
@@ -554,7 +572,7 @@ export async function POST(req: Request) {
 
       // ── /orders or /طلباتي ────────────────────────────────────────────────
       if (text === "/orders" || text === "/طلباتي") {
-        const view = buildOrdersMenu(user, siteUrl);
+        const view = buildOrdersMenu(user, siteUrl, botConfig);
         await sendTelegramMessage({
           chatId,
           text: view.text,
@@ -566,7 +584,7 @@ export async function POST(req: Request) {
 
       // ── /account or /حسابي ────────────────────────────────────────────────
       if (text === "/account" || text === "/حسابي" || text === "/الربط") {
-        const view = buildAccountMenu(user, fromUser, siteUrl);
+        const view = buildAccountMenu(user, fromUser, siteUrl, botConfig);
         await sendTelegramMessage({
           chatId,
           text: view.text,
@@ -578,7 +596,7 @@ export async function POST(req: Request) {
 
       // ── /support or /help or /مساعدة ──────────────────────────────────────
       if (text === "/support" || text === "/help" || text === "/مساعدة" || text === "/الدعم") {
-        const view = buildSupportMenu(siteUrl);
+        const view = buildSupportMenu(siteUrl, botConfig);
         await sendTelegramMessage({
           chatId,
           text: view.text,
@@ -589,7 +607,7 @@ export async function POST(req: Request) {
       }
 
       // Fallback: Show Main Menu
-      const defaultView = buildMainMenu(user, fromUser, siteUrl);
+      const defaultView = buildMainMenu(user, fromUser, siteUrl, botConfig);
       await sendTelegramMessage({
         chatId,
         text: defaultView.text,
@@ -628,92 +646,97 @@ async function getTelegramUserWithDetails(telegramUserId: string) {
   });
 }
 
-function buildMainMenu(user: any, fromUser: any, siteUrl: string) {
+function buildMainMenu(user: any, fromUser: any, siteUrl: string, botConfig: TelegramBotConfig) {
   if (user) {
     const totalBal = ((user.wallet?.balance || 0) + (user.wallet?.giftBalance || 0)).toLocaleString();
     const ordersCount = user._count?.orders || user.orders?.length || 0;
-    const text = [
-      `🏎️ <b>متجر EgyCPM | Car Parking Multiplayer</b> ⚡`,
-      `<i>البوت الرسمي المعتمد للمتجر الأول في الوطن العربي</i>`,
-      ``,
-      `👋 مرحباً بك يا كابتن <b>${user.name || fromUser.first_name || ""}</b>`,
-      `🟢 <b>حالة الحساب:</b> مرتبط وموثق بنجاح`,
-      `📧 <b>البريد:</b> <code>${user.email}</code>`,
-      `💰 <b>الرصيد المتاح:</b> <b>${totalBal} ج.م</b>`,
-      `📦 <b>عدد طلباتك:</b> ${ordersCount} طلب`,
-      ``,
-      `اختر من القائمة التفاعلية أدناه للتحكم السريع:`,
-    ].join("\n");
+    const text = interpolateTemplate(botConfig.welcomeLinked, {
+      name: user.name || fromUser.first_name || "يا كابتن",
+      email: user.email,
+      balance: totalBal,
+      ordersCount: String(ordersCount),
+      siteUrl,
+    });
 
-    const keyboard = [
-      [
-        { text: "🛒 فتح المتجر", url: `${siteUrl}/shop` },
-        { text: "🚗 قسم CPM2", url: `${siteUrl}/cpm2` },
-      ],
-      [
-        { text: "📦 طلباتي الأخيرة", callback_data: "menu_orders" },
-        { text: "💰 رصيدي ومحفظتي", callback_data: "menu_balance" },
-      ],
-      [
-        { text: "🔗 إدارة الربط والحساب", callback_data: "menu_account" },
-        { text: "💬 الدعم الفني", callback_data: "menu_support" },
-      ],
-    ];
+    const keyboard: any[][] = [];
+    const row1: any[] = [];
+    if (botConfig.buttons?.store?.enabled) {
+      row1.push({ text: botConfig.buttons.store.label, url: `${siteUrl}/shop` });
+    }
+    if (botConfig.buttons?.cpm2?.enabled) {
+      row1.push({ text: botConfig.buttons.cpm2.label, url: `${siteUrl}/cpm2` });
+    }
+    if (row1.length) keyboard.push(row1);
+
+    const row2: any[] = [];
+    if (botConfig.buttons?.orders?.enabled) {
+      row2.push({ text: botConfig.buttons.orders.label, callback_data: "menu_orders" });
+    }
+    if (botConfig.buttons?.balance?.enabled) {
+      row2.push({ text: botConfig.buttons.balance.label, callback_data: "menu_balance" });
+    }
+    if (row2.length) keyboard.push(row2);
+
+    const row3: any[] = [];
+    if (botConfig.buttons?.account?.enabled) {
+      row3.push({ text: botConfig.buttons.account.label, callback_data: "menu_account" });
+    }
+    if (botConfig.buttons?.support?.enabled) {
+      row3.push({ text: botConfig.buttons.support.label, callback_data: "menu_support" });
+    }
+    if (row3.length) keyboard.push(row3);
 
     return { text, keyboard };
   }
 
-  const text = [
-    `🏎️ <b>أهلاً بك في بوت متجر EgyCPM الرسمي!</b> ⚡`,
-    `<i>المتجر الأول المتخصص في سيارات وخدمات Car Parking Multiplayer</i>`,
-    ``,
-    `👋 مرحباً بك <b>${fromUser.first_name || "يا كابتن"}</b>`,
-    `🔴 <b>حالة الحساب:</b> غير مرتبط بحسابك في المتجر`,
-    ``,
-    `💡 <b>اربط حسابك الآن لتتمكن من:</b>`,
-    `• متابعة رصيد محفظتك وشحنها بضغطة زر`,
-    `• تتبع طلباتك واستلام بيانات الحسابات فورياً`,
-    `• الدفع المباشر بنجوم تيليجرام (Telegram Stars ⭐)`,
-  ].join("\n");
+  const text = interpolateTemplate(botConfig.welcomeUnlinked, {
+    name: fromUser.first_name || "يا كابتن",
+    siteUrl,
+  });
 
-  const keyboard = [
-    [
-      { text: "🛒 تصفح المتجر", url: `${siteUrl}/shop` },
-      { text: "🚗 قسم CPM2", url: `${siteUrl}/cpm2` },
-    ],
-    [
-      { text: "🔗 ربط حسابي بالمتجر الآن", url: `${siteUrl}/profile` },
-    ],
-    [
-      { text: "💬 الدعم الفني والمساعدة", callback_data: "menu_support" },
-    ],
-  ];
+  const keyboard: any[][] = [];
+  const row1: any[] = [];
+  if (botConfig.buttons?.store?.enabled) {
+    row1.push({ text: botConfig.buttons.store.label, url: `${siteUrl}/shop` });
+  }
+  if (botConfig.buttons?.cpm2?.enabled) {
+    row1.push({ text: botConfig.buttons.cpm2.label, url: `${siteUrl}/cpm2` });
+  }
+  if (row1.length) keyboard.push(row1);
+
+  const row2: any[] = [];
+  if (botConfig.buttons?.account?.enabled) {
+    row2.push({ text: botConfig.buttons.account.label, url: `${siteUrl}/profile` });
+  }
+  if (row2.length) keyboard.push(row2);
+
+  const row3: any[] = [];
+  if (botConfig.buttons?.support?.enabled) {
+    row3.push({ text: botConfig.buttons.support.label, callback_data: "menu_support" });
+  }
+  if (row3.length) keyboard.push(row3);
 
   return { text, keyboard };
 }
 
-function buildBalanceMenu(user: any, siteUrl: string) {
+function buildBalanceMenu(user: any, siteUrl: string, botConfig: TelegramBotConfig) {
   if (user) {
     const bal = (user.wallet?.balance || 0).toLocaleString();
     const gift = (user.wallet?.giftBalance || 0).toLocaleString();
     const total = ((user.wallet?.balance || 0) + (user.wallet?.giftBalance || 0)).toLocaleString();
 
-    const text = [
-      `💰 <b>محفظتك المالية في متجر EgyCPM</b> 🏎️`,
-      ``,
-      `💳 <b>الرصيد الأساسي:</b> ${bal} ج.م`,
-      `🎁 <b>رصيد الهدايا والمكافآت:</b> ${gift} ج.م`,
-      `💎 <b>الإجمالي الكلي القابل للاستخدام:</b> <b>${total} ج.م</b>`,
-      ``,
-      `⭐ <b>دفع نجوم تيليجرام:</b> مفعل ومتاح لحسابك مباشرة أثناء إتمام الشراء!`,
-      ``,
-      `💡 <i>يمكنك شحن رصيدك عبر فودافون كاش، إنستاباي، أو المحافظ الإلكترونية واستخدامه في الشراء الفوري داخل المتجر.</i>`,
-    ].join("\n");
+    const text = interpolateTemplate(botConfig.balanceMessage, {
+      name: user.name || "عزيزي العميل",
+      balance: bal,
+      giftBalance: gift,
+      totalBalance: total,
+      siteUrl,
+    });
 
     const keyboard = [
       [
         { text: "➕ شحن رصيد الآن", url: `${siteUrl}/deposit` },
-        { text: "🛒 تسوق الآن", url: `${siteUrl}/shop` },
+        { text: botConfig.buttons?.store?.label || "🛒 تسوق الآن", url: `${siteUrl}/shop` },
       ],
       [
         { text: "🔄 تحديث الرصيد", callback_data: "menu_balance" },
@@ -739,7 +762,7 @@ function buildBalanceMenu(user: any, siteUrl: string) {
   return { text, keyboard };
 }
 
-function buildOrdersMenu(user: any, siteUrl: string) {
+function buildOrdersMenu(user: any, siteUrl: string, botConfig: TelegramBotConfig) {
   if (user) {
     const orders = user.orders || [];
     if (orders.length === 0) {
@@ -751,7 +774,7 @@ function buildOrdersMenu(user: any, siteUrl: string) {
       ].join("\n");
 
       const keyboard = [
-        [{ text: "🛒 تصفح المتجر واطلب الآن", url: `${siteUrl}/shop` }],
+        [{ text: botConfig.buttons?.store?.label || "🛒 تصفح المتجر واطلب الآن", url: `${siteUrl}/shop` }],
         [{ text: "🔙 القائمة الرئيسية", callback_data: "menu_main" }],
       ];
 
@@ -818,7 +841,7 @@ function buildOrdersMenu(user: any, siteUrl: string) {
   return { text, keyboard };
 }
 
-function buildAccountMenu(user: any, fromUser: any, siteUrl: string) {
+function buildAccountMenu(user: any, fromUser: any, siteUrl: string, botConfig: TelegramBotConfig) {
   if (user) {
     const joinDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString("ar-EG") : "";
     const text = [
@@ -861,18 +884,8 @@ function buildAccountMenu(user: any, fromUser: any, siteUrl: string) {
   return { text, keyboard };
 }
 
-function buildSupportMenu(siteUrl: string) {
-  const text = [
-    `💬 <b>مركز الدعم الفني والمساعدة | EgyCPM</b> 🏎️`,
-    ``,
-    `فريق دعم EgyCPM متواجد لخدمتك ومساعدتك في:`,
-    `• تجهيز وتسليم سيارات وحسابات CPM`,
-    `• مشاكل شحن الرصيد والدفع بالنجوم`,
-    `• الاستفسارات العامة وطلبات التعديل الخاصة`,
-    ``,
-    `⚡ <b>سرعة الرد:</b> خلال دقائق معدودة`,
-    `⏰ <b>التواجد:</b> على مدار الساعة لخدمتكم`,
-  ].join("\n");
+function buildSupportMenu(siteUrl: string, botConfig: TelegramBotConfig) {
+  const text = interpolateTemplate(botConfig.supportMessage, { siteUrl });
 
   const keyboard = [
     [
@@ -880,7 +893,7 @@ function buildSupportMenu(siteUrl: string) {
       { text: "❓ الأسئلة الشائعة (FAQ)", url: `${siteUrl}/faq` },
     ],
     [
-      { text: "🛒 تصفح المتجر", url: `${siteUrl}/shop` },
+      { text: botConfig.buttons?.store?.label || "🛒 تصفح المتجر", url: `${siteUrl}/shop` },
       { text: "🔙 القائمة الرئيسية", callback_data: "menu_main" },
     ],
   ];
