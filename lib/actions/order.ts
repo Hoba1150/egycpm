@@ -5,6 +5,8 @@ import { getCurrentUser, requireAdminRole } from "@/lib/auth";
 import { generateOrderNumber } from "@/lib/utils";
 import { encryptData, decryptData } from "@/lib/encryption";
 import { revalidatePath } from "next/cache";
+import { sendOrderNotification } from "@/lib/telegram";
+
 
 interface CheckoutItemInput {
   productId: string;
@@ -360,8 +362,27 @@ export async function createOrder(input: CreateOrderInput) {
   revalidatePath("/shop");
   revalidatePath("/cpm2");
 
+  // Fire Telegram notification (non-blocking, safe – silently ignores if not linked)
+  const createdOrder = result as any;
+  const dbUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { telegramUserId: true },
+  });
+  if (dbUser?.telegramUserId) {
+    const statusLabel = createdOrder.status === "COMPLETED"
+      ? "🎉 تم التسليم الفوري"
+      : "🔄 جاري تجهيز الطلب";
+    sendOrderNotification({
+      telegramUserId: dbUser.telegramUserId,
+      orderNumber: createdOrder.orderNumber,
+      status: createdOrder.status,
+      extraLines: [`💳 <b>طريقة الدفع:</b> رصيد المحفظة`, `📊 <b>الحالة:</b> ${statusLabel}`],
+    }).catch(() => {});
+  }
+
   return { success: true, order: result };
 }
+
 
 /**
  * Delete a customer's own notification securely
@@ -639,8 +660,36 @@ export async function updateOrderStatus(data: {
 
   revalidatePath(`/orders/${order.orderNumber}`);
   revalidatePath("/admin/orders");
+
+  // Fire Telegram notification to customer (non-blocking)
+  const orderUser = await prisma.user.findUnique({
+    where: { id: order.userId },
+    select: { telegramUserId: true },
+  });
+  if (orderUser?.telegramUserId) {
+    const extraLines: string[] = [];
+    if (data.status === "COMPLETED") {
+      if (data.deliveredEmail || order.deliveredAccountEmail) {
+        extraLines.push(`📧 <b>البريد:</b> ${data.deliveredEmail || order.deliveredAccountEmail}`);
+      }
+      if (data.deliveredNotes || order.deliveredAccountNotes) {
+        extraLines.push(`📝 <b>ملاحظات:</b> ${data.deliveredNotes || order.deliveredAccountNotes}`);
+      }
+    }
+    if (data.adminNotes) {
+      extraLines.push(`💬 <b>ملاحظة الإدارة:</b> ${data.adminNotes}`);
+    }
+    sendOrderNotification({
+      telegramUserId: orderUser.telegramUserId,
+      orderNumber: order.orderNumber,
+      status: data.status,
+      extraLines,
+    }).catch(() => {});
+  }
+
   return { success: true, order: updatedOrder };
 }
+
 
 /**
  * Admin: 1-Click Order Refund back to Customer Wallet

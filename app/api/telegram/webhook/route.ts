@@ -320,32 +320,68 @@ export async function POST(req: Request) {
       });
 
       // 5. Send Direct Confirmation on Telegram to the User
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://egycpm.com";
+      const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://egycpm.vercel.app").replace(/\/$/, "");
       const orderLink = `${siteUrl}/orders/${order.orderNumber}`;
 
-      const telegramMsg = `✅ <b>تم استلام وتأكيد دفعتك بنجاح!</b> ⭐\n\n📦 <b>رقم الطلب:</b> #${order.orderNumber}\n⭐ <b>المبلغ المدفوع:</b> ${starsAmount} Telegram Stars\n🔗 <b>رابط متابعة الطلب:</b> <a href="${orderLink}">اضغط هنا لمتابعة طلبك</a>\n\nشكراً لتسوقك من <b>EgyCPM</b>! 🏎️`;
+      const telegramMsg = `✅ <b>تم استلام وتأكيد دفعتك بنجاح!</b> ⭐\n\n📦 <b>رقم الطلب:</b> #${order.orderNumber}\n⭐ <b>المبلغ المدفوع:</b> ${starsAmount} Telegram Stars\n\nشكراً لتسوقك من <b>EgyCPM</b>! 🏎️\nاضغط على الزر أدناه لمشاهدة تفاصيل طلبك واستلام حسابك أو بيانات التنفيذ:`;
 
       await sendTelegramMessage({
         chatId,
         text: telegramMsg,
         parseMode: "HTML",
+        replyMarkup: {
+          inline_keyboard: [
+            [
+              {
+                text: "📋 عرض تفاصيل الطلب واستلام الحساب 🚀",
+                url: orderLink,
+              },
+            ],
+            [
+              {
+                text: "🛒 العودة إلى المتجر",
+                url: siteUrl,
+              },
+            ],
+          ],
+        },
       });
 
       return NextResponse.json({ ok: true });
     }
 
     // =========================================================================
-    // EVENT 3: Account Linking via /start <token>
+    // EVENT 3: Text Messages — /start, /start <token>, menu callbacks
     // =========================================================================
     if (update.message?.text) {
       const text = update.message.text.trim();
       const chatId = update.message.chat.id;
       const fromUser = update.message.from;
+      const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://egycpm.vercel.app").replace(/\/$/, "");
 
+      // ── /start <cpm_token> — Account Linking ──────────────────────────────
       if (text.startsWith("/start cpm_")) {
-        const token = text.replace("/start", "").trim();
-        const now = new Date();
+        const parts = text.split(" ");
+        const rawToken = parts[1] || "";
 
+        // Extract optional return destination embedded in token as suffix __ret_<slug>
+        // e.g. cpm_abc123__ret_checkout  → token = cpm_abc123, returnSlug = checkout
+        let token = rawToken;
+        let returnPath = "/checkout"; // default
+        const retSep = rawToken.indexOf("__ret_");
+        if (retSep !== -1) {
+          token = rawToken.slice(0, retSep);
+          const slug = rawToken.slice(retSep + 6); // after "__ret_"
+          // Whitelist: only known safe paths
+          const ALLOWED_RETURNS: Record<string, string> = {
+            checkout: "/checkout",
+            profile:  "/profile",
+            orders:   "/orders",
+          };
+          returnPath = ALLOWED_RETURNS[slug] ?? "/checkout";
+        }
+
+        const now = new Date();
         const userToLink = await prisma.user.findFirst({
           where: {
             telegramLinkToken: token,
@@ -354,20 +390,17 @@ export async function POST(req: Request) {
         });
 
         if (userToLink) {
-          // Check if another user already has this telegramUserId
+          // Ensure uniqueness: unlink from any previous account
           const existingTgUser = await prisma.user.findUnique({
             where: { telegramUserId: String(fromUser.id) },
           });
-
           if (existingTgUser && existingTgUser.id !== userToLink.id) {
-            // Unlink from old user first
             await prisma.user.update({
               where: { id: existingTgUser.id },
               data: { telegramUserId: null, telegramUsername: null },
             });
           }
 
-          // Link to current user
           await prisma.user.update({
             where: { id: userToLink.id },
             data: {
@@ -378,37 +411,152 @@ export async function POST(req: Request) {
             },
           });
 
-          const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://egycpm-store.vercel.app";
-          const checkoutUrl = `${siteUrl.replace(/\/$/, "")}/checkout`;
+          const returnUrl = `${siteUrl}${returnPath}`;
 
           await sendTelegramMessage({
             chatId,
-            text: `🎉 <b>تم ربط حسابك في متجر EgyCPM بنجاح!</b>\n\nمرحباً بك <b>${fromUser.first_name || "عزيزي العميل"}</b> 👋\nحسابك الآن مؤكد وجاهز لإتمام عملية الدفع بنجوم تيليجرام (Telegram Stars ⭐).\n\n👇 <b>اضغط على الزر بالأسفل للعودة لصفحة إتمام الدفع مباشرة:</b>`,
+            text: [
+              `🎉 <b>تم ربط حسابك بنجاح!</b>`,
+              ``,
+              `مرحباً <b>${fromUser.first_name || "عزيزي العميل"}</b> 👋`,
+              `حسابك في <b>متجر EgyCPM</b> مرتبط الآن بتيليجرام وجاهز للدفع بنجوم تيليجرام ⭐`,
+              ``,
+              `اضغط الزر أدناه للعودة إلى المتجر وإتمام عمليتك:`,
+            ].join("\n"),
             parseMode: "HTML",
             replyMarkup: {
               inline_keyboard: [
-                [
-                  {
-                    text: "🛒 إتمام عملية الدفع بالمتجر (Checkout) 💳",
-                    url: checkoutUrl,
-                  },
-                ],
+                [{ text: returnPath === "/checkout" ? "🛒 إتمام الدفع الآن" : "🏠 العودة للمتجر", url: returnUrl }],
+                [{ text: "📋 طلباتي", url: `${siteUrl}/orders` }, { text: "👤 ملفي الشخصي", url: `${siteUrl}/profile` }],
               ],
             },
           });
         } else {
           await sendTelegramMessage({
             chatId,
-            text: "⚠️ <b>عذراً، رمز الربط غير صالح أو انتهت صلاحيته (15 دقيقة).</b>\n\nيرجى العودة لصفحة المتجر والضغط على زر 'ربط Telegram' مجدداً للحصول على رابط جديد.",
+            text: [
+              `⚠️ <b>رابط الربط غير صالح أو انتهت مدته (15 دقيقة)</b>`,
+              ``,
+              `للحصول على رابط جديد، ارجع للمتجر واضغط زر <b>"ربط Telegram"</b> مرة أخرى.`,
+            ].join("\n"),
             parseMode: "HTML",
+            replyMarkup: {
+              inline_keyboard: [[{ text: "🛒 فتح المتجر", url: siteUrl }]],
+            },
           });
         }
-      } else if (text === "/start") {
+
+        return NextResponse.json({ ok: true });
+      }
+
+      // ── /start (no token) — Welcome Screen ───────────────────────────────
+      if (text === "/start" || text.startsWith("/start ")) {
+        // Check if this Telegram user is linked to an EgyCPM account
+        const linkedUser = await prisma.user.findUnique({
+          where: { telegramUserId: String(fromUser.id) },
+          select: { name: true, email: true },
+        });
+
+        const greeting = linkedUser
+          ? [
+              `🏎️ <b>مرحباً مجدداً ${linkedUser.name || fromUser.first_name || "عزيزي العميل"}!</b>`,
+              ``,
+              `أنت متصل بمتجر <b>EgyCPM</b> بحساب: <code>${linkedUser.email}</code>`,
+              `اختر ما تريد من القائمة أدناه:`,
+            ].join("\n")
+          : [
+              `🏎️ <b>مرحباً بك في بوت متجر EgyCPM الرسمي!</b>`,
+              ``,
+              `المتجر الأول والأكبر لخدمات وتعديل سيارات لعبة <b>Car Parking Multiplayer</b> في مصر والوطن العربي.`,
+              ``,
+              `🔗 لربط حسابك وتفعيل الدفع بنجوم تيليجرام، اضغط زر <b>"ربط حسابي"</b> من الملف الشخصي في الموقع.`,
+            ].join("\n");
+
+        const keyboard = linkedUser
+          ? [
+              [{ text: "📦 طلباتي", url: `${siteUrl}/orders` }, { text: "👤 حسابي", url: `${siteUrl}/profile` }],
+              [{ text: "🛒 المتجر الرئيسي", url: `${siteUrl}/shop` }, { text: "🚗 قسم CPM2", url: `${siteUrl}/cpm2` }],
+              [{ text: "💬 الدعم الفني", url: `${siteUrl}/support` }, { text: "🏠 الصفحة الرئيسية", url: siteUrl }],
+            ]
+          : [
+              [{ text: "🛒 تصفح المتجر", url: `${siteUrl}/shop` }, { text: "🚗 قسم CPM2", url: `${siteUrl}/cpm2` }],
+              [{ text: "🔗 ربط حسابي الآن", url: `${siteUrl}/profile` }],
+              [{ text: "💬 الدعم الفني", url: `${siteUrl}/support` }],
+            ];
+
         await sendTelegramMessage({
           chatId,
-          text: "🏎️ <b>مرحباً بك في بوت متجر EgyCPM الرسمي!</b>\n\nالمتجر الأول لخدمات وتعديل سيارات Car Parking Multiplayer.\n\nلربط حسابك بالموقع والدفع بنجوم تيليجرام، يرجى الضغط على زر <b>'ربط Telegram'</b> داخل صفحة الشراء أو الملف الشخصي بالمتجر.",
+          text: greeting,
           parseMode: "HTML",
+          replyMarkup: { inline_keyboard: keyboard },
         });
+
+        return NextResponse.json({ ok: true });
+      }
+
+      // ── /orders command ───────────────────────────────────────────────────
+      if (text === "/orders" || text === "/طلباتي") {
+        const linkedUser = await prisma.user.findUnique({
+          where: { telegramUserId: String(fromUser.id) },
+          select: { name: true, orders: { take: 5, orderBy: { createdAt: "desc" }, select: { orderNumber: true, status: true, createdAt: true } } },
+        });
+
+        if (!linkedUser) {
+          await sendTelegramMessage({
+            chatId,
+            text: `⚠️ <b>لم يتم ربط حسابك بعد.</b>\n\nاضغط زر "ربط حسابي" من صفحة الملف الشخصي في الموقع.`,
+            parseMode: "HTML",
+            replyMarkup: { inline_keyboard: [[{ text: "🔗 ربط حسابي", url: `${siteUrl}/profile` }]] },
+          });
+        } else if (!linkedUser.orders.length) {
+          await sendTelegramMessage({
+            chatId,
+            text: `📦 <b>لا توجد طلبات بعد.</b>\n\nتصفح المتجر وابدأ أول طلب لك!`,
+            parseMode: "HTML",
+            replyMarkup: { inline_keyboard: [[{ text: "🛒 تصفح المتجر", url: `${siteUrl}/shop` }]] },
+          });
+        } else {
+          const STATUS_EMOJI: Record<string, string> = {
+            PENDING: "⏳", PAID: "✅", PROCESSING: "🔄", IN_PROGRESS: "⚙️",
+            COMPLETED: "🎉", CANCELLED: "❌", REJECTED: "🚫", PENDING_PAYMENT: "⭐",
+          };
+          const lines = linkedUser.orders.map((o) => {
+            const emoji = STATUS_EMOJI[o.status] || "📦";
+            return `${emoji} <b>#${o.orderNumber}</b> — ${o.status}`;
+          });
+          await sendTelegramMessage({
+            chatId,
+            text: [`📦 <b>آخر طلباتك:</b>`, ``, ...lines].join("\n"),
+            parseMode: "HTML",
+            replyMarkup: { inline_keyboard: [[{ text: "📋 عرض كل الطلبات", url: `${siteUrl}/orders` }]] },
+          });
+        }
+
+        return NextResponse.json({ ok: true });
+      }
+
+      // ── /help command ─────────────────────────────────────────────────────
+      if (text === "/help" || text === "/مساعدة") {
+        await sendTelegramMessage({
+          chatId,
+          text: [
+            `ℹ️ <b>مساعدة — بوت EgyCPM</b>`,
+            ``,
+            `الأوامر المتاحة:`,
+            `🔹 /start — الصفحة الرئيسية`,
+            `🔹 /orders — آخر طلباتك`,
+            `🔹 /help — هذه الرسالة`,
+            ``,
+            `📱 للمزيد من الخيارات استخدم الأزرار التفاعلية أسفل الرسائل.`,
+          ].join("\n"),
+          parseMode: "HTML",
+          replyMarkup: {
+            inline_keyboard: [
+              [{ text: "🛒 المتجر", url: `${siteUrl}/shop` }, { text: "💬 الدعم", url: `${siteUrl}/support` }],
+            ],
+          },
+        });
+        return NextResponse.json({ ok: true });
       }
 
       return NextResponse.json({ ok: true });
@@ -420,3 +568,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

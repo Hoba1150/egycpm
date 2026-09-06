@@ -143,3 +143,58 @@ export async function refundTelegramStarPayment(params: {
     telegram_payment_charge_id: telegramPaymentChargeId,
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Order Lifecycle Notifications
+// ─────────────────────────────────────────────────────────────────────────────
+
+const STATUS_LABELS: Record<string, string> = {
+  PENDING:        "⏳ بانتظار المراجعة",
+  PAID:           "✅ تم تأكيد الدفع",
+  PROCESSING:     "🔄 جاري التجهيز",
+  IN_PROGRESS:    "⚙️ جاري التنفيذ داخل اللعبة",
+  COMPLETED:      "🎉 تم التسليم والاكتمال",
+  CANCELLED:      "❌ تم الإلغاء",
+  REJECTED:       "🚫 تم الرفض",
+  REFUNDED:       "💸 تمت الاسترداد",
+  PENDING_PAYMENT:"⭐ بانتظار دفع النجوم",
+};
+
+/**
+ * Send a structured order notification to the user via Telegram.
+ * Safe: silently returns null if telegramUserId is absent or API fails.
+ */
+export async function sendOrderNotification(params: {
+  telegramUserId: string | null | undefined;
+  orderNumber: string;
+  status: string;
+  extraLines?: string[];
+  siteUrl?: string;
+}) {
+  const { telegramUserId, orderNumber, status, extraLines = [], siteUrl } = params;
+  if (!telegramUserId) return null;
+
+  const base = siteUrl || process.env.NEXT_PUBLIC_SITE_URL || "https://egycpm.vercel.app";
+  const orderUrl = `${base.replace(/\/$/, "")}/orders/${orderNumber}`;
+  const label = STATUS_LABELS[status] || status;
+
+  const lines = [
+    `🏎️ <b>متجر EgyCPM — تحديث طلبك</b>`,
+    ``,
+    `📦 <b>رقم الطلب:</b> #${orderNumber}`,
+    `📌 <b>الحالة الجديدة:</b> ${label}`,
+    ...extraLines,
+    ``,
+    `🔗 <a href="${orderUrl}">تتبع تفاصيل الطلب هنا</a>`,
+  ];
+
+  return sendTelegramMessage({
+    chatId: telegramUserId,
+    text: lines.join("\n"),
+    parseMode: "HTML",
+    replyMarkup: {
+      inline_keyboard: [[{ text: "📋 عرض تفاصيل الطلب", url: orderUrl }]],
+    },
+  });
+}
+

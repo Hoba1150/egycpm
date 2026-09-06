@@ -4,20 +4,26 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { generateOrderNumber } from "@/lib/utils";
 import { encryptData } from "@/lib/encryption";
-import { createStarsInvoiceLink, getTelegramBotUsername } from "@/lib/telegram";
+import { createStarsInvoiceLink, getTelegramBotUsername, sendOrderNotification } from "@/lib/telegram";
 import { revalidatePath } from "next/cache";
 import crypto from "crypto";
 
 /**
  * 1. Generate One-Time Telegram Account Linking Deep Link
+ * @param returnSlug - optional: "checkout" | "profile" | "orders" — embedded safely in token
  */
-export async function generateTelegramLinkToken() {
+export async function generateTelegramLinkToken(returnSlug?: string) {
   const user = await getCurrentUser();
   if (!user) {
     throw new Error("يجب تسجيل الدخول أولاً لربط حساب Telegram.");
   }
 
-  const token = `cpm_${crypto.randomBytes(12).toString("hex")}`;
+  const baseToken = `cpm_${crypto.randomBytes(12).toString("hex")}`;
+  // Embed return slug in token string so webhook can whitelist-validate it
+  const ALLOWED_SLUGS = ["checkout", "profile", "orders"];
+  const safeSlug = returnSlug && ALLOWED_SLUGS.includes(returnSlug) ? returnSlug : null;
+  const token = safeSlug ? `${baseToken}__ret_${safeSlug}` : baseToken;
+
   const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes validity
 
   await prisma.user.update({
@@ -38,6 +44,7 @@ export async function generateTelegramLinkToken() {
     expiresAt,
   };
 }
+
 
 /**
  * 2. Get Telegram Account Linking Status for Current User
@@ -241,6 +248,17 @@ export async function createTelegramStarsOrder(input: CreateStarsOrderInput) {
     starsAmount: starsTotal,
     photoUrl: primaryImage,
   });
+
+  // Non-blocking notification to Telegram chat
+  sendOrderNotification({
+    telegramUserId: dbUser.telegramUserId,
+    orderNumber: order.orderNumber,
+    status: "PENDING_PAYMENT",
+    extraLines: [
+      `⭐ <b>المبلغ المطلوب:</b> ${starsTotal} Telegram Stars`,
+      `⏳ في انتظار إتمام الدفع داخل تطبيق تيليجرام`,
+    ],
+  }).catch(() => {});
 
   return {
     success: true,

@@ -95,7 +95,8 @@ export default function TelegramLinkCard({
   const handleStartLink = async () => {
     setIsGenerating(true);
     try {
-      const res = await generateTelegramLinkToken();
+      const returnSlug = pathname?.includes("profile") ? "profile" : "checkout";
+      const res = await generateTelegramLinkToken(returnSlug);
       if (res.success && res.link) {
         setLinkUrl(res.link);
         setIsWaitingForAuth(true);
