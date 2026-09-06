@@ -10,6 +10,17 @@ import {
 export const dynamic = "force-dynamic";
 
 /**
+ * Health check & status endpoint for webhook verification
+ */
+export async function GET() {
+  return NextResponse.json({
+    status: "ok",
+    service: "EgyCPM Telegram Stars Webhook",
+    timestamp: new Date().toISOString(),
+  });
+}
+
+/**
  * Telegram Bot Webhook Endpoint
  * Handles:
  * 1. Account linking via /start <token>
