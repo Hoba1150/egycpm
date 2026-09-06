@@ -378,10 +378,23 @@ export async function POST(req: Request) {
             },
           });
 
+          const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://egycpm-store.vercel.app";
+          const checkoutUrl = `${siteUrl.replace(/\/$/, "")}/checkout`;
+
           await sendTelegramMessage({
             chatId,
-            text: `🎉 <b>تم ربط حسابك في متجر EgyCPM بنجاح!</b>\n\nمرحباً بك <b>${fromUser.first_name || "عزيزي العميل"}</b> 👋\nحسابك الآن مؤكد وجاهز لإتمام الدفع بنجوم تيليجرام (Telegram Stars ⭐) واستلام طلباتك وسياراتك فوراً.`,
+            text: `🎉 <b>تم ربط حسابك في متجر EgyCPM بنجاح!</b>\n\nمرحباً بك <b>${fromUser.first_name || "عزيزي العميل"}</b> 👋\nحسابك الآن مؤكد وجاهز لإتمام عملية الدفع بنجوم تيليجرام (Telegram Stars ⭐).\n\n👇 <b>اضغط على الزر بالأسفل للعودة لصفحة إتمام الدفع مباشرة:</b>`,
             parseMode: "HTML",
+            replyMarkup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: "🛒 إتمام عملية الدفع بالمتجر (Checkout) 💳",
+                    url: checkoutUrl,
+                  },
+                ],
+              ],
+            },
           });
         } else {
           await sendTelegramMessage({

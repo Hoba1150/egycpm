@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { generateTelegramLinkToken, getTelegramAccountStatus, unlinkTelegramAccount } from "@/lib/actions/telegram-payment";
 import { CheckCircle2, AlertCircle, ExternalLink, Loader2, Unlink, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
@@ -16,9 +17,17 @@ function TelegramLogo({ className }: { className?: string }) {
 interface TelegramLinkCardProps {
   compact?: boolean;
   onLinkStatusChange?: (isLinked: boolean) => void;
+  redirectToCheckout?: boolean;
 }
 
-export default function TelegramLinkCard({ compact = false, onLinkStatusChange }: TelegramLinkCardProps) {
+export default function TelegramLinkCard({
+  compact = false,
+  onLinkStatusChange,
+  redirectToCheckout = true,
+}: TelegramLinkCardProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+
   const [status, setStatus] = useState<{
     isLinked: boolean;
     telegramUserId: string | null;
@@ -61,6 +70,14 @@ export default function TelegramLinkCard({ compact = false, onLinkStatusChange }
         setIsWaitingForAuth(false);
         setLinkUrl(null);
         toast.success("🎉 تم ربط حساب Telegram بنجاح!");
+
+        // Auto-redirect to checkout page if not already there
+        if (redirectToCheckout && pathname !== "/checkout") {
+          toast.info("جاري تحويلك إلى صفحة إتمام الدفع (Checkout)...");
+          setTimeout(() => {
+            router.push("/checkout");
+          }, 1000);
+        }
       }
     }, 2500);
 
@@ -73,7 +90,7 @@ export default function TelegramLinkCard({ compact = false, onLinkStatusChange }
       clearInterval(interval);
       clearTimeout(timeout);
     };
-  }, [isWaitingForAuth]);
+  }, [isWaitingForAuth, pathname, redirectToCheckout, router]);
 
   const handleStartLink = async () => {
     setIsGenerating(true);

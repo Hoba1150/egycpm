@@ -110,15 +110,20 @@ export async function sendTelegramMessage(params: {
   chatId: string | number;
   text: string;
   parseMode?: "HTML" | "Markdown" | "MarkdownV2";
+  replyMarkup?: any;
 }) {
   try {
-    const { chatId, text, parseMode = "HTML" } = params;
-    return await telegramApiRequest("sendMessage", {
+    const { chatId, text, parseMode = "HTML", replyMarkup } = params;
+    const body: Record<string, any> = {
       chat_id: chatId,
       text,
       parse_mode: parseMode,
       disable_web_page_preview: false,
-    });
+    };
+    if (replyMarkup) {
+      body.reply_markup = replyMarkup;
+    }
+    return await telegramApiRequest("sendMessage", body);
   } catch (err) {
     console.error("Failed to send telegram message:", err);
     return null;
