@@ -383,18 +383,17 @@ export async function POST(req: Request) {
       const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://egycpm.vercel.app").replace(/\/$/, "");
 
       // ── /start <cpm_token> — Account Linking ──────────────────────────────
-      if (text.startsWith("/start cpm_")) {
-        const parts = text.split(" ");
-        const rawToken = parts[1] || "";
+      if (text.startsWith("/start cpm_") || /^\/start\s+cpm_/i.test(text)) {
+        const rawToken = text.replace(/^\/start\s+/i, "").trim();
 
         // Extract optional return destination embedded in token as suffix __ret_<slug>
-        // e.g. cpm_abc123__ret_checkout  → token = cpm_abc123, returnSlug = checkout
-        let token = rawToken;
+        // e.g. cpm_abc123__ret_checkout  → baseToken = cpm_abc123, returnSlug = checkout
+        let baseToken = rawToken;
         let returnPath = "/checkout"; // default
         const retSep = rawToken.indexOf("__ret_");
         if (retSep !== -1) {
-          token = rawToken.slice(0, retSep);
-          const slug = rawToken.slice(retSep + 6); // after "__ret_"
+          baseToken = rawToken.slice(0, retSep);
+          const slug = rawToken.slice(retSep + 6).toLowerCase();
           // Whitelist: only known safe paths
           const ALLOWED_RETURNS: Record<string, string> = {
             checkout: "/checkout",
@@ -407,7 +406,10 @@ export async function POST(req: Request) {
         const now = new Date();
         const userToLink = await prisma.user.findFirst({
           where: {
-            telegramLinkToken: token,
+            OR: [
+              { telegramLinkToken: rawToken },
+              { telegramLinkToken: baseToken },
+            ],
             telegramLinkExpires: { gt: now },
           },
         });
