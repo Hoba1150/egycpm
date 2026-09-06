@@ -151,13 +151,12 @@ export async function createTelegramStarsOrder(input: CreateStarsOrderInput) {
     const itemTotal = prod.price * item.quantity;
     subtotal += itemTotal;
 
-    // Determine Stars price for item:
-    // If starsPrice is explicitly configured on the product, use it.
-    // Otherwise fallback to 1 Star per 2 EGP (e.g. Math.ceil(price / 2)) or equivalent.
-    const unitStars = prod.starsPrice && prod.starsPrice > 0
-      ? prod.starsPrice
-      : Math.max(1, Math.ceil(prod.price / 2));
+    // Strict Server-Side Validation: Product MUST have an explicit, valid starsPrice > 0 in PostgreSQL
+    if (!prod.starsPrice || prod.starsPrice <= 0) {
+      throw new Error(`عذراً، المنتج "${prod.name}" غير متاح للشراء عبر نجوم تيليجرام (Telegram Stars).`);
+    }
 
+    const unitStars = Math.floor(prod.starsPrice);
     starsTotal += unitStars * item.quantity;
 
     orderItemsData.push({

@@ -91,11 +91,17 @@ export default function CheckoutPage() {
   const discount = getDiscount();
   const total = getTotal();
 
-  // Calculate estimated Stars total
-  const estimatedStarsTotal = items.reduce((acc, it: any) => {
-    const unitStars = it.starsPrice && it.starsPrice > 0 ? it.starsPrice : Math.max(1, Math.ceil(it.price / 2));
-    return acc + unitStars * it.quantity;
-  }, 0);
+  // Check if ALL products in cart have a valid starsPrice (> 0)
+  const isStarsEligible = items.length > 0 && items.every((it) => typeof it.starsPrice === "number" && it.starsPrice > 0);
+  const estimatedStarsTotal = isStarsEligible
+    ? items.reduce((acc, it) => acc + (it.starsPrice || 0) * it.quantity, 0)
+    : 0;
+
+  useEffect(() => {
+    if (!isStarsEligible && paymentMethod === "TELEGRAM_STARS") {
+      setPaymentMethod("WALLET");
+    }
+  }, [isStarsEligible, paymentMethod]);
 
   // Fetch session & live wallet
   const fetchSession = async () => {
@@ -630,7 +636,7 @@ export default function CheckoutPage() {
             <div className="p-5 rounded-2xl bg-[#0f1218] border border-gray-800 shadow-sm space-y-3">
               <span className="text-xs font-bold text-gray-400 block">اختر طريقة الدفع:</span>
 
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className={`grid ${isStarsEligible ? "grid-cols-2" : "grid-cols-1"} gap-2.5`}>
                 {/* Method 1: Wallet */}
                 <button
                   type="button"
@@ -655,29 +661,31 @@ export default function CheckoutPage() {
                   </span>
                 </button>
 
-                {/* Method 2: Telegram Stars */}
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("TELEGRAM_STARS")}
-                  className={`p-3 rounded-xl border text-right transition flex flex-col justify-between gap-1.5 ${
-                    paymentMethod === "TELEGRAM_STARS"
-                      ? "bg-amber-500/15 border-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.15)]"
-                      : "bg-[#161b24] border-gray-800 text-gray-400 hover:border-gray-700 hover:text-gray-300"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm">⭐</span>
-                      <span className="text-xs font-black text-amber-300">Telegram Stars</span>
+                {/* Method 2: Telegram Stars (Only visible if ALL items have starsPrice) */}
+                {isStarsEligible && (
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("TELEGRAM_STARS")}
+                    className={`p-3 rounded-xl border text-right transition flex flex-col justify-between gap-1.5 ${
+                      paymentMethod === "TELEGRAM_STARS"
+                        ? "bg-amber-500/15 border-amber-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.15)]"
+                        : "bg-[#161b24] border-gray-800 text-gray-400 hover:border-gray-700 hover:text-gray-300"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm">⭐</span>
+                        <span className="text-xs font-black text-amber-300">Telegram Stars</span>
+                      </div>
+                      <span className={`w-3 h-3 rounded-full border flex items-center justify-center ${paymentMethod === "TELEGRAM_STARS" ? "border-amber-500 bg-amber-500" : "border-gray-600"}`}>
+                        {paymentMethod === "TELEGRAM_STARS" && <span className="w-1 h-1 bg-black rounded-full" />}
+                      </span>
                     </div>
-                    <span className={`w-3 h-3 rounded-full border flex items-center justify-center ${paymentMethod === "TELEGRAM_STARS" ? "border-amber-500 bg-amber-500" : "border-gray-600"}`}>
-                      {paymentMethod === "TELEGRAM_STARS" && <span className="w-1 h-1 bg-black rounded-full" />}
+                    <span className="text-[10px] text-amber-400 font-mono font-bold">
+                      {estimatedStarsTotal.toLocaleString()} ⭐ Stars
                     </span>
-                  </div>
-                  <span className="text-[10px] text-amber-400/80 font-mono">
-                    دفع فوري عبر تيليجرام
-                  </span>
-                </button>
+                  </button>
+                )}
               </div>
             </div>
 

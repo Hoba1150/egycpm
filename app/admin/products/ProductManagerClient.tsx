@@ -222,7 +222,7 @@ export default function ProductManagerClient({
           name,
           description,
           price: Number(price),
-          starsPrice: starsPrice ? Number(starsPrice) : null,
+          starsPrice: starsPrice !== "" && Number(starsPrice) > 0 ? Math.floor(Number(starsPrice)) : null,
           originalPrice: originalPrice ? Number(originalPrice) : null,
           discountPercent: Number(discountPercent || 0),
           categoryId,
@@ -247,7 +247,7 @@ export default function ProductManagerClient({
           name,
           description,
           price: Number(price),
-          starsPrice: starsPrice ? Number(starsPrice) : null,
+          starsPrice: starsPrice !== "" && Number(starsPrice) > 0 ? Math.floor(Number(starsPrice)) : null,
           originalPrice: originalPrice ? Number(originalPrice) : null,
           discountPercent: Number(discountPercent || 0),
           categoryId,
@@ -395,8 +395,21 @@ export default function ProductManagerClient({
                         {p.category?.name || "بدون قسم"}
                       </span>
                     </td>
-                    <td className="p-4 font-bold text-sm text-green-400 font-mono">
-                      {formatCurrency(p.price)}
+                    <td className="p-4">
+                      <div className="space-y-1">
+                        <div className="font-bold text-sm text-green-400 font-mono">
+                          {formatCurrency(p.price)}
+                        </div>
+                        {p.starsPrice && p.starsPrice > 0 ? (
+                          <div className="text-[11px] font-bold text-amber-400 font-mono flex items-center gap-1 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 w-fit">
+                            <span>{p.starsPrice.toLocaleString()} ⭐</span>
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-gray-500 font-medium">
+                            غير محدد
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="p-4">
                       {p.discountPercent > 0 ? (
@@ -649,16 +662,18 @@ export default function ProductManagerClient({
 
                 <div>
                   <label className="block text-xs font-medium text-amber-400 mb-1 flex items-center gap-1">
-                    <span>سعر النجوم (Stars ⭐)</span>
+                    <span>سعر Telegram Stars ⭐</span>
                   </label>
                   <input
                     type="number"
                     min={1}
+                    step={1}
                     value={starsPrice}
-                    onChange={(e) => setStarsPrice(e.target.value ? Number(e.target.value) : "")}
-                    placeholder="تلقائي إن ترك فارغاً"
+                    onChange={(e) => setStarsPrice(e.target.value ? Math.max(1, Math.floor(Number(e.target.value))) : "")}
+                    placeholder="اختياري - اتركه فارغاً لتعطيل Stars"
                     className="w-full px-3 py-2 bg-[#12161f] border border-amber-500/40 focus:border-amber-400 rounded-xl text-xs text-amber-300 text-right font-mono"
                   />
+                  <span className="text-[10px] text-gray-500 block mt-1">اتركه فارغاً لتعطيل الدفع بالنجوم</span>
                 </div>
 
                 <div>

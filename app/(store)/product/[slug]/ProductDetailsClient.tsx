@@ -74,6 +74,7 @@ export default function ProductDetailsClient({ product, user }: ProductDetailsCl
         name: product.name,
         slug: product.slug,
         price: product.price,
+        starsPrice: product.starsPrice || null,
         originalPrice: product.originalPrice,
         image: currentImage,
         productType: product.productType,
@@ -96,6 +97,7 @@ export default function ProductDetailsClient({ product, user }: ProductDetailsCl
         name: product.name,
         slug: product.slug,
         price: product.price,
+        starsPrice: product.starsPrice || null,
         originalPrice: product.originalPrice,
         image: currentImage,
         productType: product.productType,
@@ -444,13 +446,13 @@ export default function ProductDetailsClient({ product, user }: ProductDetailsCl
             </div>
           </div>
 
-          {product.starsPrice ? (
+          {product.starsPrice && product.starsPrice > 0 ? (
             <div className="flex items-center justify-between pt-2 border-t border-gray-800/80">
               <span className="text-xs text-amber-400 font-bold flex items-center gap-1">
                 <span>أو الدفع عبر Telegram Stars:</span>
               </span>
               <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-400 font-mono font-black text-sm flex items-center gap-1">
-                <span>{product.starsPrice * quantity}</span>
+                <span>{(product.starsPrice * quantity).toLocaleString()}</span>
                 <span>⭐ Stars</span>
               </span>
             </div>

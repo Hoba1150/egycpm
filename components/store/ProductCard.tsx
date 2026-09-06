@@ -62,6 +62,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       name: product.name,
       slug: product.slug,
       price: product.price,
+      starsPrice: product.starsPrice || null,
       originalPrice: product.originalPrice,
       image: primaryImage,
       productType: product.productType,
@@ -82,6 +83,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       name: product.name,
       slug: product.slug,
       price: product.price,
+      starsPrice: product.starsPrice || null,
       originalPrice: product.originalPrice,
       image: primaryImage,
       productType: product.productType,
@@ -158,9 +160,9 @@ export default function ProductCard({ product }: ProductCardProps) {
                 {formatCurrency(product.originalPrice)}
               </span>
             )}
-            {product.starsPrice ? (
+            {product.starsPrice && product.starsPrice > 0 ? (
               <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-[10px] sm:text-[11px] font-bold">
-                <span>{product.starsPrice}</span>
+                <span>{product.starsPrice.toLocaleString()}</span>
                 <span>⭐</span>
               </span>
             ) : null}

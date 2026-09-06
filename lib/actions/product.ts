@@ -499,7 +499,7 @@ export async function createProduct(data: {
       slug,
       description: data.description,
       price: Number(data.price),
-      starsPrice: data.starsPrice ? Number(data.starsPrice) : null,
+      starsPrice: data.starsPrice && Number(data.starsPrice) > 0 ? Math.floor(Number(data.starsPrice)) : null,
       originalPrice: data.originalPrice ? Number(data.originalPrice) : null,
       discountPercent: data.discountPercent ? Number(data.discountPercent) : 0,
       categoryId: data.categoryId,
@@ -550,7 +550,9 @@ export async function updateProduct(id: string, data: Partial<any>) {
     updatePayload.detailedSpecs = JSON.stringify(data.detailedSpecs);
   }
   if (data.price !== undefined) updatePayload.price = Number(data.price);
-  if (data.starsPrice !== undefined) updatePayload.starsPrice = data.starsPrice ? Number(data.starsPrice) : null;
+  if (data.starsPrice !== undefined) {
+    updatePayload.starsPrice = data.starsPrice && Number(data.starsPrice) > 0 ? Math.floor(Number(data.starsPrice)) : null;
+  }
   if (data.originalPrice !== undefined) updatePayload.originalPrice = data.originalPrice ? Number(data.originalPrice) : null;
   if (data.stockQuantity !== undefined) updatePayload.stockQuantity = Number(data.stockQuantity);
 
