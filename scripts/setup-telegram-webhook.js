@@ -23,12 +23,15 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://egycpm.com';
-const WEBHOOK_SECRET = process.env.TELEGRAM_WEBHOOK_SECRET || 'egycpm_telegram_secret_2026';
+const BOT_TOKEN = process.argv[2] || process.env.TELEGRAM_BOT_TOKEN;
+const SITE_URL = process.argv[3] || process.env.NEXT_PUBLIC_SITE_URL || 'https://egycpm.com';
+const WEBHOOK_SECRET = process.argv[4] || process.env.TELEGRAM_WEBHOOK_SECRET || 'egycpm_telegram_secret_2026';
 
 if (!BOT_TOKEN) {
-  console.error('❌ Error: TELEGRAM_BOT_TOKEN is not set in .env or environment.');
+  console.error('❌ خطأ: لم يتم العثور على TELEGRAM_BOT_TOKEN.');
+  console.error('يمكنك إما:');
+  console.error('1. وضعه في ملف .env: TELEGRAM_BOT_TOKEN=your_token_here');
+  console.error('2. أو تمريره مباشرة في الأمر: node scripts/setup-telegram-webhook.js <BOT_TOKEN> [SITE_URL]');
   process.exit(1);
 }
 
