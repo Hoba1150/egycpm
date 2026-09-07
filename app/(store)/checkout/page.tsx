@@ -49,14 +49,7 @@ export default function CheckoutPage() {
   // Payment Method: "WALLET" or "TELEGRAM_STARS"
   const [paymentMethod, setPaymentMethod] = useState<"WALLET" | "TELEGRAM_STARS">("WALLET");
   const [isTelegramLinked, setIsTelegramLinked] = useState(false);
-
-  // Stars Payment Pending State
-  const [pendingStarsOrder, setPendingStarsOrder] = useState<{
-    orderNumber: string;
-    invoiceUrl: string;
-    starsTotal: number;
-  } | null>(null);
-  const [isPollingStars, setIsPollingStars] = useState(false);
+  const [customerTelegramUsername, setCustomerTelegramUsername] = useState("");
 
   // Form Fields
   const [fulfillmentType, setFulfillmentType] = useState<
@@ -182,39 +175,6 @@ export default function CheckoutPage() {
     };
   }, []);
 
-  // Polling for Stars payment confirmation
-  useEffect(() => {
-    if (!pendingStarsOrder || !isPollingStars) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const res = await checkOrderStatus(pendingStarsOrder.orderNumber);
-        if (res?.isPaid) {
-          setIsPollingStars(false);
-          try {
-            confetti({
-              particleCount: 120,
-              spread: 80,
-              origin: { y: 0.6 },
-            });
-          } catch {}
-
-          toast.success(
-            isGameAccountOrder
-              ? "🎉 تم تأكيد الدفع بنجوم تيليجرام واستلام حسابك بنجاح!"
-              : `🎉 تم تأكيد الدفع بنجوم تيليجرام للطلب #${pendingStarsOrder.orderNumber} بنجاح!`
-          );
-          clearCart();
-          router.push(`/orders/${pendingStarsOrder.orderNumber}`);
-        }
-      } catch {
-        // ignore polling errors
-      }
-    }, 2500);
-
-    return () => clearInterval(interval);
-  }, [pendingStarsOrder, isPollingStars, isGameAccountOrder]);
-
   const walletBalance = user?.wallet?.totalAvailable || 0;
   const isBalanceSufficient = walletBalance >= total;
   const remainingBalance = Math.max(0, walletBalance - total);
@@ -300,13 +260,8 @@ export default function CheckoutPage() {
       return;
     }
 
-    // ─── 1. Telegram Stars Payment Flow ───
+    // ─── 1. Telegram Stars Payment Flow (Direct Gift / Stars Transfer) ───
     if (paymentMethod === "TELEGRAM_STARS") {
-      if (!isTelegramLinked) {
-        toast.error("يرجى ربط حسابك في Telegram أولاً للدفع بنجوم تيليجرام.");
-        return;
-      }
-
       setIsSubmitting(true);
       try {
         const formattedNotes = isGameAccountOrder
@@ -321,22 +276,24 @@ export default function CheckoutPage() {
           gamePassword: isGameAccountOrder || fulfillmentType === "NEW_ACCOUNT_AUTO" ? null : gamePassword,
           gamePlayerId: isGameAccountOrder ? null : (gamePlayerId.trim() || null),
           customerNotes: formattedNotes,
+          customerTelegramUsername: customerTelegramUsername.trim() || null,
         });
 
-        if (res.success && res.invoiceUrl) {
-          setPendingStarsOrder({
-            orderNumber: res.orderNumber,
-            invoiceUrl: res.invoiceUrl,
-            starsTotal: res.starsTotal,
-          });
-          setIsPollingStars(true);
+        if (res.success && res.orderNumber) {
+          try {
+            confetti({
+              particleCount: 100,
+              spread: 70,
+              origin: { y: 0.6 },
+            });
+          } catch {}
 
-          // Open invoice in telegram
-          window.open(res.invoiceUrl, "_blank");
-          toast.info("تم فتح فاتورة Telegram Stars. ادفع داخل التطبيق وسيتم تحديث الطلب تلقائياً.");
+          toast.success(`🎉 تم إنشاء طلبك #${res.orderNumber} بنجاح! تم توجيهك لصفحة الطلب لإرسال النجوم.`);
+          clearCart();
+          router.push(`/orders/${res.orderNumber}`);
         }
       } catch (err: any) {
-        toast.error(err.message || "حدث خطأ أثناء إنشاء فاتورة النجوم.");
+        toast.error(err.message || "حدث خطأ أثناء إنشاء طلب النجوم.");
       } finally {
         setIsSubmitting(false);
       }
@@ -389,7 +346,7 @@ export default function CheckoutPage() {
     }
   };
 
-  if (items.length === 0 && !isSubmitting && !pendingStarsOrder) {
+  if (items.length === 0 && !isSubmitting) {
     return (
       <div className="max-w-md mx-auto px-4 py-20 text-center space-y-4">
         <h2 className="text-xl font-black text-white">لا توجد منتجات للدفع</h2>
@@ -741,19 +698,6 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Telegram Linking Prompt if Telegram Stars selected and not linked */}
-            {paymentMethod === "TELEGRAM_STARS" && (
-              <TelegramLinkCard
-                compact
-                onLinkStatusChange={(linked) => {
-                  setIsTelegramLinked(linked);
-                  if (linked) {
-                    fetchSession();
-                  }
-                }}
-              />
-            )}
-
             {/* Main Payment Card */}
             <div className="p-5 sm:p-6 rounded-2xl bg-[#0f1218] border border-gray-800 shadow-sm space-y-4 relative overflow-hidden card-drift-accent">
               {paymentMethod === "WALLET" ? (
@@ -807,7 +751,7 @@ export default function CheckoutPage() {
                   <div className="flex justify-between items-center">
                     <span className="text-gray-300 font-medium">وسيلة الدفع:</span>
                     <span className="font-black text-amber-400 flex items-center gap-1 font-mono">
-                      <span>Telegram Stars (XTR)</span>
+                      <span>إرسال نجوم تيليجرام (Gift / Stars)</span>
                       <span>⭐</span>
                     </span>
                   </div>
@@ -819,9 +763,22 @@ export default function CheckoutPage() {
                     </span>
                   </div>
 
-                  <p className="text-[10px] text-gray-400 leading-relaxed pt-1">
-                    ⚡ عند الضغط على زر الشراء، سيتم إنشاء فاتورة فورية وفتح تطبيق تيليجرام لإتمام الدفع بالنجوم، وسيتم تأكيد واستلام طلبك تلقائياً وبأقصى سرعة.
-                  </p>
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-300 mb-1">
+                      اسم حسابك على تيليجرام (Telegram Username) للتحقق:
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="@username"
+                      value={customerTelegramUsername}
+                      onChange={(e) => setCustomerTelegramUsername(e.target.value)}
+                      className="w-full px-3.5 py-2 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white placeholder-gray-500 dir-ltr text-left font-mono focus:border-amber-500"
+                    />
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 leading-relaxed">
+                    💡 <strong>طريقة الدفع:</strong> بعد الضغط على تأكيد الطلب، سيتم توجيهك لصفحة تفاصيل الطلب مع رابط مباشر لحساب الإدارة على تيليجرام لإرسال الهدية/النجوم المطلوبة. يتم تفعيل طلبك فور تأكيد وصول النجوم.
+                  </div>
                 </div>
               )}
 
@@ -928,7 +885,7 @@ export default function CheckoutPage() {
                 <button
                   type="button"
                   onClick={handleConfirmOrder}
-                  disabled={isSubmitting || !isTelegramLinked || !user}
+                  disabled={isSubmitting || !user}
                   className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-black text-sm shadow-lg shadow-amber-500/20 active:scale-[0.98] transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
@@ -936,7 +893,7 @@ export default function CheckoutPage() {
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4" />
-                      <span>الدفع بنجوم تيليجرام ({estimatedStarsTotal} ⭐)</span>
+                      <span>تأكيد الطلب والدفع بالنجوم ({estimatedStarsTotal} ⭐)</span>
                     </>
                   )}
                 </button>
@@ -958,40 +915,6 @@ export default function CheckoutPage() {
                 </button>
               )}
             </div>
-
-            {/* Pending Stars Order Modal / Alert */}
-            {pendingStarsOrder && (
-              <div className="p-5 rounded-2xl bg-[#0c1424] border-2 border-amber-500/40 shadow-xl space-y-3 text-center">
-                <div className="flex items-center justify-center gap-2 text-amber-400 font-black text-sm">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>بانتظار تأكيد الدفع في تيليجرام...</span>
-                </div>
-                <p className="text-xs text-gray-300 leading-relaxed">
-                  تم إنشاء فاتورة الدفع لطلب رقم <strong>#{pendingStarsOrder.orderNumber}</strong> بمبلغ <strong>{pendingStarsOrder.starsTotal} ⭐</strong>.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-2 justify-center pt-1">
-                  <a
-                    href={pendingStarsOrder.invoiceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-black font-black text-xs inline-flex items-center justify-center gap-1.5 shadow-md"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span>إعادة فتح الفاتورة في Telegram</span>
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPendingStarsOrder(null);
-                      setIsPollingStars(false);
-                    }}
-                    className="px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs"
-                  >
-                    إلغاء المتابعة
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

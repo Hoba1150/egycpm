@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { updateOrderStatus, refundOrder, deleteOrder, deliverOrderCredentials } from "@/lib/actions/order";
+import { confirmTelegramStarsPayment } from "@/lib/actions/telegram-payment";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import {
@@ -24,6 +25,7 @@ import {
   User,
   ShoppingBag,
   AlertCircle,
+  Sparkles,
 } from "lucide-react";
 
 export default function OrderPipelineClient({ initialOrders }: { initialOrders: any[] }) {
@@ -65,8 +67,36 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
   const [refundReason, setRefundReason] = useState("");
   const [isRefunding, setIsRefunding] = useState(false);
 
+  // Stars Confirmation state
+  const [isConfirmingStars, setIsConfirmingStars] = useState(false);
+
   // Mobile Bottom Sheet Actions state
   const [bottomSheetOrder, setBottomSheetOrder] = useState<any | null>(null);
+
+  const handleConfirmStarsPayment = async (orderId: string, orderNumber: string, starsCount: number) => {
+    if (!confirm(`هل أنت متأكد من استلام (${starsCount} ⭐) في حسابك الشخصي على تيليجرام وتريد تفعيل الطلب #${orderNumber} والبدء في تنفيذه الآن؟`)) {
+      return;
+    }
+
+    setIsConfirmingStars(true);
+    try {
+      const res = await confirmTelegramStarsPayment(orderId);
+      if (res.success) {
+        toast.success(`🎉 تم تأكيد استلام النجوم وتفعيل الطلب #${orderNumber} بنجاح!`);
+        setOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? { ...o, status: res.status } : o))
+        );
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setSelectedOrder((prev: any) => (prev ? { ...prev, status: res.status } : null));
+        }
+        router.refresh();
+      }
+    } catch (err: any) {
+      toast.error(err.message || "فشل تأكيد استلام النجوم.");
+    } finally {
+      setIsConfirmingStars(false);
+    }
+  };
 
   const openOrderDetails = (o: any) => {
     setSelectedOrder(o);
@@ -535,9 +565,17 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
                           <Eye className="w-3.5 h-3.5" />
                         </button>
 
-                        {/* 2. Refund — conditional */}
-                        {/* 2. Refund — conditional with placeholder */}
-                        {o.status !== "REFUNDED" && o.status !== "PENDING_PAYMENT" ? (
+                        {/* 2. Confirm Stars (for PENDING_PAYMENT) OR Refund (for regular orders) */}
+                        {o.status === "PENDING_PAYMENT" && (o.paymentMethod === "TELEGRAM_STARS" || (o.starsTotal && o.starsTotal > 0)) ? (
+                          <button
+                            onClick={() => handleConfirmStarsPayment(o.id, o.orderNumber, o.starsTotal || 0)}
+                            disabled={isConfirmingStars}
+                            title={`تأكيد استلام (${o.starsTotal || 0} ⭐) وتفعيل الطلب`}
+                            className="flex-shrink-0 p-2 rounded-lg bg-amber-500 text-black hover:bg-amber-400 border border-amber-400 transition active:scale-95 shadow-md shadow-amber-500/20 animate-pulse"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                          </button>
+                        ) : o.status !== "REFUNDED" && o.status !== "PENDING_PAYMENT" ? (
                           <button
                             onClick={() => { setRefundModalOrder(o); setRefundReason(""); }}
                             title="استرجاع مالي للمحفظة"
@@ -587,17 +625,29 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
               </button>
             </div>
 
-            {/* Pending Payment Warning Banner */}
+            {/* Pending Payment Warning Banner & Quick Confirm */}
             {selectedOrder.status === "PENDING_PAYMENT" && (
-              <div className="p-4 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                <div className="text-xs space-y-1">
-                  <div className="font-black text-amber-200 text-sm">⚠️ تنبيه للإدارة: الطلب بانتظار إتمام الدفع بنجوم تيليجرام</div>
-                  <p className="text-amber-300/90 leading-relaxed text-[11px]">
-                    هذا الطلب تم إنشاؤه عبر بوت تيليجرام بالنجوم (Telegram Stars) ولكن العميل <strong>لم يقم بتأكيد ودفع الفاتورة داخل تيليجرام بعد</strong>. 
-                    يرجى عدم تنفيذ أو تسليم بيانات هذا الطلب حتى تكتمل عملية الدفع بنجاح وتتحول حالته تلقائياً إلى <strong>مدفوع / جاري التجهيز</strong>.
-                  </p>
+              <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/20 via-[#1a140b] to-[#0f1218] border border-amber-500/40 text-amber-300 space-y-3">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="text-xs space-y-1">
+                    <div className="font-black text-amber-200 text-sm">⚠️ تنبيه للإدارة: بانتظار التحقق من استلام النجوم كـ هدية (Gift)</div>
+                    <p className="text-amber-300/90 leading-relaxed text-[11px]">
+                      هذا الطلب تم إنشاؤه عبر نجوم تيليجرام (بمبلغ <strong>{selectedOrder.starsTotal || 0} ⭐</strong>). 
+                      يرجى فتح حسابك الشخصي في تيليجرام والتأكد من وصول الهدية من العميل قبل الضغط على زر التأكيد أدناه.
+                    </p>
+                  </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleConfirmStarsPayment(selectedOrder.id, selectedOrder.orderNumber, selectedOrder.starsTotal || 0)}
+                  disabled={isConfirmingStars}
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs transition flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/20 active:scale-95 disabled:opacity-50"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>تأكيد استلام ({selectedOrder.starsTotal || 0} ⭐) وبدء تجهيز الطلب الآن ✅</span>
+                </button>
               </div>
             )}
 
@@ -785,15 +835,22 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
                 />
               </div>
 
-              <button
-                type="button"
-                onClick={handleDeliverCredentials}
-                disabled={isDelivering || !deliveredEmail.trim() || !deliveredPassword.trim()}
-                className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs transition flex items-center justify-center gap-1.5 shadow-md disabled:opacity-40"
-              >
-                <Send className="w-3.5 h-3.5" />
-                <span>{isDelivering ? "جاري تشفير وتسليم البيانات وإشعار العميل..." : "تسليم بيانات الحساب وإكمال الطلب الآن 🔑"}</span>
-              </button>
+              {selectedOrder.status === "PENDING_PAYMENT" ? (
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs text-center font-bold flex items-center justify-center gap-1.5">
+                  <Lock className="w-4 h-4" />
+                  <span>مقفول: يرجى تأكيد استلام النجوم أولاً لتفعيل تسليم بيانات الحساب 🔒</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleDeliverCredentials}
+                  disabled={isDelivering || !deliveredEmail.trim() || !deliveredPassword.trim()}
+                  className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-extrabold text-xs transition flex items-center justify-center gap-1.5 shadow-md disabled:opacity-40"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{isDelivering ? "جاري تشفير وتسليم البيانات وإشعار العميل..." : "تسليم بيانات الحساب وإكمال الطلب الآن 🔑"}</span>
+                </button>
+              )}
             </div>
 
             {/* Standard Status Update Form */}
@@ -940,6 +997,24 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
 
             {/* Action Items List */}
             <div className="space-y-2 pt-1">
+              {bottomSheetOrder.status === "PENDING_PAYMENT" && (bottomSheetOrder.paymentMethod === "TELEGRAM_STARS" || (bottomSheetOrder.starsTotal && bottomSheetOrder.starsTotal > 0)) && (
+                <button
+                  onClick={() => {
+                    const target = bottomSheetOrder;
+                    setBottomSheetOrder(null);
+                    handleConfirmStarsPayment(target.id, target.orderNumber, target.starsTotal || 0);
+                  }}
+                  disabled={isConfirmingStars}
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-black font-black text-xs transition flex items-center justify-between shadow-md active:scale-95"
+                >
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-black" />
+                    <span>تأكيد استلام ({bottomSheetOrder.starsTotal || 0} ⭐) وتفعيل الطلب</span>
+                  </div>
+                  <span className="text-[10px] bg-black/20 px-2 py-0.5 rounded font-bold">فوري ⚡</span>
+                </button>
+              )}
+
               <button
                 onClick={() => {
                   const target = bottomSheetOrder;

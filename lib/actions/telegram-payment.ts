@@ -1,10 +1,10 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, requireAdminRole } from "@/lib/auth";
 import { generateOrderNumber } from "@/lib/utils";
-import { encryptData } from "@/lib/encryption";
-import { createStarsInvoiceLink, getTelegramBotUsername, sendOrderNotification } from "@/lib/telegram";
+import { encryptData, decryptData } from "@/lib/encryption";
+import { getTelegramBotUsername, sendOrderNotification, sendTelegramMessage } from "@/lib/telegram";
 import { revalidatePath } from "next/cache";
 import crypto from "crypto";
 
@@ -102,10 +102,13 @@ interface CreateStarsOrderInput {
   gamePassword?: string | null;
   gamePlayerId?: string | null;
   customerNotes?: string | null;
+  customerTelegramUsername?: string | null;
 }
 
 /**
- * 4. Create Order & Generate Telegram Stars Invoice Link (Server-Side Price Trust Only)
+ * 4. Create Order for Direct Telegram Stars / Gift Payment
+ * Creates the order in PENDING_PAYMENT status awaiting Admin manual verification.
+ * Zero-trust: No automated fulfillment occurs until Admin verifies the stars in Telegram.
  */
 export async function createTelegramStarsOrder(input: CreateStarsOrderInput) {
   const user = await getCurrentUser();
@@ -117,15 +120,10 @@ export async function createTelegramStarsOrder(input: CreateStarsOrderInput) {
     throw new Error("سلة الشراء فارغة.");
   }
 
-  // Verify Telegram is linked
   const dbUser = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { id: true, telegramUserId: true, telegramUsername: true },
+    select: { id: true, telegramUserId: true, telegramUsername: true, name: true, email: true },
   });
-
-  if (!dbUser?.telegramUserId) {
-    throw new Error("يجب ربط حساب Telegram بحسابك أولاً قبل الدفع بنجوم تيليجرام.");
-  }
 
   // 1. Fetch fresh products from database (Zero client trust)
   const productIds = input.items.map((i) => i.productId);
@@ -203,7 +201,6 @@ export async function createTelegramStarsOrder(input: CreateStarsOrderInput) {
       const meetsStarsMin = !coupon.starsMinOrderValue || starsTotal >= coupon.starsMinOrderValue;
 
       if (!isExpired && !isMaxed && meetsMin && meetsStarsMin) {
-        // Independent Stars Discount
         const starsType = coupon.starsDiscountType || coupon.discountType;
         if (coupon.starsDiscountValue !== null && coupon.starsDiscountValue !== undefined && coupon.starsDiscountValue > 0) {
           if (starsType === "PERCENTAGE") {
@@ -214,7 +211,6 @@ export async function createTelegramStarsOrder(input: CreateStarsOrderInput) {
             starsDiscount = Math.min(Math.floor(coupon.starsDiscountValue), starsTotal);
           }
         } else {
-          // Fallback:
           if (coupon.discountType === "PERCENTAGE") {
             starsDiscount = Math.floor((starsTotal * coupon.discountValue) / 100);
           } else {
@@ -228,23 +224,30 @@ export async function createTelegramStarsOrder(input: CreateStarsOrderInput) {
   }
 
   const finalStarsTotal = Math.max(1, starsTotal - starsDiscount);
-
   const orderNumber = generateOrderNumber();
   const encryptedPassword = input.gamePassword ? encryptData(input.gamePassword) : null;
 
-  // Check if any product is a game account
   const hasGameAccount = dbProducts.some(
     (p) => p.productType === "GAME_ACCOUNT" || p.productType === "ACCOUNT" || Boolean(p.accountDetailsEncrypted)
   );
 
+  const customerTg = input.customerTelegramUsername?.trim() || dbUser?.telegramUsername || null;
+
   const initialTimeline = JSON.stringify([
     {
       status: "PENDING_PAYMENT",
-      title: "تم إنشاء فاتورة Telegram Stars ⭐",
-      description: `بانتظار إتمام دفع ${finalStarsTotal} نجمة عبر تيليجرام${starsDiscount > 0 ? ` (تم تطبيق خصم ${starsDiscount} نجمة)` : ""}`,
+      title: "تم إنشاء الطلب بانتظار إرسال النجوم ⭐",
+      description: `بانتظار إرسال ${finalStarsTotal} نجمة كـ هدية/تحويل لحساب الإدارة${customerTg ? ` من حساب: @${customerTg.replace("@", "")}` : ""}${starsDiscount > 0 ? ` (تم تطبيق خصم ${starsDiscount} ⭐)` : ""}`,
       timestamp: new Date().toISOString(),
     },
   ]);
+
+  let formattedNotes = input.customerNotes || "";
+  if (customerTg) {
+    formattedNotes = formattedNotes
+      ? `حساب تيليجرام: @${customerTg.replace("@", "")} | ${formattedNotes}`
+      : `حساب تيليجرام: @${customerTg.replace("@", "")}`;
+  }
 
   // 3. Create Order in DB in PENDING_PAYMENT status
   const order = await prisma.order.create({
@@ -258,12 +261,12 @@ export async function createTelegramStarsOrder(input: CreateStarsOrderInput) {
       couponCode: validatedCoupon?.code || null,
       status: "PENDING_PAYMENT",
       paymentMethod: "TELEGRAM_STARS",
-      telegramUserId: dbUser.telegramUserId,
+      telegramUserId: dbUser?.telegramUserId || null,
       fulfillmentType: hasGameAccount ? "INSTANT_GAME_ACCOUNT" : (input.fulfillmentType || "EXISTING_ACCOUNT"),
       gameUsername: input.gameUsername || null,
       gamePasswordEncrypted: encryptedPassword,
       gamePlayerId: input.gamePlayerId || null,
-      customerNotes: input.customerNotes || null,
+      customerNotes: formattedNotes || null,
       timeline: initialTimeline,
       items: {
         create: orderItemsData,
@@ -274,26 +277,12 @@ export async function createTelegramStarsOrder(input: CreateStarsOrderInput) {
     },
   });
 
-  // 3. Create Telegram Invoice Link
-  const invoicePayload = `CPM_ORDER_${order.id}`;
-  const productTitle = dbProducts.length === 1 ? dbProducts[0].name : `طلب متجر EgyCPM (${dbProducts.length} عناصر)`;
-  const productDesc = `طلب رقم #${orderNumber} - دفع فوري آمن بنجوم تيليجرام ⭐`;
-
-  let primaryImage: string | undefined = undefined;
-  try {
-    const parsedImgs = JSON.parse(dbProducts[0]?.images || "[]");
-    if (Array.isArray(parsedImgs) && parsedImgs[0]?.startsWith("http")) {
-      primaryImage = parsedImgs[0];
-    }
-  } catch {}
-
-  const invoiceUrl = await createStarsInvoiceLink({
-    title: productTitle,
-    description: productDesc,
-    payload: invoicePayload,
-    starsAmount: finalStarsTotal,
-    photoUrl: primaryImage,
-  });
+  if (customerTg && !dbUser?.telegramUsername) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { telegramUsername: customerTg.replace("@", "").trim() },
+    }).catch(() => {});
+  }
 
   const itemsListFormatted = dbProducts
     .map((p) => {
@@ -304,40 +293,163 @@ export async function createTelegramStarsOrder(input: CreateStarsOrderInput) {
     })
     .join("\n");
 
-  const userAdminCheck = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { role: true },
-  });
-  const isUserAdmin = userAdminCheck?.role === "SUPER_ADMIN" || userAdminCheck?.role === "ADMIN";
+  if (dbUser?.telegramUserId) {
+    sendOrderNotification({
+      telegramUserId: dbUser.telegramUserId,
+      orderNumber: order.orderNumber,
+      status: "PENDING_PAYMENT",
+      amount: finalStarsTotal,
+      starsTotal: finalStarsTotal,
+      paymentMethod: "⭐ نجوم تيليجرام (إرسال هدية)",
+      productsList: itemsListFormatted,
+      gameUsername: input.gameUsername || undefined,
+      isAdmin: false,
+      extraLines: [
+        `⭐ <b>المطلوب إرساله:</b> ${finalStarsTotal} نجمة تيليجرام كهدية`,
+        `👤 <b>حساب المشتري:</b> ${customerTg ? `@${customerTg.replace("@", "")}` : "غير محدد"}`,
+        `⏳ بانتظار مراجعة وتأكيد الإدارة`,
+      ],
+    }).catch(() => {});
+  }
 
-  // Non-blocking notification to Telegram chat
-  sendOrderNotification({
-    telegramUserId: dbUser.telegramUserId,
-    orderNumber: order.orderNumber,
-    status: "PENDING_PAYMENT",
-    amount: finalStarsTotal,
-    starsTotal: finalStarsTotal,
-    paymentMethod: "⭐ Telegram Stars (XTR)",
-    productsList: itemsListFormatted,
-    gameUsername: input.gameUsername || undefined,
-    isAdmin: isUserAdmin,
-    extraLines: [
-      `⭐ <b>المبلغ المطلوب:</b> ${finalStarsTotal} Telegram Stars${starsDiscount > 0 ? ` (بعد خصم ${starsDiscount} ⭐)` : ""}`,
-      `⏳ في انتظار إتمام الدفع داخل تطبيق تيليجرام`,
-    ],
-  }).catch(() => {});
+  revalidatePath("/orders");
+  revalidatePath("/admin/orders");
 
   return {
     success: true,
     orderNumber: order.orderNumber,
     orderId: order.id,
     starsTotal: finalStarsTotal,
-    invoiceUrl,
   };
 }
 
 /**
- * 5. Check Order Payment Status (for frontend polling during payment)
+ * 5. Admin: Confirm Manual Telegram Stars Payment
+ * Only Admin can execute this after manually checking their personal Telegram account.
+ */
+export async function confirmTelegramStarsPayment(orderId: string, adminNotes?: string) {
+  const admin = await requireAdminRole(["SUPER_ADMIN", "ADMIN", "ORDER_MANAGER"]);
+
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      items: { include: { product: true } },
+      user: true,
+    },
+  });
+
+  if (!order) {
+    throw new Error("لم يتم العثور على الطلب.");
+  }
+
+  if (order.status !== "PENDING_PAYMENT") {
+    throw new Error("هذا الطلب ليس في حالة انتظار دفع النجوم.");
+  }
+
+  let timelineArr: any[] = [];
+  try {
+    timelineArr = JSON.parse(order.timeline || "[]");
+  } catch {
+    timelineArr = [];
+  }
+
+  timelineArr.push({
+    status: "PROCESSING",
+    title: "تم تأكيد استلام النجوم من الإدارة ✅",
+    description: `قام المشرف (${admin.email}) بتأكيد استلام ${order.starsTotal || 0} ⭐ في حساب تيليجرام وبدء التجهيز.`,
+    timestamp: new Date().toISOString(),
+  });
+
+  let finalStatus = "PROCESSING";
+  let deliveredEmail: string | null = null;
+  let deliveredPassEncrypted: string | null = null;
+  let deliveredNotes: string | null = null;
+
+  for (const it of order.items) {
+    if (it.product && it.product.productType === "GAME_ACCOUNT" && it.product.accountDetailsEncrypted) {
+      try {
+        const decryptedJson = decryptData(it.product.accountDetailsEncrypted);
+        if (decryptedJson) {
+          const parsed = JSON.parse(decryptedJson);
+          if (parsed.email && parsed.password) {
+            deliveredEmail = parsed.email;
+            deliveredPassEncrypted = encryptData(parsed.password);
+            deliveredNotes = parsed.notes || "حساب لعبة جاهز تم شراؤه وتفعيله بنجوم تيليجرام.";
+            finalStatus = "COMPLETED";
+
+            if (it.product.stockType === "UNIQUE_DIGITAL") {
+              await prisma.product.update({
+                where: { id: it.productId },
+                data: { stockQuantity: 0, isActive: false },
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to auto-deliver game account on stars confirmation:", err);
+      }
+    }
+  }
+
+  if (finalStatus === "COMPLETED") {
+    timelineArr.push({
+      status: "COMPLETED",
+      title: "تم تسليم الطلب تلقائياً 🚀",
+      description: "تم تسليم بيانات الحساب المشفرة للمشتري بنجاح.",
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  await prisma.order.update({
+    where: { id: order.id },
+    data: {
+      status: finalStatus,
+      timeline: JSON.stringify(timelineArr),
+      adminNotes: adminNotes || order.adminNotes,
+      deliveredAccountEmail: deliveredEmail || order.deliveredAccountEmail,
+      deliveredAccountPasswordEncrypted: deliveredPassEncrypted || order.deliveredAccountPasswordEncrypted,
+      deliveredAccountNotes: deliveredNotes || order.deliveredAccountNotes,
+    },
+  });
+
+  await prisma.notification.create({
+    data: {
+      userId: order.userId,
+      title: `تم تأكيد دفع النجوم للطلب #${order.orderNumber} ⭐`,
+      message: finalStatus === "COMPLETED"
+        ? `تم تأكيد استلام النجوم وتسليم بيانات طلبك #${order.orderNumber} بنجاح!`
+        : `تم تأكيد استلام النجوم وجاري تجهيز طلبك #${order.orderNumber} الآن.`,
+      link: `/orders/${order.orderNumber}`,
+      type: "ORDER",
+    },
+  }).catch(() => {});
+
+  if (order.telegramUserId) {
+    sendTelegramMessage({
+      chatId: order.telegramUserId,
+      text: `✅ <b>تم تأكيد استلام النجوم بنجاح!</b> ⭐\n\n📦 <b>رقم الطلب:</b> #${order.orderNumber}\n⭐ <b>المبلغ:</b> ${order.starsTotal || 0} Stars\n📌 <b>الحالة:</b> ${finalStatus === "COMPLETED" ? "مكتمل وتم التسليم" : "جاري التجهيز والبدء في التنفيذ"}`,
+    }).catch(() => {});
+  }
+
+  await prisma.auditLog.create({
+    data: {
+      adminId: admin.id,
+      adminEmail: admin.email,
+      action: "CONFIRM_TELEGRAM_STARS_PAYMENT",
+      targetType: "ORDER",
+      targetId: order.id,
+      afterValue: JSON.stringify({ starsTotal: order.starsTotal, status: finalStatus }),
+    },
+  }).catch(() => {});
+
+  revalidatePath("/admin/orders");
+  revalidatePath(`/orders/${order.orderNumber}`);
+
+  return { success: true, status: finalStatus };
+}
+
+/**
+ * 6. Check Order Payment Status (for frontend polling during payment)
  */
 export async function checkOrderStatus(orderNumber: string) {
   const user = await getCurrentUser();
