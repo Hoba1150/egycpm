@@ -23,6 +23,9 @@ import {
   CheckCircle2,
   ExternalLink,
   Sparkles,
+  Upload,
+  MessageCircle,
+  Check,
 } from "lucide-react";
 import AuthModal from "@/components/shared/AuthModal";
 import TelegramLinkCard from "@/components/store/TelegramLinkCard";
@@ -68,6 +71,40 @@ export default function CheckoutPage() {
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [starsProofUrl, setStarsProofUrl] = useState<string | null>(null);
+  const [isUploadingStarsProof, setIsUploadingStarsProof] = useState(false);
+
+  const handleStarsProofUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("حجم الصورة كبير جداً. الحد الأقصى 8 ميجابايت.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setIsUploadingStarsProof(true);
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        throw new Error(data.message || "فشل رفع الصورة.");
+      }
+      setStarsProofUrl(data.url);
+      toast.success("✅ تم رفع سكرين شوت تحويل النجوم بنجاح! يمكنك الآن إتمام الطلب.");
+    } catch (err: any) {
+      toast.error(err.message || "فشل رفع صورة إثبات التحويل.");
+    } finally {
+      setIsUploadingStarsProof(false);
+      e.target.value = "";
+    }
+  };
 
   // Check if any item in cart is a Game Account
   const isGameAccountOrder = items.some(
@@ -261,6 +298,11 @@ export default function CheckoutPage() {
 
     // ─── 1. Telegram Stars Payment Flow (Direct Gift / Stars Transfer) ───
     if (paymentMethod === "TELEGRAM_STARS") {
+      if (!starsProofUrl) {
+        toast.error("يرجى فتح شات الإدارة بالزر أدناه، تحويل النجوم المطلوبة، ثم إرفاق صورة سكرين شوت التحويل أولاً قبل إتمام الطلب.");
+        return;
+      }
+
       setIsSubmitting(true);
       try {
         const formattedNotes = isGameAccountOrder
@@ -275,6 +317,7 @@ export default function CheckoutPage() {
           gamePassword: isGameAccountOrder || fulfillmentType === "NEW_ACCOUNT_AUTO" ? null : gamePassword,
           gamePlayerId: isGameAccountOrder ? null : (gamePlayerId.trim() || null),
           customerNotes: formattedNotes,
+          screenshotUrl: starsProofUrl,
         });
 
         if (res.success && res.orderNumber) {
@@ -286,7 +329,7 @@ export default function CheckoutPage() {
             });
           } catch {}
 
-          toast.success(`🎉 تم إنشاء طلبك #${res.orderNumber} بنجاح! تم توجيهك لصفحة الطلب لإرسال النجوم.`);
+          toast.success(`🎉 تم إنشاء طلبك #${res.orderNumber} وإرسال إثبات التحويل للإدارة بنجاح!`);
           clearCart();
           router.push(`/orders/${res.orderNumber}`);
         }
@@ -745,7 +788,7 @@ export default function CheckoutPage() {
                 </div>
               ) : (
                 /* TELEGRAM STARS DETAILS */
-                <div className="p-4 rounded-xl bg-[#161b24] border border-amber-500/30 space-y-3 text-xs">
+                <div className="p-4 rounded-xl bg-[#161b24] border border-amber-500/40 space-y-4 text-xs">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-300 font-medium">وسيلة الدفع:</span>
                     <span className="font-black text-amber-400 flex items-center gap-1 font-mono">
@@ -761,14 +804,79 @@ export default function CheckoutPage() {
                     </span>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 leading-relaxed space-y-1.5">
-                    <p className="font-bold flex items-center gap-1.5 text-white">
-                      <span>⭐</span>
-                      <span>طريقة تحويل وإرسال النجوم:</span>
-                    </p>
-                    <p>
-                      بعد تأكيد الطلب، سيتم توجيهك فوراً لشات الإدارة على تيليجرام (<span className="font-mono font-bold text-white dir-ltr">01288212101</span>) لإرسال الهدية/النجوم المطلوبة مع إمكانية إرفاق سكرين شوت التحويل.
-                    </p>
+                  {/* Step 1: Open Telegram Chat */}
+                  <div className="space-y-1.5 pt-1">
+                    <span className="text-[11px] font-bold text-amber-300 block">
+                      الخطوة 1: افتح شات الإدارة وحوّل النجوم ({estimatedStarsTotal} ⭐)
+                    </span>
+                    <a
+                      href={`https://t.me/+201288212101?text=${encodeURIComponent(`مرحباً، أريد تحويل (${estimatedStarsTotal} ⭐) نجوم تليجرام لشراء طلب من متجر EGY CPM.`)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 active:scale-95 text-center"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>فتح شات الإدارة بالرقم (01288212101) 💬</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+
+                  {/* Step 2: Upload Screenshot */}
+                  <div className="space-y-2 pt-2 border-t border-gray-700">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-gray-200">
+                        الخطوة 2: إرفاق سكرين شوت التحويل (مطلوب) *
+                      </span>
+                      {starsProofUrl && (
+                        <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/30">
+                          <Check className="w-3 h-3" />
+                          <span>تم الرفع بنجاح</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {starsProofUrl ? (
+                      <div className="space-y-2">
+                        <div className="relative rounded-xl overflow-hidden border border-amber-500/40 max-w-xs mx-auto bg-[#0f1218]">
+                          <img
+                            src={starsProofUrl}
+                            alt="إثبات التحويل"
+                            className="w-full max-h-40 object-contain rounded-xl"
+                          />
+                        </div>
+                        <label className="block text-center cursor-pointer text-[11px] text-amber-400 hover:underline font-bold">
+                          <span>{isUploadingStarsProof ? "جاري الرفع..." : "اضغط هنا لتغيير الصورة 🔄"}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleStarsProofUpload}
+                            disabled={isUploadingStarsProof}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    ) : (
+                      <label className={`w-full py-4 px-3 rounded-xl border-2 border-dashed border-amber-500/50 bg-[#0f1218] hover:bg-amber-500/10 transition cursor-pointer flex flex-col items-center justify-center gap-1.5 text-center ${isUploadingStarsProof ? "opacity-50 pointer-events-none" : ""}`}>
+                        {isUploadingStarsProof ? (
+                          <Loader2 className="w-5 h-5 text-amber-400 animate-spin" />
+                        ) : (
+                          <Upload className="w-5 h-5 text-amber-400" />
+                        )}
+                        <span className="text-xs font-bold text-gray-200">
+                          {isUploadingStarsProof ? "جاري رفع سكرين شوت التحويل..." : "انقر هنا لرفع سكرين شوت تحويل النجوم"}
+                        </span>
+                        <span className="text-[10px] text-gray-400">
+                          PNG, JPG, WebP (الحد الأقصى 8MB)
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleStarsProofUpload}
+                          disabled={isUploadingStarsProof}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
                   </div>
                 </div>
               )}
