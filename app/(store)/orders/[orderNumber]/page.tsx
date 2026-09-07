@@ -19,7 +19,7 @@ import {
   XCircle,
   MessageCircle,
 } from "lucide-react";
-import OrderTrackerClient from "./OrderTrackerClient";
+import OrderTrackerClient, { TelegramStarsPaymentSection, CopyButton } from "./OrderTrackerClient";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +39,26 @@ export default async function OrderTrackingPage({ params }: OrderTrackingPagePro
     notFound();
   }
 
-  const tgRecipient = tgSetting?.value?.replace("@", "").trim() || "hoba1150";
+  const tgRecipient = tgSetting?.value?.trim() || "01288212101";
+
+  let initialScreenshotUrl: string | null = null;
+  if (order.notes && order.notes.startsWith("SCREENSHOT:")) {
+    initialScreenshotUrl = order.notes.replace("SCREENSHOT:", "").trim();
+  } else if (order.customerNotes) {
+    const match = order.customerNotes.match(/\[رابط سكرين شوت التحويل:\s*([^\s\]]+)\]/);
+    if (match && match[1]) initialScreenshotUrl = match[1];
+  }
+  if (!initialScreenshotUrl) {
+    try {
+      const tl = JSON.parse(order.timeline || "[]");
+      for (const step of tl) {
+        if (step.screenshotUrl) {
+          initialScreenshotUrl = step.screenshotUrl;
+          break;
+        }
+      }
+    } catch {}
+  }
 
   let timelineArray: any[] = [];
   try {
@@ -148,42 +167,14 @@ export default async function OrderTrackingPage({ params }: OrderTrackingPagePro
         </Link>
       </div>
 
-      {/* Pending Payment Alert Card for Telegram Stars */}
+      {/* Pending Payment Section for Telegram Stars */}
       {order.status === "PENDING_PAYMENT" && isStarsOrder && (
-        <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-amber-500/15 via-[#1a140b] to-[#0f1218] border-2 border-amber-500/50 text-amber-300 space-y-4 shadow-xl">
-          <div className="flex items-center gap-2.5">
-            <Sparkles className="w-6 h-6 text-amber-400 shrink-0" />
-            <div>
-              <h3 className="text-base font-black text-white">الطلب بانتظار إرسال النجوم كـ هدية (Gift) ⭐</h3>
-              <span className="text-xs text-amber-400 font-mono font-bold">
-                المبلغ المطلوب: {order.starsTotal || "—"} نجمة تيليجرام
-              </span>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-xl bg-[#0f1218]/90 border border-amber-500/30 text-xs space-y-2 text-gray-200 leading-relaxed">
-            <p className="font-bold text-amber-300">📌 خطوات إتمام الطلب وتفعيله:</p>
-            <ol className="list-decimal list-inside space-y-1.5 text-gray-300 text-[11px]">
-              <li>افتح محادثة الإدارة على تيليجرام عبر الزر بالأسفل.</li>
-              <li>أرسل الهدية (Gift) أو النجوم المطلوبة (<strong>{order.starsTotal} ⭐</strong>) لحساب الإدارة.</li>
-              <li>اكتب في الرسالة رقم طلبك: <code className="text-orange-400 font-bold font-mono">#{order.orderNumber}</code></li>
-              <li>فور تحقق الإدارة من وصول النجوم لحسابها، سيتم تفعيل الطلب والبدء في تسليمه فوراً.</li>
-            </ol>
-          </div>
-
-          <div className="pt-1">
-            <a
-              href={`https://t.me/${tgRecipient}?text=${encodeURIComponent(`مرحباً، قمت بطلب رقم #${order.orderNumber} بمبلغ ${order.starsTotal} نجمة ⭐ وأريد إرسال الهدية/النجوم لتأكيد الطلب.`)}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs transition shadow-lg shadow-amber-500/20 active:scale-95"
-            >
-              <MessageCircle className="w-4 h-4" />
-              <span>إرسال الهدية / النجوم للإدارة (@{tgRecipient}) 💬</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          </div>
-        </div>
+        <TelegramStarsPaymentSection
+          orderNumber={order.orderNumber}
+          starsTotal={order.starsTotal || 0}
+          initialScreenshotUrl={initialScreenshotUrl}
+          recipientPhone={tgRecipient}
+        />
       )}
 
       {/* Live Timeline */}

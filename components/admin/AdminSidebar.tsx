@@ -110,8 +110,8 @@ export default function AdminSidebar({ user }: { user: any }) {
 
   // Role permissions map
   const rolePermissions: Record<string, string[]> = {
-    SUPER_ADMIN: ["/admin", "/admin/deposits", "/admin/orders", "/admin/giveaways", "/admin/products", "/admin/categories", "/admin/cpm2", "/admin/customers", "/admin/coupons", "/admin/tickets", "/admin/reviews", "/admin/audit-logs", "/admin/telegram", "/admin/settings"],
-    ADMIN: ["/admin", "/admin/deposits", "/admin/orders", "/admin/giveaways", "/admin/products", "/admin/categories", "/admin/cpm2", "/admin/customers", "/admin/coupons", "/admin/tickets", "/admin/reviews", "/admin/audit-logs", "/admin/telegram"],
+    SUPER_ADMIN: ["/admin", "/admin/deposits", "/admin/orders", "/admin/giveaways", "/admin/products", "/admin/categories", "/admin/cpm2", "/admin/customers", "/admin/coupons", "/admin/tickets", "/admin/reviews", "/admin/audit-logs", "/admin/settings"],
+    ADMIN: ["/admin", "/admin/deposits", "/admin/orders", "/admin/giveaways", "/admin/products", "/admin/categories", "/admin/cpm2", "/admin/customers", "/admin/coupons", "/admin/tickets", "/admin/reviews", "/admin/audit-logs"],
     ORDER_MANAGER: ["/admin", "/admin/orders", "/admin/giveaways", "/admin/products", "/admin/cpm2", "/admin/tickets"],
     SUPPORT: ["/admin", "/admin/tickets", "/admin/orders"],
   };
@@ -130,7 +130,6 @@ export default function AdminSidebar({ user }: { user: any }) {
     { name: "تذاكر الدعم الفني", href: "/admin/tickets", icon: Headphones },
     { name: "تقييمات وآراء العملاء", href: "/admin/reviews", icon: Star },
     { name: "سجل العمليات (Audit Logs)", href: "/admin/audit-logs", icon: Shield },
-    { name: "إعدادات بوت Telegram", href: "/admin/telegram", icon: Bot },
     { name: "إعدادات المتجر والتصميم", href: "/admin/settings", icon: Settings },
   ];
 

@@ -71,8 +71,8 @@ export async function submitDepositRequest(data: {
     throw new Error("يرجى إدخال اسم الراسل بالكامل.");
   }
 
-  if (!data.amount || data.amount < 50) {
-    throw new Error("الحد الأدنى للشحن هو 50 ج.م.");
+  if (!data.amount || data.amount <= 0) {
+    throw new Error("يرجى إدخال مبلغ صحيح للشحن.");
   }
 
   if (!data.screenshotUrl) {

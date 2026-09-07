@@ -85,8 +85,8 @@ export default function DepositPage() {
       return;
     }
 
-    if (!amount || Number(amount) < 50) {
-      toast.error("الحد الأدنى للشحن هو 50 ج.م.");
+    if (!amount || Number(amount) <= 0) {
+      toast.error("يرجى إدخال مبلغ شحن صحيح.");
       return;
     }
 
@@ -250,13 +250,13 @@ export default function DepositPage() {
               {/* Amount */}
               <div>
                 <label className="block text-xs font-bold text-gray-300 mb-1">
-                  المبلغ المحول بالجنيه (الحد الأدنى 50 ج.م) *
+                  المبلغ المحول بالجنيه *
                 </label>
                 <input
                   type="number"
                   required
-                  min={50}
-                  step={10}
+                  min={1}
+                  step={1}
                   placeholder="500"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : "")}

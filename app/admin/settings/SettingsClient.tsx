@@ -1209,17 +1209,17 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
 
               <div className="sm:col-span-2 p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-[#161b24] to-[#0f1218] border border-amber-500/30 space-y-2">
                 <label className="block text-xs font-bold text-amber-400">
-                  ⭐ حساب تيليجرام المخصص لاستلام هدايا النجوم (Telegram Stars Recipient Username):
+                  ⭐ رقم هاتف أو معرّف تيليجرام لاستلام هدايا النجوم (Telegram Stars Recipient):
                 </label>
                 <input
                   type="text"
-                  placeholder="مثال: @hoba1150"
-                  value={settings.telegram_stars_recipient || "@hoba1150"}
+                  placeholder="01288212101 أو @username"
+                  value={settings.telegram_stars_recipient || "01288212101"}
                   onChange={(e) => handleChange("telegram_stars_recipient", e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-left dir-ltr font-mono"
                 />
                 <p className="text-[11px] text-gray-400">
-                  سيتم توجيه العملاء إلى هذا الحساب مباشرة عند الدفع بنجوم تيليجرام لإرسال الهدية/النجوم.
+                  سيتم توجيه العملاء مباشرة إلى شات هذا الرقم على تيليجرام لتحويل النجوم وإرفاق الإثبات.
                 </p>
               </div>
 
@@ -1227,7 +1227,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
                 <label className="block text-xs font-medium text-gray-300 mb-1">الحد الأدنى للشحن (ج.م)</label>
                 <input
                   type="number"
-                  value={settings.min_deposit || "50"}
+                  value={settings.min_deposit || "1"}
                   onChange={(e) => handleChange("min_deposit", e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right font-mono"
                 />

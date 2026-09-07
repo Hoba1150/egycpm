@@ -49,7 +49,6 @@ export default function CheckoutPage() {
   // Payment Method: "WALLET" or "TELEGRAM_STARS"
   const [paymentMethod, setPaymentMethod] = useState<"WALLET" | "TELEGRAM_STARS">("WALLET");
   const [isTelegramLinked, setIsTelegramLinked] = useState(false);
-  const [customerTelegramUsername, setCustomerTelegramUsername] = useState("");
 
   // Form Fields
   const [fulfillmentType, setFulfillmentType] = useState<
@@ -276,7 +275,6 @@ export default function CheckoutPage() {
           gamePassword: isGameAccountOrder || fulfillmentType === "NEW_ACCOUNT_AUTO" ? null : gamePassword,
           gamePlayerId: isGameAccountOrder ? null : (gamePlayerId.trim() || null),
           customerNotes: formattedNotes,
-          customerTelegramUsername: customerTelegramUsername.trim() || null,
         });
 
         if (res.success && res.orderNumber) {
@@ -763,21 +761,14 @@ export default function CheckoutPage() {
                     </span>
                   </div>
 
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-300 mb-1">
-                      اسم حسابك على تيليجرام (Telegram Username) للتحقق:
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="@username"
-                      value={customerTelegramUsername}
-                      onChange={(e) => setCustomerTelegramUsername(e.target.value)}
-                      className="w-full px-3.5 py-2 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white placeholder-gray-500 dir-ltr text-left font-mono focus:border-amber-500"
-                    />
-                  </div>
-
-                  <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 leading-relaxed">
-                    💡 <strong>طريقة الدفع:</strong> بعد الضغط على تأكيد الطلب، سيتم توجيهك لصفحة تفاصيل الطلب مع رابط مباشر لحساب الإدارة على تيليجرام لإرسال الهدية/النجوم المطلوبة. يتم تفعيل طلبك فور تأكيد وصول النجوم.
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 leading-relaxed space-y-1.5">
+                    <p className="font-bold flex items-center gap-1.5 text-white">
+                      <span>⭐</span>
+                      <span>طريقة تحويل وإرسال النجوم:</span>
+                    </p>
+                    <p>
+                      بعد تأكيد الطلب، سيتم توجيهك فوراً لشات الإدارة على تيليجرام (<span className="font-mono font-bold text-white dir-ltr">01288212101</span>) لإرسال الهدية/النجوم المطلوبة مع إمكانية إرفاق سكرين شوت التحويل.
+                    </p>
                   </div>
                 </div>
               )}

@@ -103,6 +103,7 @@ interface CreateStarsOrderInput {
   gamePlayerId?: string | null;
   customerNotes?: string | null;
   customerTelegramUsername?: string | null;
+  screenshotUrl?: string | null;
 }
 
 /**
@@ -239,6 +240,7 @@ export async function createTelegramStarsOrder(input: CreateStarsOrderInput) {
       title: "تم إنشاء الطلب بانتظار إرسال النجوم ⭐",
       description: `بانتظار إرسال ${finalStarsTotal} نجمة كـ هدية/تحويل لحساب الإدارة${customerTg ? ` من حساب: @${customerTg.replace("@", "")}` : ""}${starsDiscount > 0 ? ` (تم تطبيق خصم ${starsDiscount} ⭐)` : ""}`,
       timestamp: new Date().toISOString(),
+      ...(input.screenshotUrl ? { screenshotUrl: input.screenshotUrl } : {}),
     },
   ]);
 
@@ -247,6 +249,11 @@ export async function createTelegramStarsOrder(input: CreateStarsOrderInput) {
     formattedNotes = formattedNotes
       ? `حساب تيليجرام: @${customerTg.replace("@", "")} | ${formattedNotes}`
       : `حساب تيليجرام: @${customerTg.replace("@", "")}`;
+  }
+  if (input.screenshotUrl) {
+    formattedNotes = formattedNotes
+      ? `${formattedNotes}\n[رابط سكرين شوت التحويل: ${input.screenshotUrl}]`
+      : `[رابط سكرين شوت التحويل: ${input.screenshotUrl}]`;
   }
 
   // 3. Create Order in DB in PENDING_PAYMENT status
@@ -267,6 +274,7 @@ export async function createTelegramStarsOrder(input: CreateStarsOrderInput) {
       gamePasswordEncrypted: encryptedPassword,
       gamePlayerId: input.gamePlayerId || null,
       customerNotes: formattedNotes || null,
+      notes: input.screenshotUrl ? `SCREENSHOT:${input.screenshotUrl}` : null,
       timeline: initialTimeline,
       items: {
         create: orderItemsData,
@@ -475,4 +483,70 @@ export async function checkOrderStatus(orderNumber: string) {
     status: order.status,
     isPaid: order.status !== "PENDING_PAYMENT" && order.status !== "CANCELLED" && order.status !== "REJECTED",
   };
+}
+
+/**
+ * 7. Customer: Attach Transfer Proof Screenshot for Telegram Stars Order
+ */
+export async function attachTelegramStarsProof(orderNumber: string, screenshotUrl: string) {
+  const user = await getCurrentUser();
+  if (!user) {
+    throw new Error("يجب تسجيل الدخول لإرفاق إثبات الدفع.");
+  }
+
+  if (!screenshotUrl || !screenshotUrl.trim()) {
+    throw new Error("يرجى اختيار صورة إثبات صالحة.");
+  }
+
+  const order = await prisma.order.findUnique({
+    where: { orderNumber },
+    include: { user: true },
+  });
+
+  if (!order) {
+    throw new Error("الطلب غير موجود.");
+  }
+
+  // Allow order owner or admin
+  const isOwner = order.userId === user.id;
+  const isAdmin = user.role === "SUPER_ADMIN" || user.role === "ADMIN";
+  if (!isOwner && !isAdmin) {
+    throw new Error("غير مصرح لك بتعديل هذا الطلب.");
+  }
+
+  let timelineArr: any[] = [];
+  try {
+    timelineArr = JSON.parse(order.timeline || "[]");
+  } catch {
+    timelineArr = [];
+  }
+
+  timelineArr.push({
+    status: "PENDING_PAYMENT",
+    title: "تم إرفاق سكرين شوت تحويل النجوم 📷",
+    description: "قام العميل برفع صورة إثبات تحويل النجوم وبانتظار مراجعة وتأكيد الإدارة.",
+    screenshotUrl: screenshotUrl.trim(),
+    timestamp: new Date().toISOString(),
+  });
+
+  let existingNotes = order.customerNotes || "";
+  if (!existingNotes.includes(screenshotUrl)) {
+    existingNotes = existingNotes
+      ? `${existingNotes}\n[رابط سكرين شوت التحويل: ${screenshotUrl.trim()}]`
+      : `[رابط سكرين شوت التحويل: ${screenshotUrl.trim()}]`;
+  }
+
+  await prisma.order.update({
+    where: { id: order.id },
+    data: {
+      notes: `SCREENSHOT:${screenshotUrl.trim()}`,
+      customerNotes: existingNotes,
+      timeline: JSON.stringify(timelineArr),
+    },
+  });
+
+  revalidatePath(`/orders/${orderNumber}`);
+  revalidatePath("/admin/orders");
+
+  return { success: true };
 }

@@ -26,6 +26,7 @@ import {
   ShoppingBag,
   AlertCircle,
   Sparkles,
+  ExternalLink,
 } from "lucide-react";
 
 export default function OrderPipelineClient({ initialOrders }: { initialOrders: any[] }) {
@@ -711,6 +712,58 @@ export default function OrderPipelineClient({ initialOrders }: { initialOrders: 
                 </div>
               )}
             </div>
+
+            {/* Payment Proof / Stars Transfer Screenshot (if present) */}
+            {(() => {
+              let proofUrl: string | null = null;
+              if (selectedOrder.notes && selectedOrder.notes.startsWith("SCREENSHOT:")) {
+                proofUrl = selectedOrder.notes.replace("SCREENSHOT:", "").trim();
+              } else if (selectedOrder.customerNotes) {
+                const match = selectedOrder.customerNotes.match(/\[رابط سكرين شوت التحويل:\s*([^\s\]]+)\]/);
+                if (match && match[1]) proofUrl = match[1];
+              }
+              if (!proofUrl) {
+                try {
+                  const tl = JSON.parse(selectedOrder.timeline || "[]");
+                  for (const step of tl) {
+                    if (step.screenshotUrl) {
+                      proofUrl = step.screenshotUrl;
+                      break;
+                    }
+                  }
+                } catch {}
+              }
+
+              if (!proofUrl) return null;
+
+              return (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-[#161b24] to-[#0f1218] border-2 border-amber-500/40 space-y-2.5 text-xs shadow-md">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-amber-300 flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-amber-400" />
+                      <span>صورة سكرين شوت إثبات تحويل النجوم المرفقة من العميل:</span>
+                    </span>
+                    <a
+                      href={proofUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] text-amber-400 hover:underline flex items-center gap-1 font-mono font-bold"
+                    >
+                      <span>فتح الصورة كاملة ↗</span>
+                    </a>
+                  </div>
+                  <div className="relative rounded-xl overflow-hidden border border-gray-700 bg-black/50 max-w-sm mx-auto p-1.5">
+                    <a href={proofUrl} target="_blank" rel="noreferrer">
+                      <img
+                        src={proofUrl}
+                        alt="إثبات تحويل النجوم"
+                        className="w-full max-h-60 object-contain rounded-lg hover:opacity-90 transition cursor-zoom-in"
+                      />
+                    </a>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Game Account Credentials Box */}
             {selectedOrder.gameUsername && (
