@@ -8,7 +8,7 @@ import { getStoreSettings } from "@/lib/actions/settings";
 import { SettingsProvider } from "@/lib/context/SettingsContext";
 
 import MaintenanceOverlay from "@/components/store/MaintenanceOverlay";
-import { TopPanoramaAdBanner, VerticalSkyscraperAd, StickyMobileAdBar } from "@/components/store/AdBanners";
+import { TopPanoramaAdBanner, StickyMobileAdBar } from "@/components/store/AdBanners";
 
 // High-efficiency Edge CDN caching: Purged on-demand via revalidatePath('/', 'layout') on admin updates.
 // This saves 99% of Vercel Compute execution & Fast Origin Transfer!
@@ -35,7 +35,6 @@ export default async function StoreLayout({
         <TopPanoramaAdBanner />
         <Header />
         <main className="flex-1 pb-20 md:pb-0">{children}</main>
-        <VerticalSkyscraperAd />
         <StickyMobileAdBar />
         <CartDrawer />
         <MobileBottomNav />
