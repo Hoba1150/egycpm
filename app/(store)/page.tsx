@@ -10,7 +10,7 @@ import WhyChooseUs from "@/components/store/WhyChooseUs";
 import FAQSection from "@/components/store/FAQSection";
 
 // Edge CDN Caching (60 seconds ISR): Serves static HTML directly from Vercel Edge Cache with 0 DB queries on visits
-export const revalidate = 60;
+export const revalidate = 3600;
 
 export default async function HomePage() {
   let user = null;

@@ -1752,6 +1752,415 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
               </div>
             </div>
 
+            {/* 5. SPONSORED STORIES STRIP */}
+            <div className="p-6 rounded-2xl bg-[#12161f] border border-gray-800 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-amber-400" />
+                    <h4 className="text-sm font-black text-white">
+                      5. شريط قصص الشركاء والرعاة المعتمدين (Sponsored Partner Stories)
+                    </h4>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    شريط أفقي متجاوب يعرض دوائر مضيئة لقصص ولوجوهات الرعاة والشركاء تحت السلايدر الرئيسي، فائق الجاذبية على الهاتف.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-gray-300">
+                    {settings.ad_stories_enabled === "true" ? "مفعل بالمتجر ✅" : "معطل ❌"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleChange(
+                        "ad_stories_enabled",
+                        settings.ad_stories_enabled === "true" ? "false" : "true"
+                      )
+                    }
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      settings.ad_stories_enabled === "true" ? "bg-amber-500" : "bg-gray-700"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        settings.ad_stories_enabled === "true" ? "translate-x-1" : "translate-x-6"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Story 1 */}
+                <div className="p-4 rounded-xl bg-[#0f1218] border border-gray-800 space-y-3">
+                  <span className="text-xs font-bold text-amber-400 block">قصة الراعي الأول #1</span>
+                  <div>
+                    <label className="block text-[11px] text-gray-400 mb-1">اسم الراعي / المتجر</label>
+                    <input
+                      type="text"
+                      placeholder="فالكون جيمينج"
+                      value={settings.ad_story1_name || ""}
+                      onChange={(e) => handleChange("ad_story1_name", e.target.value)}
+                      className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-right"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-gray-400 mb-1">رابط التحويل</label>
+                    <input
+                      type="text"
+                      placeholder="https://..."
+                      value={settings.ad_story1_link || ""}
+                      onChange={(e) => handleChange("ad_story1_link", e.target.value)}
+                      className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-left font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[11px] text-gray-400">لوجو / صورة الراعي</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="رابط الصورة..."
+                        value={settings.ad_story1_image || ""}
+                        onChange={(e) => handleChange("ad_story1_image", e.target.value)}
+                        className="flex-1 px-2.5 py-1.5 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-left font-mono"
+                      />
+                      <label className="cursor-pointer px-2.5 py-1.5 rounded-lg bg-amber-600 text-black text-xs font-bold flex items-center shrink-0">
+                        <Upload className="w-3.5 h-3.5" />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleAdImageUpload("ad_story1_image", e)}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Story 2 */}
+                <div className="p-4 rounded-xl bg-[#0f1218] border border-gray-800 space-y-3">
+                  <span className="text-xs font-bold text-amber-400 block">قصة الراعي الثاني #2</span>
+                  <div>
+                    <label className="block text-[11px] text-gray-400 mb-1">اسم الراعي / المتجر</label>
+                    <input
+                      type="text"
+                      placeholder="تيربو كارز"
+                      value={settings.ad_story2_name || ""}
+                      onChange={(e) => handleChange("ad_story2_name", e.target.value)}
+                      className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-right"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-gray-400 mb-1">رابط التحويل</label>
+                    <input
+                      type="text"
+                      placeholder="https://..."
+                      value={settings.ad_story2_link || ""}
+                      onChange={(e) => handleChange("ad_story2_link", e.target.value)}
+                      className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-left font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[11px] text-gray-400">لوجو / صورة الراعي</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="رابط الصورة..."
+                        value={settings.ad_story2_image || ""}
+                        onChange={(e) => handleChange("ad_story2_image", e.target.value)}
+                        className="flex-1 px-2.5 py-1.5 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-left font-mono"
+                      />
+                      <label className="cursor-pointer px-2.5 py-1.5 rounded-lg bg-amber-600 text-black text-xs font-bold flex items-center shrink-0">
+                        <Upload className="w-3.5 h-3.5" />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleAdImageUpload("ad_story2_image", e)}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Story 3 */}
+                <div className="p-4 rounded-xl bg-[#0f1218] border border-gray-800 space-y-3">
+                  <span className="text-xs font-bold text-amber-400 block">قصة الراعي الثالث #3</span>
+                  <div>
+                    <label className="block text-[11px] text-gray-400 mb-1">اسم الراعي / المتجر</label>
+                    <input
+                      type="text"
+                      placeholder="سيرفر الأساطير"
+                      value={settings.ad_story3_name || ""}
+                      onChange={(e) => handleChange("ad_story3_name", e.target.value)}
+                      className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-right"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-gray-400 mb-1">رابط التحويل</label>
+                    <input
+                      type="text"
+                      placeholder="https://..."
+                      value={settings.ad_story3_link || ""}
+                      onChange={(e) => handleChange("ad_story3_link", e.target.value)}
+                      className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-left font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[11px] text-gray-400">لوجو / صورة الراعي</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="رابط الصورة..."
+                        value={settings.ad_story3_image || ""}
+                        onChange={(e) => handleChange("ad_story3_image", e.target.value)}
+                        className="flex-1 px-2.5 py-1.5 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-left font-mono"
+                      />
+                      <label className="cursor-pointer px-2.5 py-1.5 rounded-lg bg-amber-600 text-black text-xs font-bold flex items-center shrink-0">
+                        <Upload className="w-3.5 h-3.5" />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleAdImageUpload("ad_story3_image", e)}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 6. IN-FEED GRID AD CARD */}
+            <div className="p-6 rounded-2xl bg-[#12161f] border border-gray-800 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-5 h-5 text-amber-400" />
+                    <h4 className="text-sm font-black text-white">
+                      6. البطاقة الإعلانية المدمجة في شبكة المنتجات (In-Feed Native Ad Card)
+                    </h4>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    بطاقة إعلانية ترتدي ثوب بطاقات المنتجات وتندمج بسلاسة داخل شبكة المتجر، متوافقة 100% مع شبكة الهاتف والكمبيوتر.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-gray-300">
+                    {settings.ad_feed_enabled === "true" ? "مفعل بالمتجر ✅" : "معطل ❌"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleChange(
+                        "ad_feed_enabled",
+                        settings.ad_feed_enabled === "true" ? "false" : "true"
+                      )
+                    }
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      settings.ad_feed_enabled === "true" ? "bg-amber-500" : "bg-gray-700"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        settings.ad_feed_enabled === "true" ? "translate-x-1" : "translate-x-6"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    نص الشارة العلوية (Badge)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: راعي معتمد ⭐"
+                    value={settings.ad_feed_badge || ""}
+                    onChange={(e) => handleChange("ad_feed_badge", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-right"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    نص زر الإجراء (CTA)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: مشاهدة العرض ↗"
+                    value={settings.ad_feed_cta || ""}
+                    onChange={(e) => handleChange("ad_feed_cta", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-right"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    عنوان البطاقة الإعلانية
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: باقات تيربو كار باركينج الحصرية"
+                    value={settings.ad_feed_title || ""}
+                    onChange={(e) => handleChange("ad_feed_title", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-right"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    رابط التوجيه
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://..."
+                    value={settings.ad_feed_link || ""}
+                    onChange={(e) => handleChange("ad_feed_link", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-left font-mono"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    الوصف المختصر (سطر أو سطرين)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: احصل على خصم 20% فوري عند التواصل واستخدام كود الخصم..."
+                    value={settings.ad_feed_desc || ""}
+                    onChange={(e) => handleChange("ad_feed_desc", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-right"
+                  />
+                </div>
+
+                <div className="md:col-span-2 space-y-2">
+                  <label className="block text-xs font-bold text-gray-300">
+                    صورة البطاقة الإعلانية
+                  </label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      placeholder="رابط الصورة أو ارفع مباشرة..."
+                      value={settings.ad_feed_image || ""}
+                      onChange={(e) => handleChange("ad_feed_image", e.target.value)}
+                      className="flex-1 px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-left font-mono"
+                    />
+                    <label className="cursor-pointer px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-black font-bold text-xs flex items-center justify-center gap-1.5 shrink-0 transition">
+                      {uploadingAdKey === "ad_feed_image" ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-black" />
+                      ) : (
+                        <Upload className="w-4 h-4 text-black" />
+                      )}
+                      <span>رفع صورة البطاقة</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleAdImageUpload("ad_feed_image", e)}
+                      />
+                    </label>
+                  </div>
+                  {settings.ad_feed_image && (
+                    <div className="mt-2 w-40 h-24 rounded-xl overflow-hidden border border-gray-700 relative">
+                      <img
+                        src={settings.ad_feed_image}
+                        alt="Feed Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 7. STICKY MOBILE BOTTOM BAR */}
+            <div className="p-6 rounded-2xl bg-[#12161f] border border-gray-800 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Flame className="w-5 h-5 text-orange-400" />
+                    <h4 className="text-sm font-black text-white">
+                      7. الشريط الإعلاني الذكي العائم للموبايل (Sticky Mobile Bottom Bar)
+                    </h4>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    شريط رفيع وأنيق يطفو أسفل شاشة الهاتف فوق القائمة السفلية، جذاب جداً وقابل للإغلاق بزر X بنقرة واحدة لضمان عدم إزعاج المستخدم.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-gray-300">
+                    {settings.ad_mobile_bar_enabled === "true" ? "مفعل بالمتجر ✅" : "معطل ❌"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleChange(
+                        "ad_mobile_bar_enabled",
+                        settings.ad_mobile_bar_enabled === "true" ? "false" : "true"
+                      )
+                    }
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      settings.ad_mobile_bar_enabled === "true" ? "bg-amber-500" : "bg-gray-700"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        settings.ad_mobile_bar_enabled === "true" ? "translate-x-1" : "translate-x-6"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    شارة الشريط (Badge)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: عرض خاص 🔥"
+                    value={settings.ad_mobile_bar_badge || ""}
+                    onChange={(e) => handleChange("ad_mobile_bar_badge", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-right"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    رابط التحويل
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://..."
+                    value={settings.ad_mobile_bar_link || ""}
+                    onChange={(e) => handleChange("ad_mobile_bar_link", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-left font-mono"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    نص الإعلان (موجز ومختصر)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: إعلان مميز: انضم لأقوى عروض السيرفرات والسيارات الآن!"
+                    value={settings.ad_mobile_bar_text || ""}
+                    onChange={(e) => handleChange("ad_mobile_bar_text", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-right"
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* 4. VERTICAL SKYSCRAPER AD */}
             <div className="p-6 rounded-2xl bg-[#12161f] border border-gray-800 space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-4">

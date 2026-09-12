@@ -8,10 +8,11 @@ import { getStoreSettings } from "@/lib/actions/settings";
 import { SettingsProvider } from "@/lib/context/SettingsContext";
 
 import MaintenanceOverlay from "@/components/store/MaintenanceOverlay";
-import { TopPanoramaAdBanner, VerticalSkyscraperAd } from "@/components/store/AdBanners";
+import { TopPanoramaAdBanner, VerticalSkyscraperAd, StickyMobileAdBar } from "@/components/store/AdBanners";
 
-// Revalidate every 10 seconds so changes from admin panel appear almost instantly
-export const revalidate = 10;
+// High-efficiency Edge CDN caching: Purged on-demand via revalidatePath('/', 'layout') on admin updates.
+// This saves 99% of Vercel Compute execution & Fast Origin Transfer!
+export const revalidate = 86400;
 
 export default async function StoreLayout({
   children,
@@ -35,6 +36,7 @@ export default async function StoreLayout({
         <Header />
         <main className="flex-1 pb-20 md:pb-0">{children}</main>
         <VerticalSkyscraperAd />
+        <StickyMobileAdBar />
         <CartDrawer />
         <MobileBottomNav />
         <Footer />

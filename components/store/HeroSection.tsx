@@ -10,21 +10,33 @@ import {
   Key,
   CheckCircle2,
   Flame,
-  Wrench,
   ChevronRight,
   ChevronLeft,
   Sparkles,
   ExternalLink,
   Megaphone,
+  ShieldCheck,
+  MessageCircle,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useSettings } from "@/lib/context/SettingsContext";
+import { SponsoredStoriesBar } from "@/components/store/AdBanners";
 
 interface HeroSectionProps {
   user?: any;
   products?: any[];
-  // Keep prop for backward compat but now we use Context
   initialSettings?: Record<string, string>;
+}
+
+interface SlideData {
+  url: string;
+  isAd?: boolean;
+  title?: string;
+  desc?: string;
+  badge?: string;
+  sponsor?: string;
+  link?: string;
+  cta?: string;
 }
 
 export default function HeroSection({ user: initialUser }: HeroSectionProps) {
@@ -37,88 +49,86 @@ export default function HeroSection({ user: initialUser }: HeroSectionProps) {
     }
     return null;
   }));
-  // Read settings from server-injected Context — no FOUC
+
   const settings = useSettings();
   const [activeSlide, setActiveSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const touchStartX = useRef<number | null>(null);
 
+  // Fetch session only when explicit auth changed (prevents Vercel Compute churn)
   const fetchLiveSession = () => {
-    Promise.all([
-      fetch("/api/auth/me", { cache: "no-store" }).then((r) => r.json()).catch(() => ({ user: null })),
-    ]).then(([authData]) => {
-      if (authData.user) {
-        setCurrentUser(authData.user);
-        try {
-          sessionStorage.setItem("cpm_cached_user", JSON.stringify(authData.user));
-        } catch {}
-      } else {
-        setCurrentUser(null);
-      }
-    });
+    fetch("/api/auth/me", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((authData) => {
+        if (authData?.user) {
+          setCurrentUser(authData.user);
+          try {
+            sessionStorage.setItem("cpm_cached_user", JSON.stringify(authData.user));
+          } catch {}
+        } else {
+          setCurrentUser(null);
+        }
+      })
+      .catch(() => {});
   };
 
   useEffect(() => {
-    fetchLiveSession();
-    window.addEventListener("cpm_auth_changed", fetchLiveSession);
-    window.addEventListener("focus", fetchLiveSession);
+    if (!initialUser) {
+      fetchLiveSession();
+    }
+    const handleAuth = () => fetchLiveSession();
+    window.addEventListener("cpm_auth_changed", handleAuth);
     return () => {
-      window.removeEventListener("cpm_auth_changed", fetchLiveSession);
-      window.removeEventListener("focus", fetchLiveSession);
+      window.removeEventListener("cpm_auth_changed", handleAuth);
     };
-  }, []);
+  }, [initialUser]);
 
-  interface SlideData {
-  url: string;
-  isAd?: boolean;
-  title?: string;
-  desc?: string;
-  badge?: string;
-  sponsor?: string;
-  link?: string;
-  cta?: string;
-}
-
-  // Parse hero images list with VIP Advertising integration
+  // Slides configuration: Smart Billboard Stage
   const getSlides = (): SlideData[] => {
+    const bookingWhatsapp = settings.ad_booking_whatsapp || "01288212101";
+    const defaultBookingLink = `https://wa.me/20${bookingWhatsapp.replace(/\D/g, "").replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أود حجز المساحة الإعلانية الكبرى (Hero Billboard) في متجر EGY CPM")}`;
+
     let baseImages: string[] = [];
     try {
       if (!settings.hero_images) {
         baseImages = [
-          "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800",
-          "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800",
-          "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?w=800",
+          "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=1200",
+          "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200",
+          "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?w=1200",
         ];
       } else {
         const parsed = JSON.parse(settings.hero_images);
         baseImages = Array.isArray(parsed) && parsed.length > 0
           ? parsed
-          : ["https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800"];
+          : ["https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=1200"];
       }
     } catch {
-      baseImages = [
-        "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800",
-      ];
+      baseImages = ["https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=1200"];
     }
 
-    const result: SlideData[] = baseImages.map((url) => ({ url, isAd: false }));
+    const result: SlideData[] = baseImages.map((url, i) => ({
+      url,
+      isAd: false,
+      title: i === 0 ? (settings.hero_title || "المنصة الأولى لسيارات وتعديلات Car Parking") : "أساطيل وسيارات حصرية بقوة 1695HP",
+      desc: i === 0 ? "تسليم فوري، حماية كاملة، وأمان معتمد 100%" : "خصومات كبرى وشحن فوري للكاش والكوينز",
+      badge: i === 0 ? "متجر معتمد 🏎️" : "عروض حصرية 🔥",
+      sponsor: settings.store_name || "EGY CPM",
+      link: "/shop",
+      cta: "تصفح المتجر ↗",
+    }));
 
-    // Inject VIP Sponsored Ad Slide if enabled
+    // Inject VIP Sponsored Ad Slide at index 0 if enabled
     if (settings.ad_hero_enabled === "true") {
-      const bookingWhatsapp = settings.ad_booking_whatsapp || "01288212101";
-      const defaultBookingLink = `https://wa.me/20${bookingWhatsapp.replace(/\D/g, "").replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أود الاستفسار عن حجز مساحة إعلانية VIP في سلايدر واجهة متجر EGY CPM")}`;
-      
       const adSlide: SlideData = {
         url: settings.ad_hero_image || baseImages[0],
         isAd: true,
-        title: settings.ad_hero_title || "مساحة إعلانية راعية مميزة (VIP Sponsor)",
-        desc: settings.ad_hero_desc || "احصل على ظهور حصري في واجهة المتجر الرئيسية أمام آلاف الزوار والعملاء يومياً.",
+        title: settings.ad_hero_title || "مساحة إعلانية راعية كبرى (VIP Sponsor)",
+        desc: settings.ad_hero_desc || "احصل على ظهور حصري في واجهة المتجر الرئيسية أمام آلاف الزوار يومياً.",
         badge: settings.ad_hero_badge || "SPONSORED VIP ⭐",
         sponsor: settings.ad_hero_sponsor || "راعي رسمي معتمد",
         link: settings.ad_hero_link || defaultBookingLink,
         cta: settings.ad_hero_cta || "زيارة العرض ↗",
       };
-
       result.unshift(adSlide);
     }
 
@@ -127,28 +137,21 @@ export default function HeroSection({ user: initialUser }: HeroSectionProps) {
 
   const slides = getSlides();
   const autoplayEnabled = settings.hero_slider_autoplay !== "false";
-  const intervalSeconds = Math.max(2, parseInt(settings.hero_slider_interval || "4", 10));
+  const intervalSeconds = Math.max(3, parseInt(settings.hero_slider_interval || "4", 10));
 
-  // Autoplay Slider Timer
+  // Autoplay timer
   useEffect(() => {
     if (!autoplayEnabled || isPaused || slides.length <= 1) return;
-
     const timer = setInterval(() => {
       setActiveSlide((prev) => (prev + 1) % slides.length);
     }, intervalSeconds * 1000);
-
     return () => clearInterval(timer);
   }, [slides.length, autoplayEnabled, isPaused, intervalSeconds]);
 
-  const nextSlide = () => {
-    setActiveSlide((prev) => (prev + 1) % slides.length);
-  };
+  const nextSlide = () => setActiveSlide((prev) => (prev + 1) % slides.length);
+  const prevSlide = () => setActiveSlide((prev) => (prev - 1 + slides.length) % slides.length);
 
-  const prevSlide = () => {
-    setActiveSlide((prev) => (prev - 1 + slides.length) % slides.length);
-  };
-
-  // Touch Swipe Handlers
+  // Swipe handlers for mobile
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
   };
@@ -157,276 +160,265 @@ export default function HeroSection({ user: initialUser }: HeroSectionProps) {
     if (touchStartX.current === null) return;
     const diff = touchStartX.current - e.changedTouches[0].clientX;
     if (Math.abs(diff) > 40) {
-      if (diff > 0) {
-        // swipe left -> next in RTL
-        nextSlide();
-      } else {
-        // swipe right -> prev
-        prevSlide();
-      }
+      if (diff > 0) nextSlide();
+      else prevSlide();
     }
     touchStartX.current = null;
   };
 
   const walletTotal = currentUser?.wallet?.totalAvailable ?? 0;
+  const currentSlide = slides[activeSlide] || slides[0];
+
+  const bookingWhatsapp = settings.ad_booking_whatsapp || "01288212101";
+  const advertiseHereLink = `https://wa.me/20${bookingWhatsapp.replace(/\D/g, "").replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أود حجز مساحة إعلانية في سلايدر واجهة متجر EGY CPM")}`;
 
   const quickServices = [
     {
       title: settings.srv1_title || "سيارات معدلة 1695HP",
-      desc: settings.srv1_desc || "أقوى سيارات دريفت وسرعة بأعلى تظبيط للمحركات",
+      desc: "W16 Tuning",
       icon: Car,
       href: "/shop?type=MODIFIED_CAR",
-      badge: "W16 Tuning",
-      iconBg: "bg-[#c0121a]/10 border-[#c0121a]/30 text-[#e8161f]",
+      badge: "محركات خارقة",
+      iconBg: "bg-red-600/15 border-red-500/30 text-red-400",
     },
     {
-      title: settings.srv2_title || "سيارات رسم وفينيل حصري",
-      desc: settings.srv2_desc || "تصاميم مرسومة بدقة واحترافية عالية",
+      title: settings.srv2_title || "سيارات رسم وفينيل",
+      desc: "Custom Livery",
       icon: Flame,
       href: "/shop?type=DRAWN_CAR",
-      badge: "Custom Livery",
-      iconBg: "bg-purple-600/10 border-purple-600/30 text-purple-400",
+      badge: "تصاميم حصرية",
+      iconBg: "bg-purple-600/15 border-purple-500/30 text-purple-400",
     },
     {
-      title: settings.srv3_title || "شحن الكاش والكوينز",
-      desc: settings.srv3_desc || "كاش 50M وكوينز ذهبي وتفعيل الكينج رانك",
+      title: settings.srv3_title || "شحن كاش وكوينز",
+      desc: "Coins & Cash",
       icon: Zap,
       href: "/shop?type=SERVICE",
-      badge: "Coins & Cash",
-      iconBg: "bg-emerald-600/10 border-emerald-600/30 text-emerald-400",
+      badge: "تسليم فوري",
+      iconBg: "bg-emerald-600/15 border-emerald-500/30 text-emerald-400",
     },
     {
       title: settings.srv4_title || "حسابات جاهزة VIP",
-      desc: settings.srv4_desc || "حسابات بكامل السيارات المعدلة والأموال",
+      desc: "VIP Accounts",
       icon: Key,
       href: "/shop?type=ACCOUNT",
-      badge: "VIP Accounts",
-      iconBg: "bg-blue-600/10 border-blue-600/30 text-blue-400",
+      badge: "جاهزة للعب",
+      iconBg: "bg-blue-600/15 border-blue-500/30 text-blue-400",
     },
   ];
 
-
-
   return (
-    <section className="relative pt-3 pb-6 px-3 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto w-full space-y-5">
+    <section className="relative pt-2 sm:pt-3 pb-4 sm:pb-6 px-2.5 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto w-full space-y-3 sm:space-y-4">
 
-        {/* 1. Wallet/CTA Banner */}
-        <div className="rounded-2xl bg-[var(--card)] border border-[var(--border)] p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-right shadow-sm overflow-hidden">
-          <div className="flex items-center gap-3.5 w-full sm:w-auto">
-            <div className="w-12 h-12 rounded-xl bg-[var(--red-soft)] text-[var(--red-hi)] border border-[var(--border-hi)] flex items-center justify-center shrink-0">
-              <Wallet className="w-6 h-6" />
+        {/* 1. Wallet Balance / Top Hub */}
+        <div className="rounded-2xl bg-[#0f1218] border border-gray-800 p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-right shadow-md">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-red-600/15 text-red-500 border border-red-500/30 flex items-center justify-center shrink-0">
+              <Wallet className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-xs text-[var(--text-dim)] block font-medium">
+              <span className="text-[11px] text-gray-400 block font-medium">
                 {currentUser ? `مرحباً بك، ${currentUser.name}` : "رصيد المحفظة المتاح للشراء"}
               </span>
-              <div className="flex items-baseline gap-2 mt-0.5">
-                <span className="text-2xl sm:text-3xl font-black text-[var(--red-hi)] font-mono tracking-tight">
+              <div className="flex items-baseline gap-2">
+                <span className="text-xl sm:text-2xl font-black text-white font-mono">
                   {formatCurrency(walletTotal)}
                 </span>
-                <span className="text-[11px] text-[var(--text-dim)] font-medium">
-                  جاهز للاستخدام الفوري
+                <span className="text-[10px] text-gray-500 hidden sm:inline">
+                  جاهز للاستخدام
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <Link
               href="/deposit"
-              className="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl cpm-btn-red text-xs flex items-center justify-center gap-1.5"
+              className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-red-600/20"
             >
-              <Plus className="w-4 h-4" />
-              <span>{settings.hero_cta1_text ?? "شحن رصيد المحفظة"}</span>
+              <Plus className="w-3.5 h-3.5" />
+              <span>{settings.hero_cta1_text ?? "شحن المحفظة"}</span>
             </Link>
             <Link
               href="/shop"
-              className="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl cpm-btn-ghost text-xs text-center"
+              className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-[#161b24] hover:bg-[#1e2430] border border-gray-700 text-gray-200 font-bold text-xs text-center transition"
             >
-              {settings.hero_cta2_text ?? "تصفح المتجر الكامل"}
+              {settings.hero_cta2_text ?? "تصفح المتجر"}
             </Link>
           </div>
         </div>
 
-        {/* 2. Cinematic Hero + Slider */}
-        <div className="rounded-3xl bg-[var(--card)] border border-[var(--border)] overflow-hidden shadow-lg">
-          <div className="grid grid-cols-1 lg:grid-cols-12">
-
-            {/* Content Column */}
-            <div className="lg:col-span-7 p-6 sm:p-8 lg:p-10 flex flex-col justify-center space-y-5 text-right">
-              <div className="inline-flex items-center gap-2 self-start px-3 py-1.5 rounded-xl bg-[var(--red-soft)] border border-[var(--border-hi)] text-[var(--red-hi)] text-xs font-bold">
-                <Wrench className="w-3.5 h-3.5" />
-                <span>{settings.hero_badge ?? "متجر وورشة Car Parking الرسمية"}</span>
+        {/* 2. Grand Smart Advertising Billboard & Showroom Stage */}
+        <div
+          className="relative group rounded-2xl sm:rounded-3xl overflow-hidden border border-amber-500/30 bg-[#090b0f] shadow-2xl transition hover:border-amber-500/60"
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+          {/* Billboard Frame Container */}
+          <div className="relative w-full h-[210px] xs:h-[240px] sm:h-[320px] md:h-[390px] lg:h-[440px] overflow-hidden bg-black">
+            {/* Background Slides */}
+            {slides.map((slide, idx) => (
+              <div
+                key={idx}
+                className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
+                  activeSlide === idx ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
+                }`}
+              >
+                <img
+                  src={slide.url}
+                  alt={slide.title || `Slide ${idx + 1}`}
+                  loading={idx === 0 ? "eager" : "lazy"}
+                  className="w-full h-full object-cover"
+                />
+                {/* Visual Depth Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-black/40 pointer-events-none" />
               </div>
+            ))}
 
-              <h1 className="text-2xl sm:text-4xl font-black text-white leading-tight tracking-tight">
-                {settings.store_name ?? "EGY CPM"}{" "}
-                <span className="text-[var(--red-hi)] block sm:inline mt-1 sm:mt-0">
-                  {settings.hero_title ?? "المنصة الأولى لتعديل سيارات اللعبة"}
-                </span>
-              </h1>
-
-              {settings.hero_description !== "" && (
-                <p className="text-xs sm:text-sm text-[var(--text-dim)] leading-relaxed max-w-2xl">
-                  {settings.hero_description ?? "المتجر الرائد لتعديل محركات السيارات 1695HP، وتصاميم الفينيل الحصرية، وشحن الكاش والكوينز، مع حماية تامة وأمان معتمد 100%."}
-                </p>
-              )}
-
-              <div className="flex flex-wrap gap-2 pt-1">
-                {[
-                  { icon: CheckCircle2, text: "حماية كاملة وأمان معتمد", color: "text-emerald-400" },
-                  { icon: CheckCircle2, text: "تسليم مباشر ومتابعة حية", color: "text-[var(--red-hi)]" },
-                  { icon: CheckCircle2, text: "دعم متواصل عبر التذاكر", color: "text-blue-400" },
-                ].map((item, i) => {
-                  const Ico = item.icon;
-                  return (
-                    <div key={i} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--card-hi)] border border-[var(--border)] text-xs font-medium ${item.color}`}>
-                      <Ico className="w-3.5 h-3.5" />
-                      <span>{item.text}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Slider Column */}
-            <div
-              className="lg:col-span-5 relative group min-h-[220px] sm:min-h-[280px] lg:min-h-0"
-              onMouseEnter={() => setIsPaused(true)}
-              onMouseLeave={() => setIsPaused(false)}
-              onTouchStart={handleTouchStart}
-              onTouchEnd={handleTouchEnd}
-            >
-              <div className="relative h-full min-h-[220px] sm:min-h-[280px] lg:min-h-[360px] overflow-hidden bg-[#080809] lg:rounded-l-3xl">
-                {/* Slides */}
-                {slides.map((slide, idx) => (
-                  <div
+            {/* Top Bar Overlays: Story Progress Bars + Quick Booking Trigger */}
+            <div className="absolute top-2.5 sm:top-4 inset-x-2.5 sm:inset-x-5 z-20 flex items-center justify-between gap-3">
+              {/* Story-Style Progress Bars */}
+              <div className="flex-1 flex items-center gap-1.5 max-w-xs sm:max-w-md">
+                {slides.map((_, idx) => (
+                  <button
                     key={idx}
-                    className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
-                      activeSlide === idx ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
-                    }`}
+                    type="button"
+                    onClick={() => setActiveSlide(idx)}
+                    aria-label={`الانتقال للشريحة ${idx + 1}`}
+                    className="h-1 flex-1 rounded-full bg-white/25 overflow-hidden transition-all"
                   >
-                    <img
-                      src={slide.url}
-                      alt={slide.title || `Slide ${idx + 1}`}
-                      loading={idx === 0 ? "eager" : "lazy"}
-                      className="w-full h-full object-cover"
+                    <div
+                      className={`h-full transition-all duration-300 ${
+                        activeSlide === idx
+                          ? "w-full bg-gradient-to-r from-amber-400 to-red-500 shadow-sm"
+                          : idx < activeSlide
+                          ? "w-full bg-white/60"
+                          : "w-0"
+                      }`}
                     />
-
-                    {/* Gradient Overlay for Readability */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/30 pointer-events-none" />
-
-                    {/* VIP Sponsored Interactive Card Overlay */}
-                    {slide.isAd && (
-                      <div className="absolute bottom-10 inset-x-3 sm:inset-x-5 z-20 text-right space-y-2">
-                        <div className="p-3 sm:p-4 rounded-2xl bg-black/75 border border-amber-500/40 backdrop-blur-md shadow-2xl space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] sm:text-[10px] font-black flex items-center gap-1">
-                              <Sparkles className="w-3 h-3 text-amber-400 animate-pulse" />
-                              <span>{slide.badge}</span>
-                            </span>
-                            <span className="text-[10px] text-gray-400 font-bold">
-                              {slide.sponsor}
-                            </span>
-                          </div>
-
-                          <h3 className="text-xs sm:text-sm font-black text-white leading-tight">
-                            {slide.title}
-                          </h3>
-
-                          {slide.desc && (
-                            <p className="text-[10px] sm:text-[11px] text-gray-300 leading-snug line-clamp-2">
-                              {slide.desc}
-                            </p>
-                          )}
-
-                          {slide.link && (
-                            <div className="pt-1">
-                              <a
-                                href={slide.link}
-                                target={slide.link.startsWith("http") ? "_blank" : undefined}
-                                rel="noreferrer"
-                                className="inline-flex items-center justify-center gap-1 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-[11px] transition shadow-md active:scale-95"
-                              >
-                                <span>{slide.cta}</span>
-                                <ExternalLink className="w-3 h-3" />
-                              </a>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  </button>
                 ))}
+              </div>
 
-                {/* Top-left: Advertise With Us Callout Trigger */}
-                <div className="absolute top-3 left-3 z-20">
-                  <a
-                    href={`https://wa.me/20${(settings.ad_booking_whatsapp || "01288212101").replace(/\D/g, "").replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أود الاستفسار عن حجز مساحة إعلانية في واجهة متجر EGY CPM")}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-2.5 py-1 rounded-lg bg-black/80 hover:bg-amber-500 hover:text-black text-amber-300 font-bold text-[10px] border border-amber-500/40 backdrop-blur-sm transition flex items-center gap-1 shadow-sm"
-                  >
-                    <Megaphone className="w-3 h-3" />
-                    <span>أعلن هنا 💎</span>
-                  </a>
+              {/* Direct Booking Trigger: "أعلن هنا 💎" */}
+              <a
+                href={advertiseHereLink}
+                target="_blank"
+                rel="noreferrer"
+                className="px-2.5 sm:px-3 py-1 rounded-full bg-black/75 hover:bg-amber-500 hover:text-black text-amber-300 border border-amber-400/50 backdrop-blur-md text-[10px] sm:text-xs font-black flex items-center gap-1 shadow-lg transition active:scale-95 shrink-0"
+                title="احجز مساحة إعلانية في هذه الواجهة"
+              >
+                <Megaphone className="w-3 h-3 text-amber-400" />
+                <span>أعلن هنا 💎</span>
+              </a>
+            </div>
+
+            {/* Bottom Glassmorphic Overlay Card (High Impact, Reduced Text) */}
+            <div className="absolute bottom-2.5 sm:bottom-4 inset-x-2.5 sm:inset-x-5 z-20">
+              <div className="rounded-xl sm:rounded-2xl bg-black/80 border border-white/10 backdrop-blur-md p-3 sm:p-4 text-right shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-4">
+                {/* Concise Punchy Details */}
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black flex items-center gap-1 border ${
+                      currentSlide.isAd
+                        ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                        : "bg-red-600/20 text-red-400 border-red-500/30"
+                    }`}>
+                      <Sparkles className="w-2.5 h-2.5 animate-pulse" />
+                      <span>{currentSlide.badge || "إعلان مميز"}</span>
+                    </span>
+
+                    <span className="text-[10px] text-gray-400 font-bold truncate flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                      <span>{currentSlide.sponsor || "معتمد"}</span>
+                    </span>
+                  </div>
+
+                  <h2 className="text-xs sm:text-base md:text-lg font-black text-white truncate drop-shadow-md">
+                    {currentSlide.title}
+                  </h2>
+
+                  {currentSlide.desc && (
+                    <p className="text-[10px] sm:text-xs text-gray-300 truncate hidden xs:block">
+                      {currentSlide.desc}
+                    </p>
+                  )}
                 </div>
 
-                {/* Top badge */}
-                <div className="absolute top-3 right-3 z-20 px-3 py-1 rounded-lg bg-black/75 text-[var(--red-hi)] font-black text-xs font-mono border border-[var(--red)]/40 backdrop-blur-sm">
-                  1695 HP TUNING
-                </div>
-
-                {/* Bottom-left label */}
-                <div className="absolute bottom-10 right-3 z-20 px-3 py-1 rounded-lg bg-black/70 text-gray-300 font-bold text-xs border border-white/10 backdrop-blur-sm">
-                  EGY CPM GARAGE
-                </div>
-
-                {/* Slider controls */}
-                {slides.length > 1 && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={prevSlide}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/70 hover:bg-[var(--red)]/80 text-white border border-white/10 transition opacity-70 group-hover:opacity-100"
-                      aria-label="السابق"
+                {/* Direct Action Button */}
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
+                  {currentSlide.link && (
+                    <a
+                      href={currentSlide.link}
+                      target={currentSlide.link.startsWith("http") ? "_blank" : undefined}
+                      rel="noreferrer"
+                      className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs transition flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/20 active:scale-95"
                     >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={nextSlide}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/70 hover:bg-[var(--red)]/80 text-white border border-white/10 transition opacity-70 group-hover:opacity-100"
-                      aria-label="التالي"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-
-                    {/* Dot indicators */}
-                    <div className="absolute bottom-3 inset-x-0 z-20 flex items-center justify-center gap-1.5">
-                      {slides.map((_, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => setActiveSlide(idx)}
-                          className={`h-1.5 rounded-full transition-all ${
-                            activeSlide === idx
-                              ? "w-5 bg-[var(--red-hi)]"
-                              : "w-1.5 bg-white/30 hover:bg-white/60"
-                          }`}
-                          aria-label={`الشريحة ${idx + 1}`}
-                        />
-                      ))}
-                    </div>
-                  </>
-                )}
+                      <span>{currentSlide.cta || "زيارة العرض ↗"}</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
+
+            {/* Left & Right Navigation Arrows (Desktop hover / Touch friendly) */}
+            {slides.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={prevSlide}
+                  aria-label="السابق"
+                  className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black/60 hover:bg-black text-white border border-white/20 items-center justify-center transition opacity-0 group-hover:opacity-100"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={nextSlide}
+                  aria-label="التالي"
+                  className="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-black/60 hover:bg-black text-white border border-white/20 items-center justify-center transition opacity-0 group-hover:opacity-100"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+              </>
+            )}
           </div>
         </div>
+
+        {/* 3. Sponsored Partner Stories Strip (Horizontal scrolling on mobile) */}
+        <SponsoredStoriesBar />
+
+        {/* 4. Quick Services Grid: 2x2 on Mobile, 4 columns on Desktop */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 pt-1">
+          {quickServices.map((srv, idx) => {
+            const Icon = srv.icon;
+            return (
+              <Link
+                key={idx}
+                href={srv.href}
+                className="group p-3 rounded-xl bg-[#0f1218] hover:bg-[#161b24] border border-gray-800 hover:border-gray-700 transition flex items-center gap-2.5 text-right shadow-sm"
+              >
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center border shrink-0 transition-transform group-hover:scale-105 ${srv.iconBg}`}>
+                  <Icon className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="text-xs font-black text-white block truncate group-hover:text-red-400 transition">
+                    {srv.title}
+                  </span>
+                  <span className="text-[10px] text-gray-400 block truncate font-mono">
+                    {srv.badge}
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+
       </div>
     </section>
   );
 }
-

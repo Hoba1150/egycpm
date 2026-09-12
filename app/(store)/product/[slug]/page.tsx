@@ -10,7 +10,7 @@ import { getCurrentUser } from "@/lib/auth";
 import Link from "next/link";
 import { PanoramaAdBanner } from "@/components/store/AdBanners";
 
-export const revalidate = 30; // Fast Edge CDN Caching (Zero Latency & 98% Bandwidth Savings)
+export const revalidate = 3600; // Fast Edge CDN Caching (Zero Latency & 98% Bandwidth Savings)
 
 interface ProductPageProps {
   params: {

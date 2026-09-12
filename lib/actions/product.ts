@@ -531,6 +531,7 @@ export async function createProduct(data: {
   });
 
   revalidatePath("/shop");
+  revalidatePath("/");
   revalidatePath("/admin/products");
   return { success: true, product };
 }
@@ -589,6 +590,7 @@ export async function updateProduct(id: string, data: Partial<any>) {
   });
 
   revalidatePath("/shop");
+  revalidatePath("/");
   revalidatePath(`/product/${updatedProduct.slug}`);
   revalidatePath("/admin/products");
   return { success: true, product: updatedProduct };
@@ -620,6 +622,7 @@ export async function toggleProductActive(id: string) {
   });
 
   revalidatePath("/shop");
+  revalidatePath("/");
   revalidatePath("/admin/products");
   return { success: true, isActive: updated.isActive };
 }
@@ -644,6 +647,7 @@ export async function deleteProduct(id: string) {
   });
 
   revalidatePath("/shop");
+  revalidatePath("/");
   revalidatePath("/admin/products");
   return { success: true };
 }
@@ -696,6 +700,7 @@ export async function createCategory(data: {
 
   revalidatePath("/admin/categories");
   revalidatePath("/shop");
+  revalidatePath("/");
   revalidatePath("/cars");
   return { success: true, category };
 }
@@ -742,6 +747,7 @@ export async function updateCategory(id: string, data: {
 
   revalidatePath("/admin/categories");
   revalidatePath("/shop");
+  revalidatePath("/");
   revalidatePath("/cars");
   return { success: true, category: updatedCategory };
 }
@@ -775,6 +781,7 @@ export async function deleteCategory(id: string) {
 
   revalidatePath("/admin/categories");
   revalidatePath("/shop");
+  revalidatePath("/");
   revalidatePath("/cars");
   return { success: true };
 }

@@ -5,9 +5,9 @@ import Link from "next/link";
 import { Search, Car, Zap, Key, Flame, Sparkles, Filter, RefreshCw } from "lucide-react";
 
 import ModernCategoryNav from "@/components/store/ModernCategoryNav";
-import { PanoramaAdBanner } from "@/components/store/AdBanners";
+import { PanoramaAdBanner, InFeedGridAdCard } from "@/components/store/AdBanners";
 
-export const revalidate = 30; // Fast Edge CDN Caching (Zero Latency & 98% Bandwidth Savings)
+export const revalidate = 1800; // Fast Edge CDN Caching (Zero Latency & 98% Bandwidth Savings)
 
 interface ShopPageProps {
   searchParams: {
@@ -198,9 +198,15 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-4">
-          {productsRes.items.map((prod) => (
-            <ProductCard key={prod.id} product={prod as any} />
+          {productsRes.items.map((prod, idx) => (
+            <React.Fragment key={prod.id}>
+              {idx === 2 && <InFeedGridAdCard />}
+              <ProductCard product={prod as any} />
+            </React.Fragment>
           ))}
+          {productsRes.items.length > 0 && productsRes.items.length <= 2 && (
+            <InFeedGridAdCard />
+          )}
         </div>
       )}
 

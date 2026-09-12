@@ -4,7 +4,7 @@ import { getActiveGiveaways } from "@/lib/actions/giveaway";
 import { prisma } from "@/lib/prisma";
 import GiveawaysClient from "./GiveawaysClient";
 
-export const revalidate = 30; // Fast Edge CDN Caching (Zero Latency & 98% Bandwidth Savings)
+export const revalidate = 3600; // Fast Edge CDN Caching (Zero Latency & 98% Bandwidth Savings)
 
 export default async function GiveawaysPage() {
   const [user, giveaways] = await Promise.all([
