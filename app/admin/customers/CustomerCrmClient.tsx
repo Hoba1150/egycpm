@@ -37,6 +37,8 @@ import {
   SlidersHorizontal,
   LayoutList,
   LayoutGrid,
+  Copy,
+  Check,
 } from "lucide-react";
 
 export default function CustomerCrmClient({
@@ -50,6 +52,52 @@ export default function CustomerCrmClient({
   const [customers, setCustomers] = useState(initialCustomers);
   const [search, setSearch] = useState("");
   const [revealedPasswords, setRevealedPasswords] = useState<Record<string, boolean>>({});
+  const [copiedPwdId, setCopiedPwdId] = useState<string | null>(null);
+
+  const handleCopyPassword = (userId: string, pwd: string) => {
+    if (!pwd || pwd === "غير محددة" || pwd.includes("مشفرة")) {
+      toast.error("لا توجد كلمة مرور صريحة قابلة للنسخ");
+      return;
+    }
+
+    const doSuccess = () => {
+      setCopiedPwdId(userId);
+      toast.success("تم نسخ كلمة المرور بنجاح 📋");
+      setTimeout(() => setCopiedPwdId(null), 2000);
+    };
+
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      navigator.clipboard
+        .writeText(pwd)
+        .then(doSuccess)
+        .catch(() => fallbackCopy(pwd, doSuccess));
+    } else {
+      fallbackCopy(pwd, doSuccess);
+    }
+  };
+
+  const fallbackCopy = (text: string, onSuccess: () => void) => {
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
+      textArea.style.top = "-999999px";
+      textArea.setAttribute("readonly", "");
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand("copy");
+      textArea.remove();
+      if (successful) {
+        onSuccess();
+      } else {
+        toast.error("تعذر النسخ تلقائياً، يرجى تحديد كلمة المرور ونسخها يدوياً");
+      }
+    } catch (err) {
+      toast.error("تعذر النسخ تلقائياً، يرجى تحديد كلمة المرور ونسخها يدوياً");
+    }
+  };
 
   // Mobile Accordion & Filter State
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -408,7 +456,7 @@ export default function CustomerCrmClient({
                     </div>
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       <div className="bg-[#0c1017] rounded-xl p-2 text-center border border-gray-800/60">
                         <span className="text-[9px] text-gray-400 block mb-0.5">الهدايا 🎁</span>
                         <span className="text-xs font-black text-amber-400 font-mono">
@@ -421,20 +469,49 @@ export default function CustomerCrmClient({
                           {formatCurrency(c.wallet?.totalSpent || 0)}
                         </span>
                       </div>
-                      <div className="bg-[#0c1017] rounded-xl p-2 text-center border border-gray-800/60">
-                        <span className="text-[9px] text-gray-400 block mb-0.5">كلمة المرور 🔑</span>
-                        <div className="flex items-center justify-center gap-1">
-                          <span className="text-[9px] text-orange-400 font-mono truncate max-w-[48px]">
-                            {isRevealed ? displayPwd : "••••••"}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => togglePasswordReveal(c.id)}
-                            className="text-gray-400 hover:text-white"
-                          >
-                            {isRevealed ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                          </button>
+                    </div>
+
+                    {/* Dedicated Full-Width Password Bar with One-Touch Copy */}
+                    <div className="p-2.5 rounded-xl bg-[#0a0d13] border border-orange-500/30 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <div className="p-1.5 rounded-lg bg-orange-500/10 text-orange-400 shrink-0">
+                          <Lock className="w-4 h-4" />
                         </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
+                            <span>كلمة المرور الحالية:</span>
+                            {!c.plainPasswordEncrypted && c.passwordHash && (
+                              <span className="text-[9px] text-amber-500/80">(مشفرة قديماً)</span>
+                            )}
+                          </div>
+                          <div className="text-xs font-mono font-bold text-orange-400 select-all break-all mt-0.5 leading-relaxed">
+                            {isRevealed ? displayPwd : "••••••••••••"}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => togglePasswordReveal(c.id)}
+                          className="p-1.5 rounded-lg bg-[#141a24] hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-700/60 transition active:scale-95"
+                          title={isRevealed ? "إخفاء كلمة المرور" : "كشف كلمة المرور"}
+                        >
+                          {isRevealed ? <EyeOff className="w-4 h-4 text-orange-400" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyPassword(c.id, displayPwd)}
+                          className={`px-2.5 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition active:scale-95 ${
+                            copiedPwdId === c.id
+                              ? "bg-emerald-500 text-black shadow-md shadow-emerald-500/30"
+                              : "bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 border border-orange-500/40"
+                          }`}
+                          title="نسخ كلمة المرور"
+                        >
+                          {copiedPwdId === c.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span className="text-[11px] font-sans font-bold">{copiedPwdId === c.id ? "تم النسخ" : "نسخ"}</span>
+                        </button>
                       </div>
                     </div>
 
@@ -550,29 +627,62 @@ export default function CustomerCrmClient({
                 </div>
 
                 {/* Stats Row */}
-                <div className="px-4 pb-3 grid grid-cols-3 gap-2">
-                  <div className="bg-[#0d1117] rounded-xl p-2 text-center">
-                    <span className="text-[9px] text-gray-500 block mb-0.5">الهدايا 🎁</span>
+                <div className="px-4 pb-3 grid grid-cols-2 gap-2">
+                  <div className="bg-[#0d1117] rounded-xl p-2 text-center border border-gray-800/60">
+                    <span className="text-[9px] text-gray-400 block mb-0.5">الهدايا 🎁</span>
                     <span className="text-xs font-black text-amber-400 font-mono">
                       {formatCurrency(c.wallet?.giftBalance || 0)}
                     </span>
                   </div>
-                  <div className="bg-[#0d1117] rounded-xl p-2 text-center">
-                    <span className="text-[9px] text-gray-500 block mb-0.5">المشتريات 🛒</span>
+                  <div className="bg-[#0d1117] rounded-xl p-2 text-center border border-gray-800/60">
+                    <span className="text-[9px] text-gray-400 block mb-0.5">المشتريات 🛒</span>
                     <span className="text-xs font-black text-gray-200 font-mono">
                       {formatCurrency(c.wallet?.totalSpent || 0)}
                     </span>
                   </div>
-                  <div className="bg-[#0d1117] rounded-xl p-2 text-center">
-                    <span className="text-[9px] text-gray-500 block mb-0.5">كلمة المرور 🔑</span>
-                    <div className="flex items-center justify-center gap-1">
-                      <span className="text-[9px] text-orange-400 font-mono truncate max-w-[48px]">
-                        {isRevealed ? displayPwd : "••••••"}
-                      </span>
-                      <button onClick={() => togglePasswordReveal(c.id)} className="text-gray-400 hover:text-white">
-                        {isRevealed ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                      </button>
+                </div>
+
+                {/* Dedicated Full-Width Password Bar with One-Touch Copy */}
+                <div className="mx-4 mb-3 p-2.5 rounded-xl bg-[#0a0d13] border border-orange-500/30 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="p-1.5 rounded-lg bg-orange-500/10 text-orange-400 shrink-0">
+                      <Lock className="w-4 h-4" />
                     </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
+                        <span>كلمة المرور الحالية:</span>
+                        {!c.plainPasswordEncrypted && c.passwordHash && (
+                          <span className="text-[9px] text-amber-500/80">(مشفرة قديماً)</span>
+                        )}
+                      </div>
+                      <div className="text-xs font-mono font-bold text-orange-400 select-all break-all mt-0.5 leading-relaxed">
+                        {isRevealed ? displayPwd : "••••••••••••"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => togglePasswordReveal(c.id)}
+                      className="p-1.5 rounded-lg bg-[#141a24] hover:bg-gray-700 text-gray-300 hover:text-white border border-gray-700/60 transition active:scale-95"
+                      title={isRevealed ? "إخفاء كلمة المرور" : "كشف كلمة المرور"}
+                    >
+                      {isRevealed ? <EyeOff className="w-4 h-4 text-orange-400" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyPassword(c.id, displayPwd)}
+                      className={`px-2.5 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition active:scale-95 ${
+                        copiedPwdId === c.id
+                          ? "bg-emerald-500 text-black shadow-md shadow-emerald-500/30"
+                          : "bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 border border-orange-500/40"
+                      }`}
+                      title="نسخ كلمة المرور"
+                    >
+                      {copiedPwdId === c.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span className="text-[11px] font-sans font-bold">{copiedPwdId === c.id ? "تم النسخ" : "نسخ"}</span>
+                    </button>
                   </div>
                 </div>
 
@@ -694,19 +804,31 @@ export default function CustomerCrmClient({
                       </div>
                     </td>
 
-                    {/* Password View & Edit */}
+                    {/* Password View, Copy & Edit */}
                     <td className="p-4">
-                      <div className="flex items-center gap-2 font-mono">
-                        <span className="text-orange-400 font-bold bg-[#0c1017] px-2 py-1 rounded-lg border border-gray-800 text-[11px]">
+                      <div className="flex items-center gap-1.5 font-mono">
+                        <span className="text-orange-400 font-bold bg-[#0c1017] px-2.5 py-1 rounded-lg border border-gray-800 text-[11px] select-all max-w-[180px] break-all">
                           {isRevealed ? displayPwd : "••••••••"}
                         </span>
                         <button
                           type="button"
                           onClick={() => togglePasswordReveal(c.id)}
-                          className="p-1 rounded-lg bg-[#1a202c] hover:bg-gray-700 text-gray-300 hover:text-white transition"
+                          className="p-1.5 rounded-lg bg-[#1a202c] hover:bg-gray-700 text-gray-300 hover:text-white transition"
                           title={isRevealed ? "إخفاء كلمة المرور" : "كشف كلمة المرور"}
                         >
-                          {isRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          {isRevealed ? <EyeOff className="w-3.5 h-3.5 text-orange-400" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyPassword(c.id, displayPwd)}
+                          className={`p-1.5 rounded-lg transition ${
+                            copiedPwdId === c.id
+                              ? "bg-emerald-500 text-black shadow-sm"
+                              : "bg-[#1a202c] hover:bg-gray-700 text-gray-300 hover:text-white"
+                          }`}
+                          title="نسخ كلمة المرور"
+                        >
+                          {copiedPwdId === c.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                         </button>
                         <button
                           type="button"
@@ -714,7 +836,7 @@ export default function CustomerCrmClient({
                             setPwdCustomer(c);
                             setNewPassword("");
                           }}
-                          className="p-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 transition"
+                          className="p-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 transition"
                           title="تغيير كلمة مرور العميل"
                         >
                           <Key className="w-3.5 h-3.5" />
