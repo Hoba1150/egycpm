@@ -33,6 +33,7 @@ import {
   ShieldAlert,
   Flame,
   MessageCircle,
+  Megaphone,
   ExternalLink,
 } from "lucide-react";
 
@@ -40,13 +41,41 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
   const router = useRouter();
   const [settings, setSettings] = useState(initialSettings);
   const [activeTab, setActiveTab] = useState<
-    "LOGO" | "MAINTENANCE" | "SOCIAL" | "SLIDER" | "TEXTS" | "THEME" | "PAYMENT" | "BACKUP"
+    "LOGO" | "MAINTENANCE" | "SOCIAL" | "SLIDER" | "ADS" | "TEXTS" | "THEME" | "PAYMENT" | "BACKUP"
   >("MAINTENANCE");
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [newImageUrl, setNewImageUrl] = useState("");
+  const [uploadingAdKey, setUploadingAdKey] = useState<string | null>(null);
+
+  const handleAdImageUpload = async (key: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setUploadingAdKey(key);
+    try {
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        throw new Error(data.message || "فشل رفع الصورة.");
+      }
+      handleChange(key, data.url);
+      toast.success("تم رفع صورة الإعلان بنجاح إلى السحابة! 📸");
+    } catch (err: any) {
+      toast.error(err.message || "فشل رفع الصورة.");
+    } finally {
+      setUploadingAdKey(null);
+      e.target.value = "";
+    }
+  };
 
   const handleChange = (key: string, value: string) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
@@ -237,7 +266,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
   return (
     <div className="space-y-6 text-right">
       {/* Navigation Tabs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 p-1.5 bg-[#12161f] border border-gray-800 rounded-2xl">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-2 p-1.5 bg-[#12161f] border border-gray-800 rounded-2xl">
         {/* Tab 1: Maintenance */}
         <button
           type="button"
@@ -295,6 +324,26 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
         >
           <ImageIcon className="w-4 h-4 text-orange-400 shrink-0" />
           <span>سلايدر الصور</span>
+        </button>
+
+        {/* Tab: Ads Management */}
+        <button
+          type="button"
+          onClick={() => setActiveTab("ADS")}
+          className={`py-3 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 relative ${
+            activeTab === "ADS"
+              ? "bg-amber-600 text-white shadow-sm ring-1 ring-amber-400"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <Megaphone className="w-4 h-4 text-amber-400 shrink-0" />
+          <span>المساحات الإعلانية</span>
+          {(settings.ad_hero_enabled === "true" ||
+            settings.ad_top_enabled === "true" ||
+            settings.ad_mid_enabled === "true" ||
+            settings.ad_vertical_enabled === "true") && (
+            <span className="w-2 h-2 rounded-full bg-emerald-400 absolute top-2 right-2" />
+          )}
         </button>
 
         {/* Tab 5: Texts CMS */}
@@ -1241,6 +1290,586 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
                   onChange={(e) => handleChange("max_deposit", e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-red-500 text-right font-mono"
                 />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB: ADS MANAGEMENT */}
+        {activeTab === "ADS" && (
+          <div className="space-y-6">
+            {/* Intro Hub & WhatsApp Direct Booking */}
+            <div className="p-6 rounded-2xl bg-gradient-to-r from-amber-950/40 via-[#12161f] to-orange-950/30 border border-amber-500/30 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                      <Megaphone className="w-5 h-5" />
+                    </span>
+                    <h3 className="text-base font-black text-white">
+                      إدارة المساحات الإعلانية والشراكات (Storewide Ad Hub)
+                    </h3>
+                  </div>
+                  <p className="text-xs text-gray-300">
+                    تحكّم كامل في جميع المساحات الإعلانية المبتكرة بكافة صفحات وأقسام المتجر لتحقيق أقصى ربحية وجذب الرعاة والمعلنين دون التأثير على سرعة المتجر.
+                  </p>
+                </div>
+
+                <div className="w-full sm:w-72 space-y-1.5">
+                  <label className="block text-xs font-bold text-amber-300">
+                    رقم واتساب استلام طلبات الإعلانات
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="01288212101"
+                      value={settings.ad_booking_whatsapp || "01288212101"}
+                      onChange={(e) => handleChange("ad_booking_whatsapp", e.target.value)}
+                      className="w-full px-3 py-2 bg-[#0f1218] border border-amber-500/40 rounded-xl text-xs text-white text-left font-mono focus:border-amber-400"
+                    />
+                  </div>
+                  <span className="text-[10px] text-gray-400 block">
+                    يتم تحويل المعلن تلقائياً لهذا الرقم عند الضغط على زر &quot;أعلن هنا 💎&quot;
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 1. VIP HERO SLIDER AD */}
+            <div className="p-6 rounded-2xl bg-[#12161f] border border-gray-800 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-amber-400" />
+                    <h4 className="text-sm font-black text-white">
+                      1. مساحة السلايدر الرئيسي التفاعلية VIP (Hero Stage Sponsor)
+                    </h4>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    تظهر كالشريحة الأولى في واجهة المتجر مع شارة ذهبية متوهجة وتأثيرات زجاجية وزر تواصل فوري للمعلن.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-gray-300">
+                    {settings.ad_hero_enabled === "true" ? "مفعلة بالمتجر ✅" : "معطلة ❌"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleChange(
+                        "ad_hero_enabled",
+                        settings.ad_hero_enabled === "true" ? "false" : "true"
+                      )
+                    }
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      settings.ad_hero_enabled === "true" ? "bg-amber-500" : "bg-gray-700"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        settings.ad_hero_enabled === "true" ? "translate-x-1" : "translate-x-6"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    اسم الراعي / المعلن المعتمد
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: متجر فالكون الرسمي"
+                    value={settings.ad_hero_sponsor || ""}
+                    onChange={(e) => handleChange("ad_hero_sponsor", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-right"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    نص الشارة العلوية (Badge)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: ⭐ SPONSORED VIP | إعلان راعي معتمد"
+                    value={settings.ad_hero_badge || ""}
+                    onChange={(e) => handleChange("ad_hero_badge", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-right"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    عنوان الإعلان الرئيسي
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: أضخم عروض شحن وتعديل سيارات كار باركينج بخصم 40%"
+                    value={settings.ad_hero_title || ""}
+                    onChange={(e) => handleChange("ad_hero_title", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-right"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    وصف العرض / تفاصيل الإعلان
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="مثال: احصل على تسليم فوري وتطوير كامل لحسابك مع ضمان دائم وسحب جوائز أسبوعية..."
+                    value={settings.ad_hero_desc || ""}
+                    onChange={(e) => handleChange("ad_hero_desc", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-right"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    رابط التوجيه (الموقع / القناة / واتساب المعلن)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://t.me/your_channel أو https://wa.me/..."
+                    value={settings.ad_hero_link || ""}
+                    onChange={(e) => handleChange("ad_hero_link", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-left font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    نص زر الإجراء (CTA Button)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: زيارة العرض ↗"
+                    value={settings.ad_hero_cta || ""}
+                    onChange={(e) => handleChange("ad_hero_cta", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-right"
+                  />
+                </div>
+
+                <div className="md:col-span-2 space-y-2">
+                  <label className="block text-xs font-bold text-gray-300">
+                    صورة شريحة الإعلان (Hero Slide Banner Image)
+                  </label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      placeholder="رابط الصورة أو ارفع مباشرة من جهازك..."
+                      value={settings.ad_hero_image || ""}
+                      onChange={(e) => handleChange("ad_hero_image", e.target.value)}
+                      className="flex-1 px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-left font-mono"
+                    />
+                    <label className="cursor-pointer px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-black font-bold text-xs flex items-center justify-center gap-1.5 shrink-0 transition">
+                      {uploadingAdKey === "ad_hero_image" ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-black" />
+                      ) : (
+                        <Upload className="w-4 h-4 text-black" />
+                      )}
+                      <span>رفع صورة البانر</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleAdImageUpload("ad_hero_image", e)}
+                      />
+                    </label>
+                  </div>
+                  {settings.ad_hero_image && (
+                    <div className="mt-2 w-full max-w-sm h-32 rounded-xl overflow-hidden border border-gray-700 relative">
+                      <img
+                        src={settings.ad_hero_image}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 2. TOP PANORAMA ANNOUNCEMENT BAR */}
+            <div className="p-6 rounded-2xl bg-[#12161f] border border-gray-800 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Flame className="w-5 h-5 text-orange-400" />
+                    <h4 className="text-sm font-black text-white">
+                      2. شريط البانوراما العلوي (Top Panorama Announcement Bar)
+                    </h4>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    شريط بانورامي دائم يظهر أعلى الهيدر في كافة صفحات المتجر لجذب الانتباه الفوري لأي إعلان أو تنويه.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-gray-300">
+                    {settings.ad_top_enabled === "true" ? "مفعل بالمتجر ✅" : "معطل ❌"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleChange(
+                        "ad_top_enabled",
+                        settings.ad_top_enabled === "true" ? "false" : "true"
+                      )
+                    }
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      settings.ad_top_enabled === "true" ? "bg-amber-500" : "bg-gray-700"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        settings.ad_top_enabled === "true" ? "translate-x-1" : "translate-x-6"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    نص الشارة المميزة (Badge)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: إعلان مميز ⭐"
+                    value={settings.ad_top_badge || ""}
+                    onChange={(e) => handleChange("ad_top_badge", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-right"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    نص زر الإجراء (CTA)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: احجز إعلانك الآن ↗"
+                    value={settings.ad_top_cta || ""}
+                    onChange={(e) => handleChange("ad_top_cta", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-right"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    نص الإعلان أو التنويه
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مساحة إعلانية متاحة: أعلن عن خدماتك أو قناتك أمام آلاف الزوار يومياً!"
+                    value={settings.ad_top_text || ""}
+                    onChange={(e) => handleChange("ad_top_text", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-right"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    رابط التحويل
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://..."
+                    value={settings.ad_top_link || ""}
+                    onChange={(e) => handleChange("ad_top_link", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-left font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    السماح للزائر بإغلاق الشريط في جلسته؟
+                  </label>
+                  <select
+                    value={settings.ad_top_dismissible !== "false" ? "true" : "false"}
+                    onChange={(e) => handleChange("ad_top_dismissible", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-right"
+                  >
+                    <option value="true">نعم (يستطيع الزائر إغلاقه بزر X)</option>
+                    <option value="false">لا (يبقى ثابتاً دائماً)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. MID-STORE PANORAMA LEADERBOARD */}
+            <div className="p-6 rounded-2xl bg-[#12161f] border border-gray-800 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-5 h-5 text-amber-400" />
+                    <h4 className="text-sm font-black text-white">
+                      3. البانر البانورامي العريض بين الأقسام (Mid Panorama Leaderboard)
+                    </h4>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    بانر أفقي عريض مخصص للظهور في الصفحة الرئيسية وصفحة المتجر وصفحة المنتج.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-gray-300">
+                    {settings.ad_mid_enabled === "true" ? "مفعل بالمتجر ✅" : "معطل ❌"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleChange(
+                        "ad_mid_enabled",
+                        settings.ad_mid_enabled === "true" ? "false" : "true"
+                      )
+                    }
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      settings.ad_mid_enabled === "true" ? "bg-amber-500" : "bg-gray-700"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        settings.ad_mid_enabled === "true" ? "translate-x-1" : "translate-x-6"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    أماكن العرض المستهدفة (Page Targeting)
+                  </label>
+                  <select
+                    value={settings.ad_mid_show_pages || "all"}
+                    onChange={(e) => handleChange("ad_mid_show_pages", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-right"
+                  >
+                    <option value="all">كافة الصفحات (الرئيسية + المتجر + المنتجات)</option>
+                    <option value="home">الصفحة الرئيسية فقط</option>
+                    <option value="shop">صفحة المتجر والأقسام فقط</option>
+                    <option value="product">صفحات تفاصيل المنتجات فقط</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    نص زر الإجراء (CTA)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: زيارة المعلن ↗ أو احجز هذه المساحة"
+                    value={settings.ad_mid_cta || ""}
+                    onChange={(e) => handleChange("ad_mid_cta", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-right"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    عنوان البانر (يظهر كنص أو فوق الصورة)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: مساحة إعلانية بانورامية كبرى متاحة الآن"
+                    value={settings.ad_mid_title || ""}
+                    onChange={(e) => handleChange("ad_mid_title", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-right"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    رابط التوجيه عند النقر
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://..."
+                    value={settings.ad_mid_link || ""}
+                    onChange={(e) => handleChange("ad_mid_link", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-left font-mono"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    الوصف المختصر
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: احصل على وصول فوري لأكثر من 50,000 مهتم بألعاب السيارات..."
+                    value={settings.ad_mid_desc || ""}
+                    onChange={(e) => handleChange("ad_mid_desc", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-right"
+                  />
+                </div>
+
+                <div className="md:col-span-2 space-y-2">
+                  <label className="block text-xs font-bold text-gray-300">
+                    صورة البانر الأفقي البانورامي (Leaderboard Image Banner)
+                  </label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      placeholder="رابط الصورة أو ارفع مباشرة (إذا تُركت فارغة سيظهر تصميم دعوة المعلنين التلقائي)..."
+                      value={settings.ad_mid_image || ""}
+                      onChange={(e) => handleChange("ad_mid_image", e.target.value)}
+                      className="flex-1 px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-left font-mono"
+                    />
+                    <label className="cursor-pointer px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-black font-bold text-xs flex items-center justify-center gap-1.5 shrink-0 transition">
+                      {uploadingAdKey === "ad_mid_image" ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-black" />
+                      ) : (
+                        <Upload className="w-4 h-4 text-black" />
+                      )}
+                      <span>رفع صورة البانر</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleAdImageUpload("ad_mid_image", e)}
+                      />
+                    </label>
+                  </div>
+                  {settings.ad_mid_image && (
+                    <div className="mt-2 w-full max-w-lg h-24 rounded-xl overflow-hidden border border-gray-700 relative">
+                      <img
+                        src={settings.ad_mid_image}
+                        alt="Mid Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 4. VERTICAL SKYSCRAPER AD */}
+            <div className="p-6 rounded-2xl bg-[#12161f] border border-gray-800 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-amber-400" />
+                    <h4 className="text-sm font-black text-white">
+                      4. الإعلان الرأسي الجانبي (Desktop Skyscraper Ad)
+                    </h4>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    إعلان رأسي يطفو على جانب الشاشة للأجهزة الكبيرة والكمبيوتر، مزود بزر تصغير وإغلاق لضمان عدم إزعاج الزوار.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-gray-300">
+                    {settings.ad_vertical_enabled === "true" ? "مفعل بالمتجر ✅" : "معطل ❌"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleChange(
+                        "ad_vertical_enabled",
+                        settings.ad_vertical_enabled === "true" ? "false" : "true"
+                      )
+                    }
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      settings.ad_vertical_enabled === "true" ? "bg-amber-500" : "bg-gray-700"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        settings.ad_vertical_enabled === "true" ? "translate-x-1" : "translate-x-6"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    جهة الظهور على الشاشة
+                  </label>
+                  <select
+                    value={settings.ad_vertical_side || "left"}
+                    onChange={(e) => handleChange("ad_vertical_side", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-right"
+                  >
+                    <option value="left">الجهة اليسرى (أقصى اليسار)</option>
+                    <option value="right">الجهة اليمنى (أقصى اليمين)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    عنوان الإعلان / النص التعريفي
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="مثال: مساحة إعلانية راعية مميزة"
+                    value={settings.ad_vertical_title || ""}
+                    onChange={(e) => handleChange("ad_vertical_title", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-right"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    رابط التوجيه عند النقر
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://..."
+                    value={settings.ad_vertical_link || ""}
+                    onChange={(e) => handleChange("ad_vertical_link", e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-left font-mono"
+                  />
+                </div>
+
+                <div className="md:col-span-2 space-y-2">
+                  <label className="block text-xs font-bold text-gray-300">
+                    صورة البانر الرأسي (Vertical Skyscraper Image)
+                  </label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      placeholder="رابط الصورة أو ارفع مباشرة..."
+                      value={settings.ad_vertical_image || ""}
+                      onChange={(e) => handleChange("ad_vertical_image", e.target.value)}
+                      className="flex-1 px-3.5 py-2.5 bg-[#0f1218] border border-gray-700 rounded-xl text-xs text-white focus:border-amber-500 text-left font-mono"
+                    />
+                    <label className="cursor-pointer px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-black font-bold text-xs flex items-center justify-center gap-1.5 shrink-0 transition">
+                      {uploadingAdKey === "ad_vertical_image" ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-black" />
+                      ) : (
+                        <Upload className="w-4 h-4 text-black" />
+                      )}
+                      <span>رفع صورة البانر</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleAdImageUpload("ad_vertical_image", e)}
+                      />
+                    </label>
+                  </div>
+                  {settings.ad_vertical_image && (
+                    <div className="mt-2 w-28 h-48 rounded-xl overflow-hidden border border-gray-700 relative">
+                      <img
+                        src={settings.ad_vertical_image}
+                        alt="Vertical Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

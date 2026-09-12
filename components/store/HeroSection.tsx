@@ -13,6 +13,9 @@ import {
   Wrench,
   ChevronRight,
   ChevronLeft,
+  Sparkles,
+  ExternalLink,
+  Megaphone,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useSettings } from "@/lib/context/SettingsContext";
@@ -65,25 +68,61 @@ export default function HeroSection({ user: initialUser }: HeroSectionProps) {
     };
   }, []);
 
-  // Parse hero images list
-  const getSlides = (): string[] => {
+  interface SlideData {
+  url: string;
+  isAd?: boolean;
+  title?: string;
+  desc?: string;
+  badge?: string;
+  sponsor?: string;
+  link?: string;
+  cta?: string;
+}
+
+  // Parse hero images list with VIP Advertising integration
+  const getSlides = (): SlideData[] => {
+    let baseImages: string[] = [];
     try {
       if (!settings.hero_images) {
-        return [
+        baseImages = [
           "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800",
           "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800",
           "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?w=800",
         ];
+      } else {
+        const parsed = JSON.parse(settings.hero_images);
+        baseImages = Array.isArray(parsed) && parsed.length > 0
+          ? parsed
+          : ["https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800"];
       }
-      const parsed = JSON.parse(settings.hero_images);
-      return Array.isArray(parsed) && parsed.length > 0
-        ? parsed
-        : ["https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800"];
     } catch {
-      return [
+      baseImages = [
         "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800",
       ];
     }
+
+    const result: SlideData[] = baseImages.map((url) => ({ url, isAd: false }));
+
+    // Inject VIP Sponsored Ad Slide if enabled
+    if (settings.ad_hero_enabled === "true") {
+      const bookingWhatsapp = settings.ad_booking_whatsapp || "01288212101";
+      const defaultBookingLink = `https://wa.me/20${bookingWhatsapp.replace(/\D/g, "").replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أود الاستفسار عن حجز مساحة إعلانية VIP في سلايدر واجهة متجر EGY CPM")}`;
+      
+      const adSlide: SlideData = {
+        url: settings.ad_hero_image || baseImages[0],
+        isAd: true,
+        title: settings.ad_hero_title || "مساحة إعلانية راعية مميزة (VIP Sponsor)",
+        desc: settings.ad_hero_desc || "احصل على ظهور حصري في واجهة المتجر الرئيسية أمام آلاف الزوار والعملاء يومياً.",
+        badge: settings.ad_hero_badge || "SPONSORED VIP ⭐",
+        sponsor: settings.ad_hero_sponsor || "راعي رسمي معتمد",
+        link: settings.ad_hero_link || defaultBookingLink,
+        cta: settings.ad_hero_cta || "زيارة العرض ↗",
+      };
+
+      result.unshift(adSlide);
+    }
+
+    return result;
   };
 
   const slides = getSlides();
@@ -261,7 +300,7 @@ export default function HeroSection({ user: initialUser }: HeroSectionProps) {
             >
               <div className="relative h-full min-h-[220px] sm:min-h-[280px] lg:min-h-[360px] overflow-hidden bg-[#080809] lg:rounded-l-3xl">
                 {/* Slides */}
-                {slides.map((url, idx) => (
+                {slides.map((slide, idx) => (
                   <div
                     key={idx}
                     className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
@@ -269,13 +308,70 @@ export default function HeroSection({ user: initialUser }: HeroSectionProps) {
                     }`}
                   >
                     <img
-                      src={url}
-                      alt={`Slide ${idx + 1}`}
+                      src={slide.url}
+                      alt={slide.title || `Slide ${idx + 1}`}
                       loading={idx === 0 ? "eager" : "lazy"}
                       className="w-full h-full object-cover"
                     />
+
+                    {/* Gradient Overlay for Readability */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/30 pointer-events-none" />
+
+                    {/* VIP Sponsored Interactive Card Overlay */}
+                    {slide.isAd && (
+                      <div className="absolute bottom-10 inset-x-3 sm:inset-x-5 z-20 text-right space-y-2">
+                        <div className="p-3 sm:p-4 rounded-2xl bg-black/75 border border-amber-500/40 backdrop-blur-md shadow-2xl space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] sm:text-[10px] font-black flex items-center gap-1">
+                              <Sparkles className="w-3 h-3 text-amber-400 animate-pulse" />
+                              <span>{slide.badge}</span>
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-bold">
+                              {slide.sponsor}
+                            </span>
+                          </div>
+
+                          <h3 className="text-xs sm:text-sm font-black text-white leading-tight">
+                            {slide.title}
+                          </h3>
+
+                          {slide.desc && (
+                            <p className="text-[10px] sm:text-[11px] text-gray-300 leading-snug line-clamp-2">
+                              {slide.desc}
+                            </p>
+                          )}
+
+                          {slide.link && (
+                            <div className="pt-1">
+                              <a
+                                href={slide.link}
+                                target={slide.link.startsWith("http") ? "_blank" : undefined}
+                                rel="noreferrer"
+                                className="inline-flex items-center justify-center gap-1 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-[11px] transition shadow-md active:scale-95"
+                              >
+                                <span>{slide.cta}</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
+
+                {/* Top-left: Advertise With Us Callout Trigger */}
+                <div className="absolute top-3 left-3 z-20">
+                  <a
+                    href={`https://wa.me/20${(settings.ad_booking_whatsapp || "01288212101").replace(/\D/g, "").replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أود الاستفسار عن حجز مساحة إعلانية في واجهة متجر EGY CPM")}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-2.5 py-1 rounded-lg bg-black/80 hover:bg-amber-500 hover:text-black text-amber-300 font-bold text-[10px] border border-amber-500/40 backdrop-blur-sm transition flex items-center gap-1 shadow-sm"
+                  >
+                    <Megaphone className="w-3 h-3" />
+                    <span>أعلن هنا 💎</span>
+                  </a>
+                </div>
 
                 {/* Top badge */}
                 <div className="absolute top-3 right-3 z-20 px-3 py-1 rounded-lg bg-black/75 text-[var(--red-hi)] font-black text-xs font-mono border border-[var(--red)]/40 backdrop-blur-sm">

@@ -8,6 +8,7 @@ import { getStoreSettings } from "@/lib/actions/settings";
 import { SettingsProvider } from "@/lib/context/SettingsContext";
 
 import MaintenanceOverlay from "@/components/store/MaintenanceOverlay";
+import { TopPanoramaAdBanner, VerticalSkyscraperAd } from "@/components/store/AdBanners";
 
 // Revalidate every 10 seconds so changes from admin panel appear almost instantly
 export const revalidate = 10;
@@ -30,8 +31,10 @@ export default async function StoreLayout({
       <MaintenanceOverlay />
       <div className="relative min-h-screen flex flex-col justify-between">
         <CyberBackground />
+        <TopPanoramaAdBanner />
         <Header />
         <main className="flex-1 pb-20 md:pb-0">{children}</main>
+        <VerticalSkyscraperAd />
         <CartDrawer />
         <MobileBottomNav />
         <Footer />

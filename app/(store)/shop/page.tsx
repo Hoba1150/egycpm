@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Search, Car, Zap, Key, Flame, Sparkles, Filter, RefreshCw } from "lucide-react";
 
 import ModernCategoryNav from "@/components/store/ModernCategoryNav";
+import { PanoramaAdBanner } from "@/components/store/AdBanners";
 
 export const revalidate = 30; // Fast Edge CDN Caching (Zero Latency & 98% Bandwidth Savings)
 
@@ -161,6 +162,9 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
           totalProductsCount={productsRes.totalCount}
         />
       </div>
+
+      {/* Panorama Leaderboard Ad Banner (Shop Page) */}
+      <PanoramaAdBanner slotLocation="shop" />
 
       {/* Results Count */}
       <div className="flex items-center justify-between text-xs text-gray-400 px-1">

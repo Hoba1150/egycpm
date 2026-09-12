@@ -8,6 +8,7 @@ import ProductCard from "@/components/store/ProductCard";
 import { ShieldCheck, Clock, Award, Sparkles, ChevronLeft, Home, Info, CheckCircle2 } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import Link from "next/link";
+import { PanoramaAdBanner } from "@/components/store/AdBanners";
 
 export const revalidate = 30; // Fast Edge CDN Caching (Zero Latency & 98% Bandwidth Savings)
 
@@ -132,6 +133,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
           </div>
         </div>
       </div>
+
+      {/* Panorama Leaderboard Ad Banner (Product Details Page) */}
+      <PanoramaAdBanner slotLocation="product" />
 
       {/* Customer Reviews Section */}
       <ProductReviewsSection
