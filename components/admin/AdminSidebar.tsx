@@ -23,6 +23,7 @@ import {
   CheckCheck,
   Bot,
   Megaphone,
+  Activity,
 } from "lucide-react";
 import { getAdminSidebarCounts } from "@/lib/actions/settings";
 import { toast } from "sonner";
@@ -111,8 +112,8 @@ export default function AdminSidebar({ user }: { user: any }) {
 
   // Role permissions map
   const rolePermissions: Record<string, string[]> = {
-    SUPER_ADMIN: ["/admin", "/admin/deposits", "/admin/orders", "/admin/giveaways", "/admin/products", "/admin/categories", "/admin/cpm2", "/admin/customers", "/admin/coupons", "/admin/tickets", "/admin/reviews", "/admin/audit-logs", "/admin/ads", "/admin/settings"],
-    ADMIN: ["/admin", "/admin/deposits", "/admin/orders", "/admin/giveaways", "/admin/products", "/admin/categories", "/admin/cpm2", "/admin/customers", "/admin/coupons", "/admin/tickets", "/admin/reviews", "/admin/audit-logs", "/admin/ads"],
+    SUPER_ADMIN: ["/admin", "/admin/analytics", "/admin/deposits", "/admin/orders", "/admin/giveaways", "/admin/products", "/admin/categories", "/admin/cpm2", "/admin/customers", "/admin/coupons", "/admin/tickets", "/admin/reviews", "/admin/audit-logs", "/admin/ads", "/admin/settings"],
+    ADMIN: ["/admin", "/admin/analytics", "/admin/deposits", "/admin/orders", "/admin/giveaways", "/admin/products", "/admin/categories", "/admin/cpm2", "/admin/customers", "/admin/coupons", "/admin/tickets", "/admin/reviews", "/admin/audit-logs", "/admin/ads"],
     ORDER_MANAGER: ["/admin", "/admin/orders", "/admin/giveaways", "/admin/products", "/admin/cpm2", "/admin/tickets"],
     SUPPORT: ["/admin", "/admin/tickets", "/admin/orders"],
   };
@@ -121,6 +122,7 @@ export default function AdminSidebar({ user }: { user: any }) {
 
   const mainLinks = [
     { name: "مركز القيادة والإحصائيات", href: "/admin", icon: LayoutDashboard },
+    { name: "تحليلات وزوار المتجر (Live)", href: "/admin/analytics", icon: Activity },
     { name: "إدارة السحوبات والجوائز", href: "/admin/giveaways", icon: Gift },
     { name: "مراجعة طلبات الإيداع", href: "/admin/deposits", icon: Wallet },
     { name: "إدارة وتنفيذ الطلبات", href: "/admin/orders", icon: ShoppingBag },

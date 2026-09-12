@@ -315,3 +315,24 @@ model GiveawayEntry {
 
   @@unique([giveawayId, phone])
 }
+
+model PageView {
+  id          String   @id @default(cuid())
+  path        String
+  ip          String?
+  country     String?
+  countryCode String?
+  city        String?
+  region      String?
+  device      String?
+  browser     String?
+  os          String?
+  referrer    String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([country])
+  @@index([path])
+}
+

@@ -14,6 +14,7 @@ import {
   TrendingUp,
   ShieldCheck,
   CheckCircle2,
+  Activity,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -169,15 +170,25 @@ export default async function AdminDashboardPage() {
           </h1>
         </div>
 
-        {analytics.pendingDepositsCount > 0 && (
+        <div className="flex flex-wrap items-center gap-3">
           <Link
-            href="/admin/deposits"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-amber-400 border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 transition"
+            href="/admin/analytics"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-cyan-400 border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 transition"
           >
-            <Clock className="w-4 h-4 animate-pulse" />
-            <span>مراجعة الإيداعات ({analytics.pendingDepositsCount})</span>
+            <Activity className="w-4 h-4 animate-pulse text-cyan-400" />
+            <span>تحليلات وزوار المتجر (Live) ⚡</span>
           </Link>
-        )}
+
+          {analytics.pendingDepositsCount > 0 && (
+            <Link
+              href="/admin/deposits"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-amber-400 border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 transition"
+            >
+              <Clock className="w-4 h-4 animate-pulse" />
+              <span>مراجعة الإيداعات ({analytics.pendingDepositsCount})</span>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Stats Cards */}
