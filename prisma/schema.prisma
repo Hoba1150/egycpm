@@ -31,6 +31,7 @@ model User {
   notifications          Notification[]
   depositRequests        DepositRequest[]
   giveawayEntries        GiveawayEntry[]
+  pushSubscriptions      PushSubscription[]
 }
 
 model Wallet {
@@ -334,5 +335,19 @@ model PageView {
   @@index([createdAt])
   @@index([country])
   @@index([path])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
