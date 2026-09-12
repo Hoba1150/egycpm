@@ -26,6 +26,9 @@ import {
   Eye,
   Sliders,
   Save,
+  Info,
+  Ratio,
+  Maximize2,
 } from "lucide-react";
 
 interface AdsManagerClientProps {
@@ -43,7 +46,7 @@ export default function AdsManagerClient({
   const [internalSettings, setInternalSettings] = useState<Record<string, string>>(
     externalSettings || initialSettings || {}
   );
-  const [isSaving, setIsSaving] = useState(false);
+  const [savingSection, setSavingSection] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
 
   const settings = externalSettings || internalSettings;
@@ -56,27 +59,89 @@ export default function AdsManagerClient({
     setHasChanges(true);
   };
 
-  const handleSave = async () => {
-    setIsSaving(true);
+  // Section-specific independent saving handler
+  const handleSaveSection = async (
+    section: "hero" | "stories" | "top" | "mid" | "feed" | "mobile" | "whatsapp" | "all"
+  ) => {
+    setSavingSection(section);
     try {
-      const adKeys = Object.keys(settings).filter(
-        (k) => k.startsWith("ad_") || k.startsWith("hero_")
-      );
-      const payload: Record<string, string> = {};
-      adKeys.forEach((k) => {
-        payload[k] = settings[k];
-      });
-      if (settings.ad_booking_whatsapp) {
-        payload.ad_booking_whatsapp = settings.ad_booking_whatsapp;
+      const keysMap: Record<string, string[]> = {
+        hero: ["ad_hero_enabled", "hero_billboard_ads", "hero_slider_autoplay", "hero_slider_interval"],
+        stories: ["ad_stories_enabled", "ad_stories_items"],
+        top: [
+          "ad_top_enabled",
+          "ad_top_items",
+          "ad_top_badge",
+          "ad_top_text",
+          "ad_top_link",
+          "ad_top_cta",
+          "ad_top_dismissible",
+        ],
+        mid: [
+          "ad_mid_enabled",
+          "ad_mid_items",
+          "ad_mid_title",
+          "ad_mid_desc",
+          "ad_mid_link",
+          "ad_mid_image",
+          "ad_mid_cta",
+          "ad_mid_show_pages",
+        ],
+        feed: [
+          "ad_feed_enabled",
+          "ad_feed_items",
+          "ad_feed_badge",
+          "ad_feed_title",
+          "ad_feed_desc",
+          "ad_feed_link",
+          "ad_feed_image",
+          "ad_feed_cta",
+        ],
+        mobile: [
+          "ad_mobile_bar_enabled",
+          "ad_mobile_items",
+          "ad_mobile_bar_badge",
+          "ad_mobile_bar_text",
+          "ad_mobile_bar_link",
+        ],
+        whatsapp: ["ad_booking_whatsapp"],
+      };
+
+      let targetKeys: string[] = [];
+      if (section === "all") {
+        targetKeys = Object.keys(settings).filter((k) => k.startsWith("ad_") || k.startsWith("hero_"));
+        if (settings.ad_booking_whatsapp) targetKeys.push("ad_booking_whatsapp");
+      } else {
+        targetKeys = keysMap[section] || [];
       }
+
+      const payload: Record<string, string> = {};
+      targetKeys.forEach((k) => {
+        if (settings[k] !== undefined) {
+          payload[k] = settings[k];
+        }
+      });
+
       await updateAdSettings(payload);
-      toast.success("تم حفظ وتطبيق كافة المساحات الإعلانية فوراً على المتجر! 🚀");
+
+      const sectionNames: Record<string, string> = {
+        hero: "👑 المساحة الرئيسية (Billboard)",
+        stories: "🟣 قصص الرعاة (Stories 12h)",
+        top: "🔵 شريط البانوراما العلوي",
+        mid: "🟢 البانر الأوسط الترويجي",
+        feed: "🔴 بطاقة المنتجات المدمجة",
+        mobile: "🟠 شريط الموبايل العائم",
+        whatsapp: "💬 واتساب حجز الإعلانات",
+        all: "كافة المساحات الإعلانية",
+      };
+
+      toast.success(`تم حفظ ونشر ${sectionNames[section]} بنجاح فائق! 🚀`);
       setHasChanges(false);
       router.refresh();
     } catch (err: any) {
-      toast.error(err.message || "حدث خطأ أثناء حفظ الإعلانات.");
+      toast.error(err.message || "حدث خطأ أثناء حفظ الإعدادات.");
     } finally {
-      setIsSaving(false);
+      setSavingSection(null);
     }
   };
 
@@ -87,7 +152,11 @@ export default function AdsManagerClient({
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
 
   // Generic direct Cloudinary upload helper
-  const handleFileUpload = async (onSuccess: (url: string) => void, e: React.ChangeEvent<HTMLInputElement>, keyId: string) => {
+  const handleFileUpload = async (
+    onSuccess: (url: string) => void,
+    e: React.ChangeEvent<HTMLInputElement>,
+    keyId: string
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -154,33 +223,44 @@ export default function AdsManagerClient({
     toast.success("تمت إضافة إعلان جديد للمساحة الرئيسية!");
   };
 
+  const moveHeroAd = (index: number, dir: "up" | "down") => {
+    const target = dir === "up" ? index - 1 : index + 1;
+    if (target < 0 || target >= heroAds.length) return;
+    const copy = [...heroAds];
+    const temp = copy[index];
+    copy[index] = copy[target];
+    copy[target] = temp;
+    setHeroAds(copy);
+  };
+
   /* -------------------------------------------------------------
-   * 2. STORIES ADS (12-Hour Expiry & Multi-Story)
+   * 2. STORIES (Multi-Story, 12H Auto-Expiry)
    * ----------------------------------------------------------- */
   const getStories = () => {
     try {
       if (settings.ad_stories_items) {
         const p = JSON.parse(settings.ad_stories_items);
-        if (Array.isArray(p)) return p;
+        if (Array.isArray(p) && p.length > 0) return p;
       }
     } catch {}
-    const now = Date.now();
     return [
       {
         id: "story_1",
-        name: settings.ad_story1_name || "فالكون جيمينج",
-        image: settings.ad_story1_image || "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?w=200",
+        name: settings.ad_story1_name || "راعي VIP",
+        image:
+          settings.ad_story1_image || "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=500",
         link: settings.ad_story1_link || "",
-        createdAt: now,
+        createdAt: Date.now(),
         durationHours: 12,
         enabled: true,
       },
       {
         id: "story_2",
-        name: settings.ad_story2_name || "تيربو كارز",
-        image: settings.ad_story2_image || "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=200",
+        name: settings.ad_story2_name || "عروض كوينز",
+        image:
+          settings.ad_story2_image || "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=500",
         link: settings.ad_story2_link || "",
-        createdAt: now,
+        createdAt: Date.now(),
         durationHours: 12,
         enabled: true,
       },
@@ -193,26 +273,27 @@ export default function AdsManagerClient({
   const addStory = () => {
     const item = {
       id: "story_" + Date.now(),
-      name: "راعي جديد",
-      image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=200",
+      name: "قصة راعي جديدة",
+      image: "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?w=500",
       link: "",
       createdAt: Date.now(),
       durationHours: 12,
       enabled: true,
     };
     setStories([...stories, item]);
-    toast.success("تمت إضافة قصة راعي جديدة بمدة 12 ساعة!");
+    toast.success("تمت إضافة قصة جديدة مؤقتة لـ 12 ساعة!");
   };
 
   const renewStory = (index: number) => {
     const updated = [...stories];
     updated[index].createdAt = Date.now();
+    updated[index].durationHours = 12;
     setStories(updated);
-    toast.success("تم تجديد صلاحية القصة لـ 12 ساعة إضافية من الآن! 🔄");
+    toast.success("تم تجديد صلاحية القصة لمدة 12 ساعة إضافية من الآن! ⏱️");
   };
 
   /* -------------------------------------------------------------
-   * 3. TOP PANORAMA ADS (Multi-Item Rotation)
+   * 3. TOP PANORAMA ADS (Multi-Ad Carousel)
    * ----------------------------------------------------------- */
   const getTopAds = () => {
     try {
@@ -224,10 +305,10 @@ export default function AdsManagerClient({
     return [
       {
         id: "top_1",
-        badge: settings.ad_top_badge || "إعلان مميز ⭐",
-        text: settings.ad_top_text || "مساحة إعلانية متاحة: أعلن عن خدماتك أو قناتك أمام آلاف الزوار يومياً!",
+        badge: settings.ad_top_badge || "عرض اليوم ⚡",
+        text: settings.ad_top_text || "انضم لسيرفر الديسكورد الرسمي واحصل على سيارات حصرية يومياً مجاناً!",
         link: settings.ad_top_link || "",
-        cta: settings.ad_top_cta || "احجز إعلانك ↗",
+        cta: settings.ad_top_cta || "انضم للديسكورد ↗",
         enabled: true,
       },
     ];
@@ -239,10 +320,10 @@ export default function AdsManagerClient({
   const addTopAd = () => {
     const item = {
       id: "top_" + Date.now(),
-      badge: "تنويه عاجل 🔥",
-      text: "عرض جديد وحصري متاح الآن!",
+      badge: "عرض جديد 🌟",
+      text: "خصم حصري على شحن الكوينز والكاش لفترة محدودة!",
       link: "",
-      cta: "تفاصيل العرض ↗",
+      cta: "شاهد العرض ↗",
       enabled: true,
     };
     setTopAds([...topAds, item]);
@@ -250,7 +331,7 @@ export default function AdsManagerClient({
   };
 
   /* -------------------------------------------------------------
-   * 4. MID LEADERBOARD ADS (Multi-Banner Rotation)
+   * 4. MID LEADERBOARD ADS (Multi-Ad Carousel)
    * ----------------------------------------------------------- */
   const getMidBanners = () => {
     try {
@@ -262,12 +343,14 @@ export default function AdsManagerClient({
     return [
       {
         id: "mid_1",
-        image: settings.ad_mid_image || "",
+        title: settings.ad_mid_title || "مساحة إعلانية مميزة متاحة للرعاة 🌟",
+        desc:
+          settings.ad_mid_desc ||
+          "احصل على آلاف المشاهدات اليومية لمتجرك أو قناتك هنا. اضغط للتواصل المباشر عبر واتساب.",
+        image:
+          settings.ad_mid_image || "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?w=1200",
         link: settings.ad_mid_link || "",
-        title: settings.ad_mid_title || "مساحة إعلانية بانورامية كبرى متاحة الآن",
-        desc: settings.ad_mid_desc || "احصل على وصول فوري لآلاف المهتمين بألعاب السيارات وخدمات الجيمنج.",
-        cta: settings.ad_mid_cta || "احجز هذه المساحة 💬",
-        targetPages: settings.ad_mid_show_pages || "all",
+        cta: settings.ad_mid_cta || "حجز مساحة إعلانية 💬",
         enabled: true,
       },
     ];
@@ -279,20 +362,19 @@ export default function AdsManagerClient({
   const addMidBanner = () => {
     const item = {
       id: "mid_" + Date.now(),
-      image: "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800",
-      link: "",
       title: "بانر إعلاني جديد",
-      desc: "خصومات حصرية لفترة محدودة",
-      cta: "زيارة العرض ↗",
-      targetPages: "all",
+      desc: "وصف الإعلان الترويجي يظهر هنا بشكل واضح وجذاب للمتصفحين.",
+      image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1200",
+      link: "",
+      cta: "زيارة الراعي ↗",
       enabled: true,
     };
     setMidBanners([...midBanners, item]);
-    toast.success("تمت إضافة بانر جديد للمساحة الأفقية!");
+    toast.success("تمت إضافة بانر جديد للمساحة الوسطى!");
   };
 
   /* -------------------------------------------------------------
-   * 5. IN-FEED PRODUCT GRID ADS (Multi-Card Rotation)
+   * 5. IN-FEED PRODUCT CARD ADS (Multi-Ad Carousel)
    * ----------------------------------------------------------- */
   const getFeedCards = () => {
     try {
@@ -304,12 +386,13 @@ export default function AdsManagerClient({
     return [
       {
         id: "feed_1",
-        image: settings.ad_feed_image || "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=600",
-        badge: settings.ad_feed_badge || "راعي معتمد ⭐",
-        title: settings.ad_feed_title || "مساحة إعلانية مدمجة VIP",
-        desc: settings.ad_feed_desc || "أعلن عن منتجاتك أو خدماتك مباشرة أمام المتسوقين.",
+        badge: settings.ad_feed_badge || "SPONSORED STORE 💎",
+        title: settings.ad_feed_title || "سيرفر ترويجي معتمد",
+        desc: settings.ad_feed_desc || "أقوى مجتمع عربي لسيارات CPM 2، سحوبات أسبوعية، ومسابقات حصرية!",
+        image:
+          settings.ad_feed_image || "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800",
         link: settings.ad_feed_link || "",
-        cta: settings.ad_feed_cta || "مشاهدة العرض ↗",
+        cta: settings.ad_feed_cta || "انضم الآن 🚀",
         enabled: true,
       },
     ];
@@ -321,20 +404,20 @@ export default function AdsManagerClient({
   const addFeedCard = () => {
     const item = {
       id: "feed_" + Date.now(),
-      image: "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?w=600",
-      badge: "عرض خاص 🔥",
-      title: "بطاقة راعي حصرية",
-      desc: "تواصل مباشر مع المعلن للاستفادة من الخصم",
+      badge: "شريك مميز ⭐",
+      title: "اسم الراعي / المتجر",
+      desc: "نبذة عن منتجات وخدمات الشريك تظهر وسط شبكة السيارات.",
+      image: "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?w=800",
       link: "",
-      cta: "مشاهدة العرض ↗",
+      cta: "زيارة العرض ↗",
       enabled: true,
     };
     setFeedCards([...feedCards, item]);
-    toast.success("تمت إضافة بطاقة إعلانية جديدة لشبكة المنتجات!");
+    toast.success("تمت إضافة بطاقة منتجات ترويجية جديدة!");
   };
 
   /* -------------------------------------------------------------
-   * 6. STICKY MOBILE BOTTOM ADS (Multi-Item Rotation)
+   * 6. STICKY MOBILE BAR (Multi-Ad Carousel)
    * ----------------------------------------------------------- */
   const getMobileAds = () => {
     try {
@@ -346,8 +429,8 @@ export default function AdsManagerClient({
     return [
       {
         id: "mobile_1",
-        badge: settings.ad_mobile_bar_badge || "عرض خاص 🔥",
-        text: settings.ad_mobile_bar_text || "إعلان مميز: انضم لأقوى عروض السيرفرات والسيارات الآن!",
+        badge: settings.ad_mobile_bar_badge || "إعلان مميز 🔥",
+        text: settings.ad_mobile_bar_text || "انضم لأكبر قناة تليجرام لسيارات وسيرفرات اللعبة مجاناً!",
         link: settings.ad_mobile_bar_link || "",
         enabled: true,
       },
@@ -376,20 +459,20 @@ export default function AdsManagerClient({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
           <span className="text-xs font-black text-white flex items-center gap-1.5">
             <Megaphone className="w-4 h-4 text-amber-400" />
-            <span>اختر المساحة الإعلانية لضبطها بسرعة وسهولة:</span>
+            <span>اختر المساحة الإعلانية لضبطها وحفظها بشكل مستقل:</span>
           </span>
           <button
             type="button"
-            onClick={handleSave}
-            disabled={isSaving}
+            onClick={() => handleSaveSection("all")}
+            disabled={savingSection !== null}
             className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs shadow-md shadow-amber-500/20 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition disabled:opacity-50"
           >
-            {isSaving ? (
+            {savingSection === "all" ? (
               <Loader2 className="w-4 h-4 animate-spin text-black" />
             ) : (
               <Save className="w-4 h-4 text-black" />
             )}
-            <span>{isSaving ? "جاري الحفظ والتطبيق..." : "حفظ التعديلات فوراً ⚡"}</span>
+            <span>{savingSection === "all" ? "جاري الحفظ الشامل..." : "حفظ جميع المساحات دفعة واحدة 🚀"}</span>
           </button>
         </div>
 
@@ -539,34 +622,71 @@ export default function AdsManagerClient({
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-xs font-bold text-gray-300">
-                {settings.ad_hero_enabled !== "false" ? "مفعلة بالمتجر ✅" : "معطلة ❌"}
-              </span>
               <button
                 type="button"
-                onClick={() =>
-                  handleChange(
-                    "ad_hero_enabled",
-                    settings.ad_hero_enabled === "false" ? "true" : "false"
-                  )
-                }
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  settings.ad_hero_enabled !== "false" ? "bg-amber-500" : "bg-gray-700"
-                }`}
+                onClick={() => handleSaveSection("hero")}
+                disabled={savingSection !== null}
+                className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 transition disabled:opacity-50"
               >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.ad_hero_enabled !== "false" ? "translate-x-1" : "translate-x-6"
-                  }`}
-                />
+                {savingSection === "hero" ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-black" />
+                ) : (
+                  <Save className="w-3.5 h-3.5 text-black" />
+                )}
+                <span>حفظ المساحة الرئيسية 💾</span>
               </button>
+
+              <div className="flex items-center gap-2 pr-2 border-r border-amber-500/30">
+                <span className="text-xs font-bold text-gray-300">
+                  {settings.ad_hero_enabled !== "false" ? "مفعلة ✅" : "معطلة ❌"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleChange(
+                      "ad_hero_enabled",
+                      settings.ad_hero_enabled === "false" ? "true" : "false"
+                    )
+                  }
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    settings.ad_hero_enabled !== "false" ? "bg-amber-500" : "bg-gray-700"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      settings.ad_hero_enabled !== "false" ? "translate-x-1" : "translate-x-6"
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
+          </div>
+
+          {/* DIMENSION & DESIGN GUIDE BADGE */}
+          <div className="p-3.5 rounded-xl bg-amber-950/30 border border-amber-500/40 text-xs space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="p-1 rounded bg-amber-500/20 text-amber-300 font-black flex items-center gap-1">
+                <Ratio className="w-3.5 h-3.5" />
+                <span>المقاس الموصى به:</span>
+              </span>
+              <span className="font-mono font-black text-white bg-black/60 px-2 py-0.5 rounded border border-amber-500/40">
+                1200 × 450 بكسل
+              </span>
+              <span className="text-gray-300 text-[11px]">
+                (أو 1920 × 600 بكسل لشاشات FHD - نسبة عرض سينمائية 2.6:1 أو 16:9)
+              </span>
+            </div>
+            <p className="text-[11px] text-amber-200/80 leading-relaxed">
+              💡 <strong>نصيحة التصميم:</strong> اجعل العناصر الهامة والنصوص في منتصف التصميم حتى تظهر واضحة بدون اقتصاص على شاشات الجوال وأجهزة الكمبيوتر معاً.
+            </p>
           </div>
 
           {/* Autoplay Controls */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-[#0d1017] border border-amber-500/20">
             <div>
-              <label className="block text-xs font-bold text-amber-200 mb-1">التنقل التلقائي بين الإعلانات (Autoplay)</label>
+              <label className="block text-xs font-bold text-amber-200 mb-1">
+                التنقل التلقائي بين الإعلانات (Autoplay)
+              </label>
               <select
                 value={settings.hero_slider_autoplay || "true"}
                 onChange={(e) => handleChange("hero_slider_autoplay", e.target.value)}
@@ -578,7 +698,9 @@ export default function AdsManagerClient({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-amber-200 mb-1">سرعة تبديل الإعلان (بالثواني)</label>
+              <label className="block text-xs font-bold text-amber-200 mb-1">
+                سرعة تبديل الإعلان (بالثواني)
+              </label>
               <select
                 value={settings.hero_slider_interval || "4"}
                 onChange={(e) => handleChange("hero_slider_interval", e.target.value)}
@@ -612,61 +734,58 @@ export default function AdsManagerClient({
               {heroAds.map((ad: any, idx: number) => (
                 <div
                   key={ad.id || idx}
-                  className="p-4 sm:p-5 rounded-2xl bg-[#0f1218] border border-amber-500/30 space-y-4 relative"
+                  className="p-5 rounded-2xl bg-[#0f1218] border border-amber-500/30 space-y-4 relative"
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-800 pb-3">
+                  {/* Card Header & Controls */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-800 pb-3">
                     <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-full bg-amber-500 text-black text-xs font-black flex items-center justify-center">
-                        {idx + 1}
+                      <span className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-400 text-xs font-mono font-bold">
+                        #{idx + 1}
                       </span>
                       <span className="text-xs font-bold text-white">
-                        {ad.title || ad.sponsor || `إعلان رئيسي رقم #${idx + 1}`}
+                        {ad.title || ad.sponsor || `إعلان رئيسي #${idx + 1}`}
                       </span>
+                      {ad.badge && (
+                        <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 text-[10px] font-bold border border-amber-500/20">
+                          {ad.badge}
+                        </span>
+                      )}
                     </div>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1 self-end sm:self-auto">
                       <button
                         type="button"
                         onClick={() => {
                           const updated = [...heroAds];
-                          const temp = updated[idx];
-                          updated[idx] = updated[idx - 1];
-                          updated[idx - 1] = temp;
+                          updated[idx].enabled = !updated[idx].enabled;
                           setHeroAds(updated);
                         }}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition border ${
+                          ad.enabled !== false
+                            ? "bg-emerald-950/40 text-emerald-400 border-emerald-500/40"
+                            : "bg-red-950/40 text-red-400 border-red-500/40"
+                        }`}
+                      >
+                        {ad.enabled !== false ? "نشط ✅" : "معطل ⏸️"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => moveHeroAd(idx, "up")}
                         disabled={idx === 0}
-                        className="p-1.5 rounded-lg bg-[#161b24] text-gray-300 hover:text-white disabled:opacity-30 border border-gray-700 text-xs"
+                        title="تحريك لأعلى"
+                        className="p-1.5 rounded-lg bg-gray-800 text-gray-300 hover:text-white disabled:opacity-30"
                       >
                         <ArrowUp className="w-3.5 h-3.5" />
                       </button>
                       <button
                         type="button"
-                        onClick={() => {
-                          const updated = [...heroAds];
-                          const temp = updated[idx];
-                          updated[idx] = updated[idx + 1];
-                          updated[idx + 1] = temp;
-                          setHeroAds(updated);
-                        }}
+                        onClick={() => moveHeroAd(idx, "down")}
                         disabled={idx === heroAds.length - 1}
-                        className="p-1.5 rounded-lg bg-[#161b24] text-gray-300 hover:text-white disabled:opacity-30 border border-gray-700 text-xs"
+                        title="تحريك لأسفل"
+                        className="p-1.5 rounded-lg bg-gray-800 text-gray-300 hover:text-white disabled:opacity-30"
                       >
                         <ArrowDown className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const updated = [...heroAds];
-                          updated[idx].enabled = updated[idx].enabled === false ? true : false;
-                          setHeroAds(updated);
-                        }}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition border ${
-                          ad.enabled !== false
-                            ? "bg-emerald-600/20 text-emerald-400 border-emerald-500/30"
-                            : "bg-gray-800 text-gray-400 border-gray-700"
-                        }`}
-                      >
-                        {ad.enabled !== false ? "مفعل ✅" : "معطل ❌"}
                       </button>
                       <button
                         type="button"
@@ -678,23 +797,24 @@ export default function AdsManagerClient({
                           setHeroAds(heroAds.filter((_: any, i: number) => i !== idx));
                           toast.info("تم حذف الإعلان.");
                         }}
-                        className="p-1.5 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white border border-red-500/30 transition text-xs"
+                        title="حذف الإعلان"
+                        className="p-1.5 rounded-lg bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white border border-red-500/30"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                    {/* Banner Image */}
-                    <div className="md:col-span-2 space-y-1.5">
-                      <label className="block text-xs font-bold text-amber-300">
-                        صورة البانر الإعلاني (مع إمكانية الرفع المباشر) *
+                  {/* Image and Upload */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="block text-xs font-bold text-gray-300">
+                        رابط صورة الإعلان (Banner Image URL)
                       </label>
-                      <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="flex gap-2">
                         <input
                           type="text"
-                          placeholder="رابط الصورة أو ارفع مباشرة..."
+                          placeholder="https://..."
                           value={ad.image || ""}
                           onChange={(e) => {
                             const updated = [...heroAds];
@@ -703,17 +823,18 @@ export default function AdsManagerClient({
                           }}
                           className="flex-1 px-3 py-2 bg-[#161b24] border border-gray-700 rounded-xl text-xs text-white text-left font-mono"
                         />
-                        <label className="cursor-pointer px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs flex items-center justify-center gap-1.5 shrink-0 transition">
+                        <label className="px-3 py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500 hover:text-black font-bold text-xs cursor-pointer flex items-center gap-1 shrink-0 transition">
                           {uploadingKey === `hero_img_${idx}` ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
                             <Upload className="w-4 h-4" />
                           )}
-                          <span>رفع صورة البانر</span>
+                          <span>رفع 📸</span>
                           <input
                             type="file"
                             accept="image/*"
                             className="hidden"
+                            disabled={uploadingKey !== null}
                             onChange={(e) =>
                               handleFileUpload(
                                 (url) => {
@@ -728,57 +849,56 @@ export default function AdsManagerClient({
                           />
                         </label>
                       </div>
-                      {ad.image && (
-                        <div className="mt-2 w-full max-w-sm h-24 rounded-xl overflow-hidden border border-gray-700 relative">
-                          <img src={ad.image} alt="Preview" className="w-full h-full object-cover" />
-                        </div>
-                      )}
+                      <span className="text-[10px] text-gray-400 block">
+                        المقاس المثالي: 1200×450 بكسل (PNG, JPG, WebP أو GIF متحرك).
+                      </span>
                     </div>
 
-                    {/* Click link */}
+                    {/* Image Preview */}
+                    <div className="h-24 rounded-xl border border-gray-800 bg-black/40 overflow-hidden relative flex items-center justify-center">
+                      {ad.image ? (
+                        <img
+                          src={ad.image}
+                          alt="Hero Preview"
+                          className="w-full h-full object-cover rounded-xl"
+                        />
+                      ) : (
+                        <span className="text-[10px] text-gray-500">لا توجد صورة</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Settings Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {/* Link */}
                     <div className="md:col-span-2">
                       <label className="block text-xs font-bold text-gray-300 mb-1">
-                        رابط التوجيه (عند الضغط على الإعلان كاملاً أو الزر)
+                        رابط التحويل عند الضغط (Destination URL)
                       </label>
                       <input
                         type="text"
-                        placeholder="https://t.me/... أو https://wa.me/... أو رابط خارجي"
+                        placeholder="https://t.me/... أو https://discord.gg/..."
                         value={ad.link || ""}
                         onChange={(e) => {
                           const updated = [...heroAds];
                           updated[idx].link = e.target.value;
                           setHeroAds(updated);
                         }}
-                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-xl text-xs text-white text-left font-mono focus:border-amber-400"
+                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-xl text-xs text-white text-left font-mono"
                       />
+                      <span className="text-[10px] text-gray-400">
+                        عند وضع الرابط، يصبح كامل البانر قابلاً للضغط والانتقال مباشرة.
+                      </span>
                     </div>
 
-                    {/* Title */}
+                    {/* CTA Button Text */}
                     <div>
                       <label className="block text-xs font-bold text-gray-300 mb-1">
-                        العنوان الرئيسي (اختياري - اتركه فارغاً لإخفاء النصوص تماماً)
+                        نص زر التحويل (اختياري)
                       </label>
                       <input
                         type="text"
-                        placeholder="اتركه فارغاً لعدم تغطية تصميم البانر"
-                        value={ad.title || ""}
-                        onChange={(e) => {
-                          const updated = [...heroAds];
-                          updated[idx].title = e.target.value;
-                          setHeroAds(updated);
-                        }}
-                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-xl text-xs text-white text-right"
-                      />
-                    </div>
-
-                    {/* CTA button */}
-                    <div>
-                      <label className="block text-xs font-bold text-gray-300 mb-1">
-                        نص زر الإجراء (اختياري - يمكن وضعه بمفرده بدون نصوص)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="مثال: زيارة العرض ↗"
+                        placeholder="زيارة العرض ↗"
                         value={ad.cta || ""}
                         onChange={(e) => {
                           const updated = [...heroAds];
@@ -789,10 +909,46 @@ export default function AdsManagerClient({
                       />
                     </div>
 
+                    {/* Title */}
+                    <div>
+                      <label className="block text-xs font-bold text-gray-300 mb-1">
+                        العنوان الترويجي (اتركه فارغاً لإخفائه)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="مثال: خصم 50% على سيارات CPM 2"
+                        value={ad.title || ""}
+                        onChange={(e) => {
+                          const updated = [...heroAds];
+                          updated[idx].title = e.target.value;
+                          setHeroAds(updated);
+                        }}
+                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-xl text-xs text-white text-right"
+                      />
+                    </div>
+
+                    {/* Description */}
+                    <div>
+                      <label className="block text-xs font-bold text-gray-300 mb-1">
+                        الوصف الفرعي (اتركه فارغاً لإخفائه)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="مثال: لفترة محدودة لجميع المشتركين"
+                        value={ad.desc || ""}
+                        onChange={(e) => {
+                          const updated = [...heroAds];
+                          updated[idx].desc = e.target.value;
+                          setHeroAds(updated);
+                        }}
+                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-xl text-xs text-white text-right"
+                      />
+                    </div>
+
                     {/* Badge */}
                     <div>
                       <label className="block text-xs font-bold text-gray-300 mb-1">
-                        نص الشارة العلوية (اختياري)
+                        شارة الإعلان (Badge)
                       </label>
                       <input
                         type="text"
@@ -853,28 +1009,63 @@ export default function AdsManagerClient({
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-xs font-bold text-gray-300">
-                {settings.ad_stories_enabled === "true" ? "مفعلة بالمتجر ✅" : "معطلة ❌"}
-              </span>
               <button
                 type="button"
-                onClick={() =>
-                  handleChange(
-                    "ad_stories_enabled",
-                    settings.ad_stories_enabled === "true" ? "false" : "true"
-                  )
-                }
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  settings.ad_stories_enabled === "true" ? "bg-pink-600" : "bg-gray-700"
-                }`}
+                onClick={() => handleSaveSection("stories")}
+                disabled={savingSection !== null}
+                className="px-3.5 py-1.5 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-black text-xs shadow-md shadow-pink-600/20 flex items-center gap-1.5 transition disabled:opacity-50"
               >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.ad_stories_enabled === "true" ? "translate-x-1" : "translate-x-6"
-                  }`}
-                />
+                {savingSection === "stories" ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                ) : (
+                  <Save className="w-3.5 h-3.5 text-white" />
+                )}
+                <span>حفظ القصص 💾</span>
               </button>
+
+              <div className="flex items-center gap-2 pr-2 border-r border-pink-500/30">
+                <span className="text-xs font-bold text-gray-300">
+                  {settings.ad_stories_enabled === "true" ? "مفعلة ✅" : "معطلة ❌"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleChange(
+                      "ad_stories_enabled",
+                      settings.ad_stories_enabled === "true" ? "false" : "true"
+                    )
+                  }
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    settings.ad_stories_enabled === "true" ? "bg-pink-600" : "bg-gray-700"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      settings.ad_stories_enabled === "true" ? "translate-x-1" : "translate-x-6"
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
+          </div>
+
+          {/* DIMENSION & DESIGN GUIDE BADGE */}
+          <div className="p-3.5 rounded-xl bg-pink-950/30 border border-pink-500/40 text-xs space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="p-1 rounded bg-pink-500/20 text-pink-300 font-black flex items-center gap-1">
+                <Ratio className="w-3.5 h-3.5" />
+                <span>المقاس الموصى به:</span>
+              </span>
+              <span className="font-mono font-black text-white bg-black/60 px-2 py-0.5 rounded border border-pink-500/40">
+                صورة القصة: 1080 × 1920 بكسل (9:16)
+              </span>
+              <span className="font-mono font-black text-pink-300 bg-black/60 px-2 py-0.5 rounded border border-pink-500/40">
+                الأيقونة الدائرية: 500 × 500 بكسل (1:1)
+              </span>
+            </div>
+            <p className="text-[11px] text-pink-200/80 leading-relaxed">
+              💡 <strong>نصيحة التصميم:</strong> تُعرض الدائرة بمقاس 58 بكسل في الشريط العلوي بنمط إنستغرام وسناب شات. وعند الضغط عليها يفتح الرابط الخارجي فوراً.
+            </p>
           </div>
 
           {/* Stories List */}
@@ -1003,8 +1194,8 @@ export default function AdsManagerClient({
                         />
                       </div>
 
-                      <div className="space-y-1">
-                        <label className="block text-[11px] text-gray-400">لوجو / صورة القصة</label>
+                      <div>
+                        <label className="block text-[11px] text-gray-400 mb-0.5">صورة الراعي (Avatar)</label>
                         <div className="flex gap-1.5">
                           <input
                             type="text"
@@ -1016,7 +1207,7 @@ export default function AdsManagerClient({
                             }}
                             className="flex-1 px-2.5 py-1.5 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-left font-mono"
                           />
-                          <label className="cursor-pointer px-2.5 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-500 text-white font-bold text-xs flex items-center shrink-0">
+                          <label className="px-2.5 py-1.5 rounded-lg bg-pink-600/20 text-pink-300 hover:bg-pink-600 hover:text-white font-bold text-xs cursor-pointer flex items-center gap-1 shrink-0 border border-pink-500/40">
                             {uploadingKey === `story_img_${idx}` ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             ) : (
@@ -1026,6 +1217,7 @@ export default function AdsManagerClient({
                               type="file"
                               accept="image/*"
                               className="hidden"
+                              disabled={uploadingKey !== null}
                               onChange={(e) =>
                                 handleFileUpload(
                                   (url) => {
@@ -1051,10 +1243,10 @@ export default function AdsManagerClient({
       )}
 
       {/* =============================================================
-          SECTION 3: TOP PANORAMA BAR (CYAN THEME - MULTI-ITEM)
+          SECTION 3: TOP PANORAMA BAR (CYAN/SKY THEME)
          ============================================================= */}
       {(activeSubTab === "ALL" || activeSubTab === "TOP") && (
-        <div className="p-6 rounded-2xl bg-gradient-to-b from-[#08151c] to-[#12161f] border-2 border-cyan-500/60 shadow-xl space-y-6">
+        <div className="p-6 rounded-2xl bg-gradient-to-b from-[#08181c] to-[#12161f] border-2 border-cyan-500/60 shadow-xl space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-cyan-500/30 pb-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
@@ -1062,44 +1254,79 @@ export default function AdsManagerClient({
                   <Megaphone className="w-5 h-5" />
                 </span>
                 <h3 className="text-base font-black text-cyan-300">
-                  3. شريط البانوراما العلوي (Top Panorama Bar - تبديل تلقائي)
+                  3. شريط البانوراما الإعلاني العلوي (Top Panorama Banner)
                 </h3>
               </div>
               <p className="text-xs text-gray-300">
-                شريط بارز أعلى الهيدر. يمكنك إضافة أكثر من إعلان أو تنويه وسيقوم الشريط بالتبديل بينهم تلقائياً كل بضع ثوانٍ.
+                شريط ترويجي عريض بأعلى الموقع، يدعم عدة إعلانات تتبدل تلقائياً كل 4.5 ثوانٍ مع أزرار تحويل وخيار الإغلاق.
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-xs font-bold text-gray-300">
-                {settings.ad_top_enabled === "true" ? "مفعل بالمتجر ✅" : "معطل ❌"}
-              </span>
               <button
                 type="button"
-                onClick={() =>
-                  handleChange(
-                    "ad_top_enabled",
-                    settings.ad_top_enabled === "true" ? "false" : "true"
-                  )
-                }
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  settings.ad_top_enabled === "true" ? "bg-cyan-600" : "bg-gray-700"
-                }`}
+                onClick={() => handleSaveSection("top")}
+                disabled={savingSection !== null}
+                className="px-3.5 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs shadow-md shadow-cyan-600/20 flex items-center gap-1.5 transition disabled:opacity-50"
               >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.ad_top_enabled === "true" ? "translate-x-1" : "translate-x-6"
-                  }`}
-                />
+                {savingSection === "top" ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                ) : (
+                  <Save className="w-3.5 h-3.5 text-white" />
+                )}
+                <span>حفظ الشريط العلوي 💾</span>
               </button>
+
+              <div className="flex items-center gap-2 pr-2 border-r border-cyan-500/30">
+                <span className="text-xs font-bold text-gray-300">
+                  {settings.ad_top_enabled === "true" ? "مفعل ✅" : "معطل ❌"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleChange(
+                      "ad_top_enabled",
+                      settings.ad_top_enabled === "true" ? "false" : "true"
+                    )
+                  }
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    settings.ad_top_enabled === "true" ? "bg-cyan-600" : "bg-gray-700"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      settings.ad_top_enabled === "true" ? "translate-x-1" : "translate-x-6"
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
+          </div>
+
+          {/* DIMENSION & DESIGN GUIDE BADGE */}
+          <div className="p-3.5 rounded-xl bg-cyan-950/30 border border-cyan-500/40 text-xs space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="p-1 rounded bg-cyan-500/20 text-cyan-300 font-black flex items-center gap-1">
+                <Ratio className="w-3.5 h-3.5" />
+                <span>المقاس الموصى به:</span>
+              </span>
+              <span className="font-mono font-black text-white bg-black/60 px-2 py-0.5 rounded border border-cyan-500/40">
+                1200 × 100 بكسل
+              </span>
+              <span className="text-gray-300 text-[11px]">
+                (أو 1920 × 120 بكسل - شريط نحيف بانورامي فائق العرض 10:1 أو نصوص مع زر تحويل)
+              </span>
+            </div>
+            <p className="text-[11px] text-cyan-200/80 leading-relaxed">
+              💡 <strong>نصيحة الاستخدام:</strong> ممتاز للتنبيهات العاجلة، إعلانات السيرفرات، عروض الشحن، وقنوات التليجرام.
+            </p>
           </div>
 
           {/* Top Ads List */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-cyan-300">
-                قائمة الإعلانات والتنويهات العلوية ({topAds.length}):
+                الإعلانات المضافة للشريط العلوي ({topAds.length}):
               </span>
               <button
                 type="button"
@@ -1107,7 +1334,7 @@ export default function AdsManagerClient({
                 className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs flex items-center gap-1.5 transition shadow-lg shadow-cyan-600/20"
               >
                 <Plus className="w-4 h-4" />
-                <span>إضافة تنويه علوي جديد +</span>
+                <span>إضافة إعلان جديد للشريط العلوي +</span>
               </button>
             </div>
 
@@ -1118,34 +1345,41 @@ export default function AdsManagerClient({
                   className="p-4 rounded-xl bg-[#0f1218] border border-cyan-500/30 space-y-3"
                 >
                   <div className="flex items-center justify-between border-b border-gray-800 pb-2">
-                    <span className="text-xs font-bold text-cyan-300">
-                      تنويه علوي #{idx + 1}
-                    </span>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-xs font-mono font-bold">
+                        #{idx + 1}
+                      </span>
+                      <span className="text-xs font-bold text-white">
+                        {item.badge || item.text?.substring(0, 30) || "إعلان علوي"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={() => {
                           const updated = [...topAds];
-                          updated[idx].enabled = updated[idx].enabled === false ? true : false;
+                          updated[idx].enabled = !updated[idx].enabled;
                           setTopAds(updated);
                         }}
                         className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
                           item.enabled !== false
-                            ? "bg-emerald-600/20 text-emerald-400 border-emerald-500/30"
-                            : "bg-gray-800 text-gray-400 border-gray-700"
+                            ? "bg-emerald-950/40 text-emerald-400 border-emerald-500/40"
+                            : "bg-red-950/40 text-red-400 border-red-500/40"
                         }`}
                       >
-                        {item.enabled !== false ? "مفعل ✅" : "معطل ❌"}
+                        {item.enabled !== false ? "نشط" : "معطل"}
                       </button>
+
                       <button
                         type="button"
                         onClick={() => {
                           if (topAds.length <= 1) {
-                            toast.warning("يجب الإبقاء على إعلان واحد.");
+                            toast.warning("يجب الإبقاء على إعلان واحد على الأقل.");
                             return;
                           }
                           setTopAds(topAds.filter((_: any, i: number) => i !== idx));
-                          toast.info("تم الحذف.");
+                          toast.info("تم حذف الإعلان.");
                         }}
                         className="p-1 rounded bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white border border-red-500/30 text-xs"
                       >
@@ -1154,57 +1388,61 @@ export default function AdsManagerClient({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="md:col-span-2">
-                      <label className="block text-[11px] text-gray-400 mb-1">نص الإعلان</label>
-                      <input
-                        type="text"
-                        value={item.text || ""}
-                        onChange={(e) => {
-                          const updated = [...topAds];
-                          updated[idx].text = e.target.value;
-                          setTopAds(updated);
-                        }}
-                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-right"
-                      />
-                    </div>
-
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-right">
                     <div>
-                      <label className="block text-[11px] text-gray-400 mb-1">الشارة المميزة</label>
+                      <label className="block text-[11px] text-gray-400 mb-0.5">شارة الإعلان (Badge)</label>
                       <input
                         type="text"
+                        placeholder="عرض اليوم ⚡"
                         value={item.badge || ""}
                         onChange={(e) => {
                           const updated = [...topAds];
                           updated[idx].badge = e.target.value;
                           setTopAds(updated);
                         }}
-                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-right"
+                        className="w-full px-2.5 py-1.5 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-right"
                       />
                     </div>
 
-                    <div className="md:col-span-2">
-                      <label className="block text-[11px] text-gray-400 mb-1">رابط التحويل</label>
+                    <div>
+                      <label className="block text-[11px] text-gray-400 mb-0.5">نص زر التحويل (CTA)</label>
                       <input
                         type="text"
+                        placeholder="انضم الآن ↗"
+                        value={item.cta || ""}
+                        onChange={(e) => {
+                          const updated = [...topAds];
+                          updated[idx].cta = e.target.value;
+                          setTopAds(updated);
+                        }}
+                        className="w-full px-2.5 py-1.5 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-right"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] text-gray-400 mb-0.5">رابط التحويل</label>
+                      <input
+                        type="text"
+                        placeholder="https://..."
                         value={item.link || ""}
                         onChange={(e) => {
                           const updated = [...topAds];
                           updated[idx].link = e.target.value;
                           setTopAds(updated);
                         }}
-                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-left font-mono"
+                        className="w-full px-2.5 py-1.5 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-left font-mono"
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-[11px] text-gray-400 mb-1">نص الزر (CTA)</label>
+                    <div className="sm:col-span-3">
+                      <label className="block text-[11px] text-gray-400 mb-0.5">النص الترويجي للشريط</label>
                       <input
                         type="text"
-                        value={item.cta || ""}
+                        placeholder="انضم لأقوى عروض السيرفرات والسيارات الآن!"
+                        value={item.text || ""}
                         onChange={(e) => {
                           const updated = [...topAds];
-                          updated[idx].cta = e.target.value;
+                          updated[idx].text = e.target.value;
                           setTopAds(updated);
                         }}
                         className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-right"
@@ -1219,7 +1457,7 @@ export default function AdsManagerClient({
       )}
 
       {/* =============================================================
-          SECTION 4: MID LEADERBOARD (EMERALD THEME - MULTI-BANNER)
+          SECTION 4: MID LEADERBOARD (EMERALD THEME)
          ============================================================= */}
       {(activeSubTab === "ALL" || activeSubTab === "MID") && (
         <div className="p-6 rounded-2xl bg-gradient-to-b from-[#081c12] to-[#12161f] border-2 border-emerald-500/60 shadow-xl space-y-6">
@@ -1230,44 +1468,79 @@ export default function AdsManagerClient({
                   <Layers className="w-5 h-5" />
                 </span>
                 <h3 className="text-base font-black text-emerald-300">
-                  4. البانر البانورامي الأفقي بين الأقسام (Mid Leaderboard - تبديل تلقائي)
+                  4. البانر الإعلاني الأوسط بين الأقسام (Mid Leaderboard Banner)
                 </h3>
               </div>
               <p className="text-xs text-gray-300">
-                بانر أفقي يظهر في الصفحة الرئيسية وصفحة المتجر والمنتجات. يمكنك إضافة عدة بانرات وسيقوم بالتقليب بينهم بسلاسة.
+                بانر مستطيل عريض وجذاب يتوسط المنتجات وسلايدرات السيارات، يدعم عدة إعلانات ورعاة مع التبديل التلقائي.
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-xs font-bold text-gray-300">
-                {settings.ad_mid_enabled === "true" ? "مفعل بالمتجر ✅" : "معطل ❌"}
-              </span>
               <button
                 type="button"
-                onClick={() =>
-                  handleChange(
-                    "ad_mid_enabled",
-                    settings.ad_mid_enabled === "true" ? "false" : "true"
-                  )
-                }
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  settings.ad_mid_enabled === "true" ? "bg-emerald-600" : "bg-gray-700"
-                }`}
+                onClick={() => handleSaveSection("mid")}
+                disabled={savingSection !== null}
+                className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition disabled:opacity-50"
               >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.ad_mid_enabled === "true" ? "translate-x-1" : "translate-x-6"
-                  }`}
-                />
+                {savingSection === "mid" ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                ) : (
+                  <Save className="w-3.5 h-3.5 text-white" />
+                )}
+                <span>حفظ البانر الأوسط 💾</span>
               </button>
+
+              <div className="flex items-center gap-2 pr-2 border-r border-emerald-500/30">
+                <span className="text-xs font-bold text-gray-300">
+                  {settings.ad_mid_enabled === "true" ? "مفعل ✅" : "معطل ❌"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleChange(
+                      "ad_mid_enabled",
+                      settings.ad_mid_enabled === "true" ? "false" : "true"
+                    )
+                  }
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    settings.ad_mid_enabled === "true" ? "bg-emerald-600" : "bg-gray-700"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      settings.ad_mid_enabled === "true" ? "translate-x-1" : "translate-x-6"
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
+          </div>
+
+          {/* DIMENSION & DESIGN GUIDE BADGE */}
+          <div className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-500/40 text-xs space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="p-1 rounded bg-emerald-500/20 text-emerald-300 font-black flex items-center gap-1">
+                <Ratio className="w-3.5 h-3.5" />
+                <span>المقاس الموصى به:</span>
+              </span>
+              <span className="font-mono font-black text-white bg-black/60 px-2 py-0.5 rounded border border-emerald-500/40">
+                1200 × 300 بكسل
+              </span>
+              <span className="text-gray-300 text-[11px]">
+                (أو 900 × 250 بكسل - نسبة مستطيل عريض 4:1 يملأ العرض بانسيابية)
+              </span>
+            </div>
+            <p className="text-[11px] text-emerald-200/80 leading-relaxed">
+              💡 <strong>نصيحة التصميم:</strong> ضع محتوى الإعلان بخلفية غامقة أو صورة سيارة مشوقة لجذب الزائر أثناء تصفحه لمنتجات المتجر.
+            </p>
           </div>
 
           {/* Mid Banners List */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-emerald-300">
-                قائمة البانرات الأفقية ({midBanners.length}):
+                الإعلانات المضافة للبانر الأوسط ({midBanners.length}):
               </span>
               <button
                 type="button"
@@ -1275,45 +1548,52 @@ export default function AdsManagerClient({
                 className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 transition shadow-lg shadow-emerald-600/20"
               >
                 <Plus className="w-4 h-4" />
-                <span>إضافة بانر أفقي جديد +</span>
+                <span>إضافة بانر جديد +</span>
               </button>
             </div>
 
             <div className="space-y-4">
-              {midBanners.map((banner: any, idx: number) => (
+              {midBanners.map((item: any, idx: number) => (
                 <div
-                  key={banner.id || idx}
-                  className="p-4 rounded-xl bg-[#0f1218] border border-emerald-500/30 space-y-3"
+                  key={item.id || idx}
+                  className="p-5 rounded-2xl bg-[#0f1218] border border-emerald-500/30 space-y-4"
                 >
-                  <div className="flex items-center justify-between border-b border-gray-800 pb-2">
-                    <span className="text-xs font-bold text-emerald-300">
-                      بانر أفقي #{idx + 1}
-                    </span>
-                    <div className="flex items-center gap-1.5">
+                  <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold">
+                        #{idx + 1}
+                      </span>
+                      <span className="text-xs font-bold text-white">
+                        {item.title || "بانر أوسط"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={() => {
                           const updated = [...midBanners];
-                          updated[idx].enabled = updated[idx].enabled === false ? true : false;
+                          updated[idx].enabled = !updated[idx].enabled;
                           setMidBanners(updated);
                         }}
                         className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                          banner.enabled !== false
-                            ? "bg-emerald-600/20 text-emerald-400 border-emerald-500/30"
-                            : "bg-gray-800 text-gray-400 border-gray-700"
+                          item.enabled !== false
+                            ? "bg-emerald-950/40 text-emerald-400 border-emerald-500/40"
+                            : "bg-red-950/40 text-red-400 border-red-500/40"
                         }`}
                       >
-                        {banner.enabled !== false ? "مفعل ✅" : "معطل ❌"}
+                        {item.enabled !== false ? "نشط" : "معطل"}
                       </button>
+
                       <button
                         type="button"
                         onClick={() => {
                           if (midBanners.length <= 1) {
-                            toast.warning("يجب الإبقاء على بانر واحد.");
+                            toast.warning("يجب الإبقاء على إعلان واحد على الأقل.");
                             return;
                           }
                           setMidBanners(midBanners.filter((_: any, i: number) => i !== idx));
-                          toast.info("تم الحذف.");
+                          toast.info("تم حذف البانر.");
                         }}
                         className="p-1 rounded bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white border border-red-500/30 text-xs"
                       >
@@ -1322,31 +1602,32 @@ export default function AdsManagerClient({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="md:col-span-2 space-y-1">
-                      <label className="block text-[11px] text-gray-400">صورة البانر</label>
+                  {/* Image & URL */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+                    <div className="md:col-span-2 space-y-1.5">
+                      <label className="block text-xs font-bold text-gray-300">صورة البانر</label>
                       <div className="flex gap-2">
                         <input
                           type="text"
-                          value={banner.image || ""}
+                          value={item.image || ""}
                           onChange={(e) => {
                             const updated = [...midBanners];
                             updated[idx].image = e.target.value;
                             setMidBanners(updated);
                           }}
-                          className="flex-1 px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-left font-mono"
+                          className="flex-1 px-3 py-2 bg-[#161b24] border border-gray-700 rounded-xl text-xs text-white text-left font-mono"
                         />
-                        <label className="cursor-pointer px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 shrink-0">
+                        <label className="px-3 py-2 rounded-xl bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600 hover:text-white font-bold text-xs cursor-pointer flex items-center gap-1 shrink-0 border border-emerald-500/40">
                           {uploadingKey === `mid_img_${idx}` ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
-                            <Upload className="w-3.5 h-3.5" />
+                            <Upload className="w-4 h-4" />
                           )}
-                          <span>رفع</span>
                           <input
                             type="file"
                             accept="image/*"
                             className="hidden"
+                            disabled={uploadingKey !== null}
                             onChange={(e) =>
                               handleFileUpload(
                                 (url) => {
@@ -1363,64 +1644,70 @@ export default function AdsManagerClient({
                       </div>
                     </div>
 
+                    <div className="h-20 rounded-xl border border-gray-800 bg-black/40 overflow-hidden relative flex items-center justify-center">
+                      {item.image ? (
+                        <img src={item.image} alt="Mid Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-[10px] text-gray-500">لا توجد صورة</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-right">
                     <div>
-                      <label className="block text-[11px] text-gray-400 mb-1">العنوان</label>
+                      <label className="block text-xs font-bold text-gray-300 mb-1">عنوان البانر</label>
                       <input
                         type="text"
-                        value={banner.title || ""}
+                        value={item.title || ""}
                         onChange={(e) => {
                           const updated = [...midBanners];
                           updated[idx].title = e.target.value;
                           setMidBanners(updated);
                         }}
-                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-right"
+                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-xl text-xs text-white text-right"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[11px] text-gray-400 mb-1">رابط التحويل</label>
+                      <label className="block text-xs font-bold text-gray-300 mb-1">نص زر التحويل</label>
                       <input
                         type="text"
-                        value={banner.link || ""}
-                        onChange={(e) => {
-                          const updated = [...midBanners];
-                          updated[idx].link = e.target.value;
-                          setMidBanners(updated);
-                        }}
-                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-left font-mono"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] text-gray-400 mb-1">نص زر الإجراء</label>
-                      <input
-                        type="text"
-                        value={banner.cta || ""}
+                        value={item.cta || ""}
                         onChange={(e) => {
                           const updated = [...midBanners];
                           updated[idx].cta = e.target.value;
                           setMidBanners(updated);
                         }}
-                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-right"
+                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-xl text-xs text-white text-right"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[11px] text-gray-400 mb-1">أماكن الظهور المستهدفة</label>
-                      <select
-                        value={banner.targetPages || "all"}
+                      <label className="block text-xs font-bold text-gray-300 mb-1">رابط التحويل</label>
+                      <input
+                        type="text"
+                        value={item.link || ""}
                         onChange={(e) => {
                           const updated = [...midBanners];
-                          updated[idx].targetPages = e.target.value;
+                          updated[idx].link = e.target.value;
                           setMidBanners(updated);
                         }}
-                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-right"
-                      >
-                        <option value="all">كافة الصفحات</option>
-                        <option value="home">الرئيسية فقط</option>
-                        <option value="shop">المتجر فقط</option>
-                        <option value="product">صفحات المنتجات فقط</option>
-                      </select>
+                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-xl text-xs text-white text-left font-mono"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-3">
+                      <label className="block text-xs font-bold text-gray-300 mb-1">الوصف الفرعي للبانر</label>
+                      <input
+                        type="text"
+                        value={item.desc || ""}
+                        onChange={(e) => {
+                          const updated = [...midBanners];
+                          updated[idx].desc = e.target.value;
+                          setMidBanners(updated);
+                        }}
+                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-xl text-xs text-white text-right"
+                      />
                     </div>
                   </div>
                 </div>
@@ -1431,7 +1718,7 @@ export default function AdsManagerClient({
       )}
 
       {/* =============================================================
-          SECTION 5: IN-FEED GRID ADS (ROSE THEME - MULTI-CARD)
+          SECTION 5: IN-FEED PRODUCT CARD (ROSE/RED THEME)
          ============================================================= */}
       {(activeSubTab === "ALL" || activeSubTab === "FEED") && (
         <div className="p-6 rounded-2xl bg-gradient-to-b from-[#1c080e] to-[#12161f] border-2 border-rose-500/60 shadow-xl space-y-6">
@@ -1442,44 +1729,79 @@ export default function AdsManagerClient({
                   <Flame className="w-5 h-5" />
                 </span>
                 <h3 className="text-base font-black text-rose-300">
-                  5. البطاقة الإعلانية المدمجة بشبكة المنتجات (In-Feed Grid Card)
+                  5. بطاقة المنتجات الترويجية المدمجة (In-Feed Sponsor Card)
                 </h3>
               </div>
               <p className="text-xs text-gray-300">
-                تندمج كمنتج راعي داخل شبكة المنتجات في صفحة المتجر `/shop`. تدعم التبديل التلقائي بين عدة عروض لرعاة مختلفين.
+                تظهر كبطاقة منتج راعي VIP مدمجة بشكل احترافي وسلس داخل شبكة منتجات وسيارات المتجر لجذب أعلى نسبة نقرات.
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-xs font-bold text-gray-300">
-                {settings.ad_feed_enabled === "true" ? "مفعلة بالمتجر ✅" : "معطلة ❌"}
-              </span>
               <button
                 type="button"
-                onClick={() =>
-                  handleChange(
-                    "ad_feed_enabled",
-                    settings.ad_feed_enabled === "true" ? "false" : "true"
-                  )
-                }
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  settings.ad_feed_enabled === "true" ? "bg-rose-600" : "bg-gray-700"
-                }`}
+                onClick={() => handleSaveSection("feed")}
+                disabled={savingSection !== null}
+                className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs shadow-md shadow-rose-600/20 flex items-center gap-1.5 transition disabled:opacity-50"
               >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.ad_feed_enabled === "true" ? "translate-x-1" : "translate-x-6"
-                  }`}
-                />
+                {savingSection === "feed" ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                ) : (
+                  <Save className="w-3.5 h-3.5 text-white" />
+                )}
+                <span>حفظ بطاقة المنتجات 💾</span>
               </button>
+
+              <div className="flex items-center gap-2 pr-2 border-r border-rose-500/30">
+                <span className="text-xs font-bold text-gray-300">
+                  {settings.ad_feed_enabled === "true" ? "مفعلة ✅" : "معطلة ❌"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleChange(
+                      "ad_feed_enabled",
+                      settings.ad_feed_enabled === "true" ? "false" : "true"
+                    )
+                  }
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    settings.ad_feed_enabled === "true" ? "bg-rose-600" : "bg-gray-700"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      settings.ad_feed_enabled === "true" ? "translate-x-1" : "translate-x-6"
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
+          </div>
+
+          {/* DIMENSION & DESIGN GUIDE BADGE */}
+          <div className="p-3.5 rounded-xl bg-rose-950/30 border border-rose-500/40 text-xs space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="p-1 rounded bg-rose-500/20 text-rose-300 font-black flex items-center gap-1">
+                <Ratio className="w-3.5 h-3.5" />
+                <span>المقاس الموصى به:</span>
+              </span>
+              <span className="font-mono font-black text-white bg-black/60 px-2 py-0.5 rounded border border-rose-500/40">
+                600 × 750 بكسل
+              </span>
+              <span className="text-gray-300 text-[11px]">
+                (أو 400 × 500 بكسل - نسبة عمودية 4:5 متطابقة مع حجم بطاقات كروت السيارات في المتجر)
+              </span>
+            </div>
+            <p className="text-[11px] text-rose-200/80 leading-relaxed">
+              💡 <strong>نصيحة التصميم:</strong> صمم البطاقة لتبدو كعرض VIP حصري يحتوي على صورة سيارة أو شعار سيرفر مع نص دعائي محفز.
+            </p>
           </div>
 
           {/* Feed Cards List */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-rose-300">
-                قائمة البطاقات المدمجة ({feedCards.length}):
+                البطاقات المضافة ({feedCards.length}):
               </span>
               <button
                 type="button"
@@ -1492,40 +1814,47 @@ export default function AdsManagerClient({
             </div>
 
             <div className="space-y-4">
-              {feedCards.map((card: any, idx: number) => (
+              {feedCards.map((item: any, idx: number) => (
                 <div
-                  key={card.id || idx}
-                  className="p-4 rounded-xl bg-[#0f1218] border border-rose-500/30 space-y-3"
+                  key={item.id || idx}
+                  className="p-5 rounded-2xl bg-[#0f1218] border border-rose-500/30 space-y-4"
                 >
-                  <div className="flex items-center justify-between border-b border-gray-800 pb-2">
-                    <span className="text-xs font-bold text-rose-300">
-                      بطاقة راعي #{idx + 1}
-                    </span>
-                    <div className="flex items-center gap-1.5">
+                  <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 text-xs font-mono font-bold">
+                        #{idx + 1}
+                      </span>
+                      <span className="text-xs font-bold text-white">
+                        {item.title || "بطاقة منتجات ترويجية"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={() => {
                           const updated = [...feedCards];
-                          updated[idx].enabled = updated[idx].enabled === false ? true : false;
+                          updated[idx].enabled = !updated[idx].enabled;
                           setFeedCards(updated);
                         }}
                         className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                          card.enabled !== false
-                            ? "bg-emerald-600/20 text-emerald-400 border-emerald-500/30"
-                            : "bg-gray-800 text-gray-400 border-gray-700"
+                          item.enabled !== false
+                            ? "bg-emerald-950/40 text-emerald-400 border-emerald-500/40"
+                            : "bg-red-950/40 text-red-400 border-red-500/40"
                         }`}
                       >
-                        {card.enabled !== false ? "مفعل ✅" : "معطل ❌"}
+                        {item.enabled !== false ? "نشط" : "معطل"}
                       </button>
+
                       <button
                         type="button"
                         onClick={() => {
                           if (feedCards.length <= 1) {
-                            toast.warning("يجب الإبقاء على بطاقة واحدة.");
+                            toast.warning("يجب الإبقاء على بطاقة واحدة على الأقل.");
                             return;
                           }
                           setFeedCards(feedCards.filter((_: any, i: number) => i !== idx));
-                          toast.info("تم الحذف.");
+                          toast.info("تم حذف البطاقة.");
                         }}
                         className="p-1 rounded bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white border border-red-500/30 text-xs"
                       >
@@ -1534,31 +1863,32 @@ export default function AdsManagerClient({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="md:col-span-2 space-y-1">
-                      <label className="block text-[11px] text-gray-400">صورة البطاقة</label>
+                  {/* Image & URL */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+                    <div className="md:col-span-2 space-y-1.5">
+                      <label className="block text-xs font-bold text-gray-300">صورة البطاقة</label>
                       <div className="flex gap-2">
                         <input
                           type="text"
-                          value={card.image || ""}
+                          value={item.image || ""}
                           onChange={(e) => {
                             const updated = [...feedCards];
                             updated[idx].image = e.target.value;
                             setFeedCards(updated);
                           }}
-                          className="flex-1 px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-left font-mono"
+                          className="flex-1 px-3 py-2 bg-[#161b24] border border-gray-700 rounded-xl text-xs text-white text-left font-mono"
                         />
-                        <label className="cursor-pointer px-3 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-1 shrink-0">
+                        <label className="px-3 py-2 rounded-xl bg-rose-600/20 text-rose-300 hover:bg-rose-600 hover:text-white font-bold text-xs cursor-pointer flex items-center gap-1 shrink-0 border border-rose-500/40">
                           {uploadingKey === `feed_img_${idx}` ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
-                            <Upload className="w-3.5 h-3.5" />
+                            <Upload className="w-4 h-4" />
                           )}
-                          <span>رفع</span>
                           <input
                             type="file"
                             accept="image/*"
                             className="hidden"
+                            disabled={uploadingKey !== null}
                             onChange={(e) =>
                               handleFileUpload(
                                 (url) => {
@@ -1575,59 +1905,84 @@ export default function AdsManagerClient({
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-[11px] text-gray-400 mb-1">العنوان</label>
-                      <input
-                        type="text"
-                        value={card.title || ""}
-                        onChange={(e) => {
-                          const updated = [...feedCards];
-                          updated[idx].title = e.target.value;
-                          setFeedCards(updated);
-                        }}
-                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-right"
-                      />
+                    <div className="h-20 rounded-xl border border-gray-800 bg-black/40 overflow-hidden relative flex items-center justify-center">
+                      {item.image ? (
+                        <img src={item.image} alt="Feed Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-[10px] text-gray-500">لا توجد صورة</span>
+                      )}
                     </div>
+                  </div>
 
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-right">
                     <div>
-                      <label className="block text-[11px] text-gray-400 mb-1">الشارة</label>
+                      <label className="block text-xs font-bold text-gray-300 mb-1">شارة البطاقة (Badge)</label>
                       <input
                         type="text"
-                        value={card.badge || ""}
+                        placeholder="SPONSORED STORE 💎"
+                        value={item.badge || ""}
                         onChange={(e) => {
                           const updated = [...feedCards];
                           updated[idx].badge = e.target.value;
                           setFeedCards(updated);
                         }}
-                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-right"
+                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-xl text-xs text-white text-right"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[11px] text-gray-400 mb-1">رابط التحويل</label>
+                      <label className="block text-xs font-bold text-gray-300 mb-1">عنوان البطاقة</label>
                       <input
                         type="text"
-                        value={card.link || ""}
+                        value={item.title || ""}
                         onChange={(e) => {
                           const updated = [...feedCards];
-                          updated[idx].link = e.target.value;
+                          updated[idx].title = e.target.value;
                           setFeedCards(updated);
                         }}
-                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-left font-mono"
+                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-xl text-xs text-white text-right"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[11px] text-gray-400 mb-1">نص الزر</label>
+                      <label className="block text-xs font-bold text-gray-300 mb-1">نص زر التحويل</label>
                       <input
                         type="text"
-                        value={card.cta || ""}
+                        value={item.cta || ""}
                         onChange={(e) => {
                           const updated = [...feedCards];
                           updated[idx].cta = e.target.value;
                           setFeedCards(updated);
                         }}
-                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-right"
+                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-xl text-xs text-white text-right"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-gray-300 mb-1">الوصف الفرعي للبطاقة</label>
+                      <input
+                        type="text"
+                        value={item.desc || ""}
+                        onChange={(e) => {
+                          const updated = [...feedCards];
+                          updated[idx].desc = e.target.value;
+                          setFeedCards(updated);
+                        }}
+                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-xl text-xs text-white text-right"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-300 mb-1">رابط التحويل</label>
+                      <input
+                        type="text"
+                        value={item.link || ""}
+                        onChange={(e) => {
+                          const updated = [...feedCards];
+                          updated[idx].link = e.target.value;
+                          setFeedCards(updated);
+                        }}
+                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-xl text-xs text-white text-left font-mono"
                       />
                     </div>
                   </div>
@@ -1639,7 +1994,7 @@ export default function AdsManagerClient({
       )}
 
       {/* =============================================================
-          SECTION 6: STICKY MOBILE BOTTOM ADS (ORANGE THEME - MULTI)
+          SECTION 6: MOBILE STICKY BAR (ORANGE THEME)
          ============================================================= */}
       {(activeSubTab === "ALL" || activeSubTab === "MOBILE") && (
         <div className="p-6 rounded-2xl bg-gradient-to-b from-[#1c1208] to-[#12161f] border-2 border-orange-500/60 shadow-xl space-y-6">
@@ -1650,44 +2005,76 @@ export default function AdsManagerClient({
                   <Smartphone className="w-5 h-5" />
                 </span>
                 <h3 className="text-base font-black text-orange-300">
-                  6. الشريط الإعلاني الذكي العائم للموبايل (Sticky Mobile Bar - تبديل تلقائي)
+                  6. شريط الإعلانات العائم للهواتف الذكية (Mobile Floating Sticky Bar)
                 </h3>
               </div>
               <p className="text-xs text-gray-300">
-                شريط رفيع طافٍ فوق شريط التنقل السفلي للهاتف فقط، قابل للإغلاق بزر X بنقرة واحدة لضمان عدم إزعاج المستخدم.
+                شريط عائم يظهر في أسفل شاشات الموبايل فقط، خفيف وسريع ويدعم عدة إعلانات مع زر إغلاق لتجربة مستخدم مريحة.
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-xs font-bold text-gray-300">
-                {settings.ad_mobile_bar_enabled === "true" ? "مفعل بالمتجر ✅" : "معطل ❌"}
-              </span>
               <button
                 type="button"
-                onClick={() =>
-                  handleChange(
-                    "ad_mobile_bar_enabled",
-                    settings.ad_mobile_bar_enabled === "true" ? "false" : "true"
-                  )
-                }
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  settings.ad_mobile_bar_enabled === "true" ? "bg-orange-600" : "bg-gray-700"
-                }`}
+                onClick={() => handleSaveSection("mobile")}
+                disabled={savingSection !== null}
+                className="px-3.5 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-black text-xs shadow-md shadow-orange-600/20 flex items-center gap-1.5 transition disabled:opacity-50"
               >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.ad_mobile_bar_enabled === "true" ? "translate-x-1" : "translate-x-6"
-                  }`}
-                />
+                {savingSection === "mobile" ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                ) : (
+                  <Save className="w-3.5 h-3.5 text-white" />
+                )}
+                <span>حفظ شريط الموبايل 💾</span>
               </button>
+
+              <div className="flex items-center gap-2 pr-2 border-r border-orange-500/30">
+                <span className="text-xs font-bold text-gray-300">
+                  {settings.ad_mobile_bar_enabled === "true" ? "مفعل ✅" : "معطل ❌"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleChange(
+                      "ad_mobile_bar_enabled",
+                      settings.ad_mobile_bar_enabled === "true" ? "false" : "true"
+                    )
+                  }
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    settings.ad_mobile_bar_enabled === "true" ? "bg-orange-600" : "bg-gray-700"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      settings.ad_mobile_bar_enabled === "true" ? "translate-x-1" : "translate-x-6"
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
+          </div>
+
+          {/* DIMENSION & DESIGN GUIDE BADGE */}
+          <div className="p-3.5 rounded-xl bg-orange-950/30 border border-orange-500/40 text-xs space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="p-1 rounded bg-orange-500/20 text-orange-300 font-black flex items-center gap-1">
+                <Ratio className="w-3.5 h-3.5" />
+                <span>المقاس وطريقة العرض:</span>
+              </span>
+              <span className="font-mono font-black text-white bg-black/60 px-2 py-0.5 rounded border border-orange-500/40">
+                نصوص مختصرة ذكية + زر CTA تحويل
+              </span>
+            </div>
+            <p className="text-[11px] text-orange-200/80 leading-relaxed">
+              💡 <strong>نصيحة الاستخدام:</strong> يظهر بارتفاع 44 بكسل فقط لعدم حجب محتوى المتجر، مع تأثير وميض وزر إغلاق مرن.
+            </p>
           </div>
 
           {/* Mobile Ads List */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-orange-300">
-                قائمة إعلانات الموبايل السفلية ({mobileAds.length}):
+                الإعلانات المضافة للشريط ({mobileAds.length}):
               </span>
               <button
                 type="button"
@@ -1706,34 +2093,41 @@ export default function AdsManagerClient({
                   className="p-4 rounded-xl bg-[#0f1218] border border-orange-500/30 space-y-3"
                 >
                   <div className="flex items-center justify-between border-b border-gray-800 pb-2">
-                    <span className="text-xs font-bold text-orange-300">
-                      إعلان موبايل #{idx + 1}
-                    </span>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded bg-orange-500/20 text-orange-300 text-xs font-mono font-bold">
+                        #{idx + 1}
+                      </span>
+                      <span className="text-xs font-bold text-white">
+                        {item.badge || item.text?.substring(0, 30) || "إعلان موبايل"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={() => {
                           const updated = [...mobileAds];
-                          updated[idx].enabled = updated[idx].enabled === false ? true : false;
+                          updated[idx].enabled = !updated[idx].enabled;
                           setMobileAds(updated);
                         }}
                         className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
                           item.enabled !== false
-                            ? "bg-emerald-600/20 text-emerald-400 border-emerald-500/30"
-                            : "bg-gray-800 text-gray-400 border-gray-700"
+                            ? "bg-emerald-950/40 text-emerald-400 border-emerald-500/40"
+                            : "bg-red-950/40 text-red-400 border-red-500/40"
                         }`}
                       >
-                        {item.enabled !== false ? "مفعل ✅" : "معطل ❌"}
+                        {item.enabled !== false ? "نشط" : "معطل"}
                       </button>
+
                       <button
                         type="button"
                         onClick={() => {
                           if (mobileAds.length <= 1) {
-                            toast.warning("يجب الإبقاء على إعلان واحد.");
+                            toast.warning("يجب الإبقاء على إعلان واحد على الأقل.");
                             return;
                           }
                           setMobileAds(mobileAds.filter((_: any, i: number) => i !== idx));
-                          toast.info("تم الحذف.");
+                          toast.info("تم حذف الإعلان.");
                         }}
                         className="p-1 rounded bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white border border-red-500/30 text-xs"
                       >
@@ -1742,11 +2136,42 @@ export default function AdsManagerClient({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="md:col-span-2">
-                      <label className="block text-[11px] text-gray-400 mb-1">نص الإعلان (موجز ومختصر)</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-right">
+                    <div>
+                      <label className="block text-[11px] text-gray-400 mb-0.5">شارة الإعلان (Badge)</label>
                       <input
                         type="text"
+                        placeholder="إعلان مميز 🔥"
+                        value={item.badge || ""}
+                        onChange={(e) => {
+                          const updated = [...mobileAds];
+                          updated[idx].badge = e.target.value;
+                          setMobileAds(updated);
+                        }}
+                        className="w-full px-2.5 py-1.5 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-right"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] text-gray-400 mb-0.5">رابط التحويل</label>
+                      <input
+                        type="text"
+                        placeholder="https://..."
+                        value={item.link || ""}
+                        onChange={(e) => {
+                          const updated = [...mobileAds];
+                          updated[idx].link = e.target.value;
+                          setMobileAds(updated);
+                        }}
+                        className="w-full px-2.5 py-1.5 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-left font-mono"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] text-gray-400 mb-0.5">النص الترويجي للشريط</label>
+                      <input
+                        type="text"
+                        placeholder="انضم لأقوى عروض السيرفرات والسيارات الآن!"
                         value={item.text || ""}
                         onChange={(e) => {
                           const updated = [...mobileAds];
@@ -1754,34 +2179,6 @@ export default function AdsManagerClient({
                           setMobileAds(updated);
                         }}
                         className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-right"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] text-gray-400 mb-1">الشارة</label>
-                      <input
-                        type="text"
-                        value={item.badge || ""}
-                        onChange={(e) => {
-                          const updated = [...mobileAds];
-                          updated[idx].badge = e.target.value;
-                          setMobileAds(updated);
-                        }}
-                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-right"
-                      />
-                    </div>
-
-                    <div className="md:col-span-3">
-                      <label className="block text-[11px] text-gray-400 mb-1">رابط التحويل</label>
-                      <input
-                        type="text"
-                        value={item.link || ""}
-                        onChange={(e) => {
-                          const updated = [...mobileAds];
-                          updated[idx].link = e.target.value;
-                          setMobileAds(updated);
-                        }}
-                        className="w-full px-3 py-2 bg-[#161b24] border border-gray-700 rounded-lg text-xs text-white text-left font-mono"
                       />
                     </div>
                   </div>
@@ -1793,11 +2190,11 @@ export default function AdsManagerClient({
       )}
 
       {/* =============================================================
-          SECTION 7: WHATSAPP BOOKING HUB (GREEN THEME)
+          SECTION 7: WHATSAPP DIRECT BOOKING (GREEN THEME)
          ============================================================= */}
       {(activeSubTab === "ALL" || activeSubTab === "WHATSAPP") && (
         <div className="p-6 rounded-2xl bg-gradient-to-r from-green-950/40 via-[#12161f] to-emerald-950/30 border-2 border-green-500/60 shadow-xl space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-green-500/30 pb-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="p-1.5 rounded-lg bg-green-500/20 text-green-400 border border-green-500/40">
@@ -1812,21 +2209,35 @@ export default function AdsManagerClient({
               </p>
             </div>
 
-            <div className="w-full sm:w-72 space-y-1.5">
-              <label className="block text-xs font-bold text-green-300">
-                رقم واتساب استلام طلبات الإعلانات
-              </label>
-              <input
-                type="text"
-                placeholder="01288212101"
-                value={settings.ad_booking_whatsapp || "01288212101"}
-                onChange={(e) => handleChange("ad_booking_whatsapp", e.target.value)}
-                className="w-full px-3 py-2 bg-[#0f1218] border border-green-500/40 rounded-xl text-xs text-white text-left font-mono focus:border-green-400"
-              />
-              <span className="text-[10px] text-gray-400 block">
-                اكتب الرقم بالصيغة المحلية (01288212101) وسيتم توليد رابط الواتساب الدولي تلقائياً.
-              </span>
-            </div>
+            <button
+              type="button"
+              onClick={() => handleSaveSection("whatsapp")}
+              disabled={savingSection !== null}
+              className="px-4 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white font-black text-xs shadow-md shadow-green-600/20 flex items-center gap-1.5 transition disabled:opacity-50 shrink-0"
+            >
+              {savingSection === "whatsapp" ? (
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+              ) : (
+                <Save className="w-4 h-4 text-white" />
+              )}
+              <span>حفظ رقم الواتساب 💾</span>
+            </button>
+          </div>
+
+          <div className="w-full sm:w-80 space-y-1.5">
+            <label className="block text-xs font-bold text-green-300">
+              رقم واتساب استلام طلبات الإعلانات
+            </label>
+            <input
+              type="text"
+              placeholder="01288212101"
+              value={settings.ad_booking_whatsapp || "01288212101"}
+              onChange={(e) => handleChange("ad_booking_whatsapp", e.target.value)}
+              className="w-full px-3 py-2 bg-[#0f1218] border border-green-500/40 rounded-xl text-xs text-white text-left font-mono focus:border-green-400"
+            />
+            <span className="text-[10px] text-gray-400 block">
+              اكتب الرقم بالصيغة المحلية (01288212101) وسيتم توليد رابط الواتساب الدولي تلقائياً.
+            </span>
           </div>
         </div>
       )}
@@ -1848,19 +2259,19 @@ export default function AdsManagerClient({
 
         <button
           type="button"
-          onClick={handleSave}
-          disabled={isSaving}
+          onClick={() => handleSaveSection("all")}
+          disabled={savingSection !== null}
           className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-400 hover:to-red-400 text-black font-black text-xs shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition disabled:opacity-50"
         >
-          {isSaving ? (
+          {savingSection === "all" ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin text-black" />
-              <span>جاري الحفظ والتطبيق السريع...</span>
+              <span>جاري الحفظ والتطبيق الشامل...</span>
             </>
           ) : (
             <>
               <Save className="w-4 h-4 text-black" />
-              <span>حفظ ونشر التعديلات فوراً ⚡</span>
+              <span>حفظ جميع المساحات الإعلانية ⚡</span>
             </>
           )}
         </button>
