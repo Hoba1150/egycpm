@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 /**
- * 1. Top Panorama Bar (شريط بانوراما علوي - يظهر فقط عند التفعيل ووجود إعلانات)
+ * 1. Top Panorama Bar (شريط بانوراما علوي - يختفي بزر التعطيل فقط)
  */
 export function TopPanoramaAdBanner() {
   const settings = useSettings();
@@ -29,16 +29,20 @@ export function TopPanoramaAdBanner() {
     } catch {}
   }, []);
 
+  // يختفي فقط في حالة التعطيل من لوحة التحكم أو إغلاقه من المستخدم
   const isEnabled = settings.ad_top_enabled === "true";
   if (!isEnabled || isDismissed) return null;
 
-  // Parse multi-announcement items (NO HARDCODED DUMMIES)
+  const bookingWhatsapp = settings.ad_booking_whatsapp || "01288212101";
+  const defaultBookingLink = `https://wa.me/20${bookingWhatsapp.replace(/\D/g, "").replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أريد الاستفسار عن حجز المساحة الإعلانية العلوية في متجر EGY CPM")}`;
+
   const getItems = () => {
     try {
       if (settings.ad_top_items !== undefined) {
         const parsed = JSON.parse(settings.ad_top_items);
-        if (Array.isArray(parsed)) {
-          return parsed.filter((it: any) => it.enabled !== false && it.text);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const active = parsed.filter((it: any) => it.enabled !== false && it.text);
+          if (active.length > 0) return active;
         }
       }
     } catch {}
@@ -49,18 +53,26 @@ export function TopPanoramaAdBanner() {
           id: "top_legacy",
           badge: settings.ad_top_badge || "إعلان مميز ⭐",
           text: settings.ad_top_text,
-          link: settings.ad_top_link || "",
+          link: settings.ad_top_link || defaultBookingLink,
           cta: settings.ad_top_cta || "احجز إعلانك ↗",
         },
       ];
     }
 
-    return [];
+    // Default booking notice when enabled and no custom ads
+    return [
+      {
+        id: "top_default_booking",
+        badge: settings.ad_top_badge || "أعلن معنا 💎",
+        text: "مساحة إعلانية علوية كبرى متاحة للرعاة: أعلن عن خدماتك أو قناتك أمام آلاف الزوار يومياً!",
+        link: defaultBookingLink,
+        cta: "احجز إعلانك ↗",
+      },
+    ];
   };
 
   const items = getItems();
 
-  // Rotate top ads if more than 1
   useEffect(() => {
     if (items.length <= 1) return;
     const timer = setInterval(() => {
@@ -68,8 +80,6 @@ export function TopPanoramaAdBanner() {
     }, 4500);
     return () => clearInterval(timer);
   }, [items.length]);
-
-  if (items.length === 0) return null;
 
   const currentItem = items[currentIndex] || items[0];
   const isDismissible = settings.ad_top_dismissible !== "false";
@@ -86,7 +96,7 @@ export function TopPanoramaAdBanner() {
 
       <div className="max-w-7xl mx-auto px-2.5 sm:px-6 py-1.5 sm:py-2 flex items-center justify-between gap-2 text-xs">
         <a
-          href={currentItem.link || "#"}
+          href={currentItem.link || defaultBookingLink}
           target={currentItem.link?.startsWith("http") ? "_blank" : undefined}
           rel="noreferrer"
           className="flex-1 min-w-0 flex items-center justify-center sm:justify-start gap-1.5 sm:gap-3 group hover:opacity-95 transition"
@@ -131,7 +141,7 @@ export function TopPanoramaAdBanner() {
 }
 
 /**
- * 2. Mid-Store Panorama Banner (بانر أفقي بين الأقسام - يظهر فقط عند التفعيل ووجود محتوى)
+ * 2. Mid-Store Panorama Banner (بانر أفقي بين الأقسام - يختفي بزر التعطيل فقط)
  */
 export function PanoramaAdBanner({
   slotLocation = "home",
@@ -143,21 +153,25 @@ export function PanoramaAdBanner({
   const settings = useSettings();
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // يختفي فقط إذا تم تعطيله من لوحة التحكم
   const isEnabled = settings.ad_mid_enabled === "true";
   if (!isEnabled) return null;
 
-  // Parse multi-banners list (NO HARDCODED DUMMIES)
+  const bookingWhatsapp = settings.ad_booking_whatsapp || "01288212101";
+  const defaultBookingLink = `https://wa.me/20${bookingWhatsapp.replace(/\D/g, "").replace(/^0/, "")}?text=${encodeURIComponent(`مرحباً، أريد حجز المساحة الإعلانية البانورامية في قسم (${slotLocation}) بمتجر EGY CPM`)}`;
+
   const getBanners = () => {
     try {
       if (settings.ad_mid_items !== undefined) {
         const parsed = JSON.parse(settings.ad_mid_items);
-        if (Array.isArray(parsed)) {
-          return parsed.filter((b: any) => {
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const active = parsed.filter((b: any) => {
             if (b.enabled === false) return false;
             if (!b.image && !b.title) return false;
             if (b.targetPages && b.targetPages !== "all" && b.targetPages !== slotLocation) return false;
             return true;
           });
+          if (active.length > 0) return active;
         }
       }
     } catch {}
@@ -170,7 +184,7 @@ export function PanoramaAdBanner({
         {
           id: "mid_legacy",
           image: settings.ad_mid_image || "",
-          link: settings.ad_mid_link || "",
+          link: settings.ad_mid_link || defaultBookingLink,
           title: settings.ad_mid_title || "",
           desc: settings.ad_mid_desc || "",
           cta: settings.ad_mid_cta || "زيارة العرض ↗",
@@ -178,7 +192,17 @@ export function PanoramaAdBanner({
       ];
     }
 
-    return [];
+    // Default booking banner when enabled
+    return [
+      {
+        id: "mid_default_booking",
+        image: "",
+        link: defaultBookingLink,
+        title: "مساحة إعلانية بانورامية كبرى متاحة للرعاة والمعلنين",
+        desc: "احصل على آلاف المشاهدات اليومية لمتجرك أو قناتك أمام لاعبي Car Parking. اضغط للتواصل المباشر.",
+        cta: "احجز مساحتك الآن 💬",
+      },
+    ];
   };
 
   const banners = getBanners();
@@ -191,8 +215,6 @@ export function PanoramaAdBanner({
     return () => clearInterval(timer);
   }, [banners.length]);
 
-  if (banners.length === 0) return null;
-
   const banner = banners[currentIndex] || banners[0];
 
   return (
@@ -203,7 +225,7 @@ export function PanoramaAdBanner({
 
         {banner.image ? (
           <a
-            href={banner.link || "#"}
+            href={banner.link || defaultBookingLink}
             target={banner.link?.startsWith("http") ? "_blank" : undefined}
             rel="noreferrer"
             className="block relative overflow-hidden rounded-xl"
@@ -251,7 +273,7 @@ export function PanoramaAdBanner({
             <div className="space-y-1 w-full sm:w-auto">
               <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[10px] font-black">
                 <Megaphone className="w-3 h-3" />
-                <span>إعلان ترويجي مميز</span>
+                <span>مساحة إعلانية بانورامية كبرى</span>
               </div>
               {banner.title && (
                 <h3 className="text-sm sm:text-lg font-black text-white truncate">
@@ -265,19 +287,17 @@ export function PanoramaAdBanner({
               )}
             </div>
 
-            {banner.link && (
-              <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
-                <a
-                  href={banner.link}
-                  target={banner.link?.startsWith("http") ? "_blank" : undefined}
-                  rel="noreferrer"
-                  className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs transition flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/20 active:scale-95"
-                >
-                  <MessageCircle className="w-3.5 h-3.5" />
-                  <span>{banner.cta || "زيارة العرض ↗"}</span>
-                </a>
-              </div>
-            )}
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
+              <a
+                href={banner.link || defaultBookingLink}
+                target={banner.link?.startsWith("http") ? "_blank" : undefined}
+                rel="noreferrer"
+                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs transition flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/20 active:scale-95"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                <span>{banner.cta || "حجز مساحة إعلانية 💬"}</span>
+              </a>
+            </div>
           </div>
         )}
       </div>
@@ -297,7 +317,6 @@ export function SponsoredStoriesBar() {
   const bookingWhatsapp = settings.ad_booking_whatsapp || "01288212101";
   const defaultBookingLink = `https://wa.me/20${bookingWhatsapp.replace(/\D/g, "").replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أريد حجز مساحة في شريط قصص الرعاة والشركاء المعتمدين في متجر EGY CPM")}`;
 
-  // Parse stories & filter out expired ones (12-hour limit) (NO HARDCODED DUMMIES)
   const getStories = () => {
     const now = Date.now();
     try {
@@ -322,7 +341,7 @@ export function SponsoredStoriesBar() {
 
   const stories = getStories();
 
-  // If no stories exist, hide the whole bar completely!
+  // If no stories exist, hide the entire strip
   if (stories.length === 0) return null;
 
   return (
@@ -386,22 +405,26 @@ export function SponsoredStoriesBar() {
 }
 
 /**
- * 4. In-Feed Native Ad Card (بطاقة إعلانية مدمجة بشبكة المنتجات - تظهر فقط عند وجود بطاقات حقيقية)
+ * 4. In-Feed Native Ad Card (بطاقة إعلانية مدمجة بشبكة المنتجات - تختفي بزر التعطيل فقط)
  */
 export function InFeedGridAdCard() {
   const settings = useSettings();
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // يختفي فقط إذا تم تعطيله من لوحة التحكم
   const isEnabled = settings.ad_feed_enabled === "true";
   if (!isEnabled) return null;
 
-  // Parse multi-feed cards (NO HARDCODED DUMMIES)
+  const bookingWhatsapp = settings.ad_booking_whatsapp || "01288212101";
+  const defaultBookingLink = `https://wa.me/20${bookingWhatsapp.replace(/\D/g, "").replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أريد حجز بطاقة إعلانية مدمجة (In-Feed Sponsored Card) في متجر EGY CPM")}`;
+
   const getCards = () => {
     try {
       if (settings.ad_feed_items !== undefined) {
         const parsed = JSON.parse(settings.ad_feed_items);
-        if (Array.isArray(parsed)) {
-          return parsed.filter((c: any) => c.enabled !== false && c.image);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const active = parsed.filter((c: any) => c.enabled !== false && c.image);
+          if (active.length > 0) return active;
         }
       }
     } catch {}
@@ -414,13 +437,24 @@ export function InFeedGridAdCard() {
           title: settings.ad_feed_title || "",
           desc: settings.ad_feed_desc || "",
           badge: settings.ad_feed_badge || "راعي معتمد ⭐",
-          link: settings.ad_feed_link || "",
+          link: settings.ad_feed_link || defaultBookingLink,
           cta: settings.ad_feed_cta || "مشاهدة العرض ↗",
         },
       ];
     }
 
-    return [];
+    // Default booking card when enabled
+    return [
+      {
+        id: "feed_default_booking",
+        image: "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800",
+        title: "مساحة إعلانية مدمجة VIP للرعاة",
+        desc: "أعلن عن منتجاتك أو خدماتك أو سيرفرك مباشرة أمام المتسوقين هنا.",
+        badge: "أعلن معنا ⭐",
+        link: defaultBookingLink,
+        cta: "احجز بطاقتك الآن ↗",
+      },
+    ];
   };
 
   const cards = getCards();
@@ -432,8 +466,6 @@ export function InFeedGridAdCard() {
     }, 6000);
     return () => clearInterval(timer);
   }, [cards.length]);
-
-  if (cards.length === 0) return null;
 
   const card = cards[currentIndex] || cards[0];
 
@@ -495,7 +527,7 @@ export function InFeedGridAdCard() {
 }
 
 /**
- * 5. Sticky Mobile Bottom Smart Ad Bar (الشريط الإعلاني العائم للموبايل - يظهر فقط عند وجود إعلانات)
+ * 5. Sticky Mobile Bottom Smart Ad Bar (الشريط الإعلاني العائم للموبايل - يختفي بزر التعطيل فقط)
  */
 export function StickyMobileAdBar() {
   const settings = useSettings();
@@ -509,16 +541,20 @@ export function StickyMobileAdBar() {
     } catch {}
   }, []);
 
+  // يختفي فقط إذا تم تعطيله من لوحة التحكم أو إغلاقه من الزائر
   const isEnabled = settings.ad_mobile_bar_enabled === "true";
   if (!isEnabled || isDismissed) return null;
 
-  // Parse multi mobile bar ads (NO HARDCODED DUMMIES)
+  const bookingWhatsapp = settings.ad_booking_whatsapp || "01288212101";
+  const defaultBookingLink = `https://wa.me/20${bookingWhatsapp.replace(/\D/g, "").replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أريد الاستفسار عن حجز الشريط الإعلاني الذكي للموبايل في متجر EGY CPM")}`;
+
   const getItems = () => {
     try {
       if (settings.ad_mobile_items !== undefined) {
         const parsed = JSON.parse(settings.ad_mobile_items);
-        if (Array.isArray(parsed)) {
-          return parsed.filter((it: any) => it.enabled !== false && it.text);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const active = parsed.filter((it: any) => it.enabled !== false && it.text);
+          if (active.length > 0) return active;
         }
       }
     } catch {}
@@ -527,14 +563,22 @@ export function StickyMobileAdBar() {
       return [
         {
           id: "mobile_legacy",
-          badge: settings.ad_mobile_bar_badge || "عرض خاص 🔥",
+          badge: settings.ad_mobile_bar_badge || "إعلان مميز 🔥",
           text: settings.ad_mobile_bar_text,
-          link: settings.ad_mobile_bar_link || "",
+          link: settings.ad_mobile_bar_link || defaultBookingLink,
         },
       ];
     }
 
-    return [];
+    // Default mobile notice when enabled
+    return [
+      {
+        id: "mobile_default_booking",
+        badge: settings.ad_mobile_bar_badge || "أعلن معنا 🔥",
+        text: "مساحة إعلانية للموبايل متاحة: تواصل معنا لحجز إعلانك هنا!",
+        link: defaultBookingLink,
+      },
+    ];
   };
 
   const items = getItems();
@@ -547,15 +591,13 @@ export function StickyMobileAdBar() {
     return () => clearInterval(timer);
   }, [items.length]);
 
-  if (items.length === 0) return null;
-
   const current = items[currentIndex] || items[0];
 
   return (
     <div className="fixed bottom-[60px] inset-x-2 z-40 md:hidden transition-all duration-300">
       <div className="relative flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-black/90 border border-amber-500/50 backdrop-blur-md shadow-2xl text-white">
         <a
-          href={current.link || "#"}
+          href={current.link || defaultBookingLink}
           target={current.link?.startsWith("http") ? "_blank" : undefined}
           rel="noreferrer"
           className="flex-1 min-w-0 flex items-center gap-1.5"
