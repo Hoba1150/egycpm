@@ -22,6 +22,7 @@ import {
   X,
   CheckCheck,
   Bot,
+  Megaphone,
 } from "lucide-react";
 import { getAdminSidebarCounts } from "@/lib/actions/settings";
 import { toast } from "sonner";
@@ -110,8 +111,8 @@ export default function AdminSidebar({ user }: { user: any }) {
 
   // Role permissions map
   const rolePermissions: Record<string, string[]> = {
-    SUPER_ADMIN: ["/admin", "/admin/deposits", "/admin/orders", "/admin/giveaways", "/admin/products", "/admin/categories", "/admin/cpm2", "/admin/customers", "/admin/coupons", "/admin/tickets", "/admin/reviews", "/admin/audit-logs", "/admin/settings"],
-    ADMIN: ["/admin", "/admin/deposits", "/admin/orders", "/admin/giveaways", "/admin/products", "/admin/categories", "/admin/cpm2", "/admin/customers", "/admin/coupons", "/admin/tickets", "/admin/reviews", "/admin/audit-logs"],
+    SUPER_ADMIN: ["/admin", "/admin/deposits", "/admin/orders", "/admin/giveaways", "/admin/products", "/admin/categories", "/admin/cpm2", "/admin/customers", "/admin/coupons", "/admin/tickets", "/admin/reviews", "/admin/audit-logs", "/admin/ads", "/admin/settings"],
+    ADMIN: ["/admin", "/admin/deposits", "/admin/orders", "/admin/giveaways", "/admin/products", "/admin/categories", "/admin/cpm2", "/admin/customers", "/admin/coupons", "/admin/tickets", "/admin/reviews", "/admin/audit-logs", "/admin/ads"],
     ORDER_MANAGER: ["/admin", "/admin/orders", "/admin/giveaways", "/admin/products", "/admin/cpm2", "/admin/tickets"],
     SUPPORT: ["/admin", "/admin/tickets", "/admin/orders"],
   };
@@ -130,6 +131,7 @@ export default function AdminSidebar({ user }: { user: any }) {
     { name: "تذاكر الدعم الفني", href: "/admin/tickets", icon: Headphones },
     { name: "تقييمات وآراء العملاء", href: "/admin/reviews", icon: Star },
     { name: "سجل العمليات (Audit Logs)", href: "/admin/audit-logs", icon: Shield },
+    { name: "المساحات الإعلانية والشراكات", href: "/admin/ads", icon: Megaphone },
     { name: "إعدادات المتجر والتصميم", href: "/admin/settings", icon: Settings },
   ];
 

@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { updateStoreSettings } from "@/lib/actions/settings";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import AdsManagerClient from "@/components/admin/AdsManagerClient";
 import {
   Save,
   Download,
@@ -42,128 +41,16 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
   const router = useRouter();
   const [settings, setSettings] = useState(initialSettings);
   const [activeTab, setActiveTab] = useState<
-    "LOGO" | "MAINTENANCE" | "SOCIAL" | "ADS" | "TEXTS" | "THEME" | "PAYMENT" | "BACKUP"
+    "LOGO" | "MAINTENANCE" | "SOCIAL" | "TEXTS" | "THEME" | "PAYMENT" | "BACKUP"
   >("MAINTENANCE");
   const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [newImageUrl, setNewImageUrl] = useState("");
-  const [uploadingAdKey, setUploadingAdKey] = useState<string | null>(null);
-
-  const handleAdImageUpload = async (key: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    setUploadingAdKey(key);
-    try {
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok || !data.url) {
-        throw new Error(data.message || "فشل رفع الصورة.");
-      }
-      handleChange(key, data.url);
-      toast.success("تم رفع صورة الإعلان بنجاح إلى السحابة! 📸");
-    } catch (err: any) {
-      toast.error(err.message || "فشل رفع الصورة.");
-    } finally {
-      setUploadingAdKey(null);
-      e.target.value = "";
-    }
-  };
 
   const handleChange = (key: string, value: string) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
-  };
-
-  // Parse hero billboard ads
-  const getBillboardAds = (): Array<{
-    id: string;
-    image: string;
-    link?: string;
-    title?: string;
-    desc?: string;
-    badge?: string;
-    sponsor?: string;
-    cta?: string;
-    enabled?: boolean;
-  }> => {
-    try {
-      if (settings.hero_billboard_ads) {
-        const parsed = JSON.parse(settings.hero_billboard_ads);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-
-    return [
-      {
-        id: "ad_1",
-        image: settings.ad_hero_image || "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=1200",
-        link: settings.ad_hero_link || "",
-        title: settings.ad_hero_title || "",
-        desc: settings.ad_hero_desc || "",
-        badge: settings.ad_hero_badge || "SPONSORED VIP ⭐",
-        sponsor: settings.ad_hero_sponsor || "راعي معتمد",
-        cta: settings.ad_hero_cta || "زيارة العرض ↗",
-        enabled: true,
-      },
-    ];
-  };
-
-  const currentBillboardAds = getBillboardAds();
-
-  const setBillboardAds = (ads: typeof currentBillboardAds) => {
-    handleChange("hero_billboard_ads", JSON.stringify(ads));
-  };
-
-  const handleAddBillboardAd = () => {
-    const newAd = {
-      id: "ad_" + Date.now(),
-      image: "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?w=1200",
-      link: "",
-      title: "",
-      desc: "",
-      badge: "إعلان جديد ⭐",
-      sponsor: "",
-      cta: "زيارة العرض ↗",
-      enabled: true,
-    };
-    const updated = [...currentBillboardAds, newAd];
-    setBillboardAds(updated);
-    toast.success("تمت إضافة إعلان جديد للمساحة الرئيسية!");
-  };
-
-  const handleUpdateBillboardAd = (index: number, updates: Partial<(typeof currentBillboardAds)[0]>) => {
-    const updated = [...currentBillboardAds];
-    updated[index] = { ...updated[index], ...updates };
-    setBillboardAds(updated);
-  };
-
-  const handleDeleteBillboardAd = (index: number) => {
-    if (currentBillboardAds.length <= 1) {
-      toast.warning("يجب الإبقاء على إعلان واحد على الأقل.");
-      return;
-    }
-    const updated = currentBillboardAds.filter((_, idx) => idx !== index);
-    setBillboardAds(updated);
-    toast.info("تم حذف الإعلان.");
-  };
-
-  const handleMoveBillboardAd = (index: number, direction: "up" | "down") => {
-    const targetIndex = direction === "up" ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= currentBillboardAds.length) return;
-
-    const updated = [...currentBillboardAds];
-    const temp = updated[index];
-    updated[index] = updated[targetIndex];
-    updated[targetIndex] = temp;
-    setBillboardAds(updated);
   };
 
   const isMaintenanceOn = settings.maintenance_mode === "true";
@@ -399,25 +286,6 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
 
 
 
-        {/* Tab: Ads Management */}
-        <button
-          type="button"
-          onClick={() => setActiveTab("ADS")}
-          className={`py-3 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 relative ${
-            activeTab === "ADS"
-              ? "bg-amber-600 text-white shadow-sm ring-1 ring-amber-400"
-              : "text-gray-400 hover:text-white"
-          }`}
-        >
-          <Megaphone className="w-4 h-4 text-amber-400 shrink-0" />
-          <span>المساحات الإعلانية</span>
-          {(settings.ad_hero_enabled === "true" ||
-            settings.ad_top_enabled === "true" ||
-            settings.ad_mid_enabled === "true" ||
-            settings.ad_vertical_enabled === "true") && (
-            <span className="w-2 h-2 rounded-full bg-emerald-400 absolute top-2 right-2" />
-          )}
-        </button>
 
         {/* Tab 5: Texts CMS */}
         <button
@@ -1209,10 +1077,6 @@ export default function SettingsClient({ initialSettings }: { initialSettings: R
           </div>
         )}
 
-        {/* TAB: ADS MANAGEMENT */}
-        {activeTab === "ADS" && (
-          <AdsManagerClient settings={settings} handleChange={handleChange} />
-        )}
 
         {/* TAB 8: BACKUP */}
         {activeTab === "BACKUP" && (

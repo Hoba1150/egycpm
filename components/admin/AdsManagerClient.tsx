@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { updateAdSettings } from "@/lib/actions/settings";
 import { toast } from "sonner";
 import {
   Sparkles,
@@ -23,14 +25,61 @@ import {
   Smartphone,
   Eye,
   Sliders,
+  Save,
 } from "lucide-react";
 
 interface AdsManagerClientProps {
-  settings: Record<string, string>;
-  handleChange: (key: string, value: string) => void;
+  initialSettings?: Record<string, string>;
+  settings?: Record<string, string>;
+  handleChange?: (key: string, value: string) => void;
 }
 
-export default function AdsManagerClient({ settings, handleChange }: AdsManagerClientProps) {
+export default function AdsManagerClient({
+  initialSettings = {},
+  settings: externalSettings,
+  handleChange: externalHandleChange,
+}: AdsManagerClientProps) {
+  const router = useRouter();
+  const [internalSettings, setInternalSettings] = useState<Record<string, string>>(
+    externalSettings || initialSettings || {}
+  );
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  const settings = externalSettings || internalSettings;
+
+  const handleChange = (key: string, value: string) => {
+    if (externalHandleChange) {
+      externalHandleChange(key, value);
+    }
+    setInternalSettings((prev) => ({ ...prev, [key]: value }));
+    setHasChanges(true);
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const adKeys = Object.keys(settings).filter(
+        (k) => k.startsWith("ad_") || k.startsWith("hero_")
+      );
+      const payload: Record<string, string> = {};
+      adKeys.forEach((k) => {
+        payload[k] = settings[k];
+      });
+      if (settings.ad_booking_whatsapp) {
+        payload.ad_booking_whatsapp = settings.ad_booking_whatsapp;
+      }
+      await updateAdSettings(payload);
+      toast.success("تم حفظ وتطبيق كافة المساحات الإعلانية فوراً على المتجر! 🚀");
+      setHasChanges(false);
+      router.refresh();
+    } catch (err: any) {
+      toast.error(err.message || "حدث خطأ أثناء حفظ الإعلانات.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const [activeSubTab, setActiveSubTab] = useState<
     "ALL" | "HERO" | "STORIES" | "TOP" | "MID" | "FEED" | "MOBILE" | "WHATSAPP"
   >("ALL");
@@ -323,15 +372,25 @@ export default function AdsManagerClient({ settings, handleChange }: AdsManagerC
   return (
     <div className="space-y-6 text-right">
       {/* Visual Sub-Tabs Navigation (Color Coded & Easy Distinction) */}
-      <div className="p-3 bg-[#0f1218] border border-gray-800 rounded-2xl space-y-2">
-        <div className="flex items-center justify-between px-1">
+      <div className="p-3 bg-[#0f1218] border border-gray-800 rounded-2xl space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
           <span className="text-xs font-black text-white flex items-center gap-1.5">
             <Megaphone className="w-4 h-4 text-amber-400" />
             <span>اختر المساحة الإعلانية لضبطها بسرعة وسهولة:</span>
           </span>
-          <span className="text-[10px] text-gray-400 font-mono">
-            {activeSubTab === "ALL" ? "عرض جميع المساحات" : "تصفية خاصة"}
-          </span>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs shadow-md shadow-amber-500/20 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition disabled:opacity-50"
+          >
+            {isSaving ? (
+              <Loader2 className="w-4 h-4 animate-spin text-black" />
+            ) : (
+              <Save className="w-4 h-4 text-black" />
+            )}
+            <span>{isSaving ? "جاري الحفظ والتطبيق..." : "حفظ التعديلات فوراً ⚡"}</span>
+          </button>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -1771,6 +1830,41 @@ export default function AdsManagerClient({ settings, handleChange }: AdsManagerC
           </div>
         </div>
       )}
+
+      {/* Sticky Bottom Actions Bar for Instant Application */}
+      <div className="sticky bottom-4 z-30 p-4 rounded-2xl bg-[#121620]/95 backdrop-blur-md border border-amber-500/40 shadow-[0_10px_30px_rgba(0,0,0,0.8)] flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div
+            className={`w-3 h-3 rounded-full ${
+              hasChanges ? "bg-amber-400 animate-pulse" : "bg-emerald-400"
+            }`}
+          />
+          <span className="text-xs font-bold text-gray-200">
+            {hasChanges
+              ? "⚠️ توجد تعديلات إعلانية جديدة بانتظار الاعتماد والحفظ"
+              : "✅ كافة المساحات الإعلانية نشطة ومطابقة للواجهة الحية"}
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={isSaving}
+          className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 hover:from-amber-400 hover:to-red-400 text-black font-black text-xs shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition disabled:opacity-50"
+        >
+          {isSaving ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin text-black" />
+              <span>جاري الحفظ والتطبيق السريع...</span>
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4 text-black" />
+              <span>حفظ ونشر التعديلات فوراً ⚡</span>
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 }

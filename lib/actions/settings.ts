@@ -17,34 +17,76 @@ export async function getStoreSettings() {
 }
 
 /**
- * Admin: Update Store Settings
+ * Admin: Update Store Settings (Optimized Batch Transaction)
  */
 export async function updateStoreSettings(updates: Record<string, string>) {
   const admin = await requireAdminRole(["SUPER_ADMIN", "ADMIN"]);
 
-  for (const [key, value] of Object.entries(updates)) {
-    await prisma.storeSetting.upsert({
+  const upsertOps = Object.entries(updates).map(([key, value]) =>
+    prisma.storeSetting.upsert({
       where: { key },
-      create: { key, value: String(value) },
-      update: { value: String(value) },
-    });
-  }
+      create: { key, value: String(value ?? "") },
+      update: { value: String(value ?? "") },
+    })
+  );
 
-  await prisma.auditLog.create({
-    data: {
-      adminId: admin.id,
-      adminEmail: admin.email,
-      action: "UPDATE_STORE_SETTINGS",
-      targetType: "SETTINGS",
-      targetId: "GLOBAL_SETTINGS",
-      afterValue: JSON.stringify(updates),
-    },
-  });
+  // Execute all updates in a single fast parallel transaction
+  await prisma.$transaction(upsertOps);
+
+  // Background audit log so it never delays the admin response
+  prisma.auditLog
+    .create({
+      data: {
+        adminId: admin.id,
+        adminEmail: admin.email,
+        action: "UPDATE_STORE_SETTINGS",
+        targetType: "SETTINGS",
+        targetId: "GLOBAL_SETTINGS",
+        afterValue: JSON.stringify(updates),
+      },
+    })
+    .catch((err) => console.error("Audit log error:", err));
 
   revalidatePath("/", "layout");
   revalidatePath("/");
   revalidatePath("/admin/settings");
   revalidatePath("/shop");
+  return { success: true };
+}
+
+/**
+ * Admin: Update Ads & Banners Settings (Ultra Fast Dedicated Transaction)
+ */
+export async function updateAdSettings(updates: Record<string, string>) {
+  const admin = await requireAdminRole(["SUPER_ADMIN", "ADMIN"]);
+
+  const upsertOps = Object.entries(updates).map(([key, value]) =>
+    prisma.storeSetting.upsert({
+      where: { key },
+      create: { key, value: String(value ?? "") },
+      update: { value: String(value ?? "") },
+    })
+  );
+
+  await prisma.$transaction(upsertOps);
+
+  prisma.auditLog
+    .create({
+      data: {
+        adminId: admin.id,
+        adminEmail: admin.email,
+        action: "UPDATE_ADS_SETTINGS",
+        targetType: "ADS",
+        targetId: "GLOBAL_ADS",
+        afterValue: JSON.stringify(updates),
+      },
+    })
+    .catch((err) => console.error("Audit log error:", err));
+
+  revalidatePath("/", "layout");
+  revalidatePath("/");
+  revalidatePath("/shop");
+  revalidatePath("/admin/ads");
   return { success: true };
 }
 
