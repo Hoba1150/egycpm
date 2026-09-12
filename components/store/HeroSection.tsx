@@ -82,64 +82,37 @@ export default function HeroSection({ user: initialUser }: HeroSectionProps) {
     };
   }, [initialUser]);
 
-  // Parse multi-ad slides from settings
+  // Parse multi-ad slides from settings (Purely Dynamic - No Forced Dummies)
   const getAds = (): BillboardAdItem[] => {
     const bookingWhatsapp = settings.ad_booking_whatsapp || "01288212101";
     const defaultBookingLink = `https://wa.me/20${bookingWhatsapp.replace(/\D/g, "").replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أود حجز مساحة إعلانية في الواجهة الرئيسية لمتجر EGY CPM")}`;
 
     try {
-      if (settings.hero_billboard_ads) {
+      if (settings.hero_billboard_ads !== undefined) {
         const parsed = JSON.parse(settings.hero_billboard_ads);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const active = parsed.filter((item: BillboardAdItem) => item.enabled !== false && item.image);
-          if (active.length > 0) return active;
+        if (Array.isArray(parsed)) {
+          return parsed.filter((item: BillboardAdItem) => item.enabled !== false && item.image);
         }
       }
     } catch {}
 
-    // Fallback: If legacy settings exist, build items seamlessly
-    const fallbackList: BillboardAdItem[] = [];
-
     if (settings.ad_hero_enabled === "true" && settings.ad_hero_image) {
-      fallbackList.push({
-        id: "hero_legacy_vip",
-        image: settings.ad_hero_image,
-        link: settings.ad_hero_link || defaultBookingLink,
-        title: settings.ad_hero_title || "",
-        desc: settings.ad_hero_desc || "",
-        badge: settings.ad_hero_badge || "SPONSORED VIP ⭐",
-        sponsor: settings.ad_hero_sponsor || "راعي معتمد",
-        cta: settings.ad_hero_cta || "زيارة العرض ↗",
-        enabled: true,
-      });
+      return [
+        {
+          id: "hero_legacy_vip",
+          image: settings.ad_hero_image,
+          link: settings.ad_hero_link || defaultBookingLink,
+          title: settings.ad_hero_title || "",
+          desc: settings.ad_hero_desc || "",
+          badge: settings.ad_hero_badge || "SPONSORED VIP ⭐",
+          sponsor: settings.ad_hero_sponsor || "راعي معتمد",
+          cta: settings.ad_hero_cta || "زيارة العرض ↗",
+          enabled: true,
+        },
+      ];
     }
 
-    // Default premium showcase billboard
-    fallbackList.push({
-      id: "hero_default_1",
-      image: "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=1200",
-      link: "/shop?type=MODIFIED_CAR",
-      title: "أقوى عروض وسيارات Car Parking المعدلة 1695HP",
-      badge: "متجر معتمد 🏎️",
-      sponsor: settings.store_name || "EGY CPM",
-      desc: "تسليم فوري، ضمان دائم، وحماية كاملة ضد الباند",
-      cta: "تصفح السيارات ↗",
-      enabled: true,
-    });
-
-    fallbackList.push({
-      id: "hero_default_2",
-      image: "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?w=1200",
-      link: defaultBookingLink,
-      title: "مساحة إعلانية كبرى متاحة للرعاة والمعلنين",
-      badge: "أعلن معنا 💎",
-      sponsor: "EGY CPM ADVERTISING",
-      desc: "احصل على وصول مباشر لآلاف اللاعبين والمهتمين يومياً",
-      cta: "احجز مساحتك الآن 💬",
-      enabled: true,
-    });
-
-    return fallbackList;
+    return [];
   };
 
   const ads = getAds();

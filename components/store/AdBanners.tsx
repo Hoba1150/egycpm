@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 /**
- * 1. Top Panorama Bar (شريط بانوراما علوي - يدعم أكثر من إعلان مع تبديل تلقائي متناغم)
+ * 1. Top Panorama Bar (شريط بانوراما علوي - يظهر فقط عند التفعيل ووجود إعلانات)
  */
 export function TopPanoramaAdBanner() {
   const settings = useSettings();
@@ -30,29 +30,32 @@ export function TopPanoramaAdBanner() {
   }, []);
 
   const isEnabled = settings.ad_top_enabled === "true";
+  if (!isEnabled || isDismissed) return null;
 
-  // Parse multi-announcement items
+  // Parse multi-announcement items (NO HARDCODED DUMMIES)
   const getItems = () => {
     try {
-      if (settings.ad_top_items) {
+      if (settings.ad_top_items !== undefined) {
         const parsed = JSON.parse(settings.ad_top_items);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const active = parsed.filter((it: any) => it.enabled !== false && it.text);
-          if (active.length > 0) return active;
+        if (Array.isArray(parsed)) {
+          return parsed.filter((it: any) => it.enabled !== false && it.text);
         }
       }
     } catch {}
 
-    // Fallback to legacy single item
-    return [
-      {
-        id: "top_default",
-        badge: settings.ad_top_badge || "إعلان مميز ⭐",
-        text: settings.ad_top_text || "مساحة إعلانية متاحة: أعلن عن خدماتك أو قناتك أمام آلاف الزوار يومياً!",
-        link: settings.ad_top_link || `https://wa.me/20${(settings.ad_booking_whatsapp || "01288212101").replace(/\D/g, "").replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أريد الاستفسار عن حجز المساحة الإعلانية العلوية في متجر EGY CPM")}`,
-        cta: settings.ad_top_cta || "احجز إعلانك ↗",
-      },
-    ];
+    if (settings.ad_top_text) {
+      return [
+        {
+          id: "top_legacy",
+          badge: settings.ad_top_badge || "إعلان مميز ⭐",
+          text: settings.ad_top_text,
+          link: settings.ad_top_link || "",
+          cta: settings.ad_top_cta || "احجز إعلانك ↗",
+        },
+      ];
+    }
+
+    return [];
   };
 
   const items = getItems();
@@ -66,20 +69,11 @@ export function TopPanoramaAdBanner() {
     return () => clearInterval(timer);
   }, [items.length]);
 
-  if (!isEnabled || isDismissed || items.length === 0) return null;
+  if (items.length === 0) return null;
 
   const currentItem = items[currentIndex] || items[0];
   const isDismissible = settings.ad_top_dismissible !== "false";
   const imageUrl = settings.ad_top_image;
-
-  const handleDismiss = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDismissed(true);
-    try {
-      sessionStorage.setItem("cpm_top_ad_dismissed", "true");
-    } catch {}
-  };
 
   return (
     <aside aria-label="إعلان مميز" className="relative z-40 w-full overflow-hidden bg-gradient-to-r from-amber-600/90 via-orange-600/90 to-red-700/90 text-white shadow-md border-b border-white/10">
@@ -92,7 +86,7 @@ export function TopPanoramaAdBanner() {
 
       <div className="max-w-7xl mx-auto px-2.5 sm:px-6 py-1.5 sm:py-2 flex items-center justify-between gap-2 text-xs">
         <a
-          href={currentItem.link}
+          href={currentItem.link || "#"}
           target={currentItem.link?.startsWith("http") ? "_blank" : undefined}
           rel="noreferrer"
           className="flex-1 min-w-0 flex items-center justify-center sm:justify-start gap-1.5 sm:gap-3 group hover:opacity-95 transition"
@@ -119,7 +113,12 @@ export function TopPanoramaAdBanner() {
         {isDismissible && (
           <button
             type="button"
-            onClick={handleDismiss}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsDismissed(true);
+              try { sessionStorage.setItem("cpm_top_ad_dismissed", "true"); } catch {}
+            }}
             aria-label="إغلاق الإعلان"
             className="p-1 sm:p-1.5 rounded-md text-white/70 hover:text-white hover:bg-black/30 transition shrink-0"
           >
@@ -132,7 +131,7 @@ export function TopPanoramaAdBanner() {
 }
 
 /**
- * 2. Mid-Store Panorama Banner (بانر أفقي بين الأقسام - يدعم أكثر من بانر وإعلان مع تبديل تلقائي)
+ * 2. Mid-Store Panorama Banner (بانر أفقي بين الأقسام - يظهر فقط عند التفعيل ووجود محتوى)
  */
 export function PanoramaAdBanner({
   slotLocation = "home",
@@ -147,44 +146,43 @@ export function PanoramaAdBanner({
   const isEnabled = settings.ad_mid_enabled === "true";
   if (!isEnabled) return null;
 
-  const bookingWhatsapp = settings.ad_booking_whatsapp || "01288212101";
-  const defaultBookingLink = `https://wa.me/20${bookingWhatsapp.replace(/\D/g, "").replace(/^0/, "")}?text=${encodeURIComponent(`مرحباً، أريد حجز المساحة الإعلانية البانورامية في قسم (${slotLocation}) بمتجر EGY CPM`)}`;
-
-  // Parse multi-banners list
+  // Parse multi-banners list (NO HARDCODED DUMMIES)
   const getBanners = () => {
     try {
-      if (settings.ad_mid_items) {
+      if (settings.ad_mid_items !== undefined) {
         const parsed = JSON.parse(settings.ad_mid_items);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const active = parsed.filter((b: any) => {
+        if (Array.isArray(parsed)) {
+          return parsed.filter((b: any) => {
             if (b.enabled === false) return false;
+            if (!b.image && !b.title) return false;
             if (b.targetPages && b.targetPages !== "all" && b.targetPages !== slotLocation) return false;
             return true;
           });
-          if (active.length > 0) return active;
         }
       }
     } catch {}
 
-    // Legacy fallback
     const targetPages = settings.ad_mid_show_pages || "all";
     if (targetPages !== "all" && targetPages !== slotLocation) return [];
 
-    return [
-      {
-        id: "mid_default",
-        image: settings.ad_mid_image || "",
-        link: settings.ad_mid_link || defaultBookingLink,
-        title: settings.ad_mid_title || "مساحة إعلانية بانورامية كبرى متاحة الآن",
-        desc: settings.ad_mid_desc || "احصل على وصول فوري لآلاف المهتمين بألعاب السيارات وخدمات الجيمنج.",
-        cta: settings.ad_mid_cta || (settings.ad_mid_image ? "زيارة المعلن ↗" : "احجز هذه المساحة 💬"),
-      },
-    ];
+    if (settings.ad_mid_image || settings.ad_mid_title) {
+      return [
+        {
+          id: "mid_legacy",
+          image: settings.ad_mid_image || "",
+          link: settings.ad_mid_link || "",
+          title: settings.ad_mid_title || "",
+          desc: settings.ad_mid_desc || "",
+          cta: settings.ad_mid_cta || "زيارة العرض ↗",
+        },
+      ];
+    }
+
+    return [];
   };
 
   const banners = getBanners();
 
-  // Auto-rotate if more than 1 banner
   useEffect(() => {
     if (banners.length <= 1) return;
     const timer = setInterval(() => {
@@ -205,7 +203,7 @@ export function PanoramaAdBanner({
 
         {banner.image ? (
           <a
-            href={banner.link}
+            href={banner.link || "#"}
             target={banner.link?.startsWith("http") ? "_blank" : undefined}
             rel="noreferrer"
             className="block relative overflow-hidden rounded-xl"
@@ -228,9 +226,11 @@ export function PanoramaAdBanner({
 
               <div className="absolute bottom-2 inset-x-2.5 sm:inset-x-4 z-10 flex items-center justify-between gap-2 text-right">
                 <div className="min-w-0 flex-1">
-                  <h4 className="text-xs sm:text-sm font-black text-white truncate drop-shadow-md">
-                    {banner.title}
-                  </h4>
+                  {banner.title && (
+                    <h4 className="text-xs sm:text-sm font-black text-white truncate drop-shadow-md">
+                      {banner.title}
+                    </h4>
+                  )}
                   {banner.desc && (
                     <p className="text-[10px] text-gray-300 truncate hidden sm:block">
                       {banner.desc}
@@ -251,27 +251,33 @@ export function PanoramaAdBanner({
             <div className="space-y-1 w-full sm:w-auto">
               <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[10px] font-black">
                 <Megaphone className="w-3 h-3" />
-                <span>مساحة إعلانية بانورامية كبرى</span>
+                <span>إعلان ترويجي مميز</span>
               </div>
-              <h3 className="text-sm sm:text-lg font-black text-white truncate">
-                {banner.title}
-              </h3>
-              <p className="text-[11px] sm:text-xs text-gray-400 line-clamp-1">
-                {banner.desc}
-              </p>
+              {banner.title && (
+                <h3 className="text-sm sm:text-lg font-black text-white truncate">
+                  {banner.title}
+                </h3>
+              )}
+              {banner.desc && (
+                <p className="text-[11px] sm:text-xs text-gray-400 line-clamp-1">
+                  {banner.desc}
+                </p>
+              )}
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
-              <a
-                href={banner.link}
-                target={banner.link?.startsWith("http") ? "_blank" : undefined}
-                rel="noreferrer"
-                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs transition flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/20 active:scale-95"
-              >
-                <MessageCircle className="w-3.5 h-3.5" />
-                <span>{banner.cta || "تواصل الآن"}</span>
-              </a>
-            </div>
+            {banner.link && (
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
+                <a
+                  href={banner.link}
+                  target={banner.link?.startsWith("http") ? "_blank" : undefined}
+                  rel="noreferrer"
+                  className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs transition flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/20 active:scale-95"
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>{banner.cta || "زيارة العرض ↗"}</span>
+                </a>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -280,7 +286,7 @@ export function PanoramaAdBanner({
 }
 
 /**
- * 3. Sponsored Stories & Partner Strip (قصص الرعاة والشركاء مع انتهاء صلاحية تلقائي 12 ساعة وضبط مقاس الهاتف بدقة)
+ * 3. Sponsored Stories & Partner Strip (قصص الرعاة والشركاء - تظهر فقط عند وجود قصص حقيقية غير منتهية الصلاحية)
  */
 export function SponsoredStoriesBar() {
   const settings = useSettings();
@@ -291,20 +297,19 @@ export function SponsoredStoriesBar() {
   const bookingWhatsapp = settings.ad_booking_whatsapp || "01288212101";
   const defaultBookingLink = `https://wa.me/20${bookingWhatsapp.replace(/\D/g, "").replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أريد حجز مساحة في شريط قصص الرعاة والشركاء المعتمدين في متجر EGY CPM")}`;
 
-  // Parse stories & filter out expired ones (12-hour limit)
+  // Parse stories & filter out expired ones (12-hour limit) (NO HARDCODED DUMMIES)
   const getStories = () => {
     const now = Date.now();
     try {
-      if (settings.ad_stories_items) {
+      if (settings.ad_stories_items !== undefined) {
         const parsed = JSON.parse(settings.ad_stories_items);
         if (Array.isArray(parsed)) {
           return parsed.filter((s: any) => {
-            if (s.enabled === false || !s.image) return false;
+            if (s.enabled === false || !s.image || !s.name) return false;
             const createdAt = Number(s.createdAt) || 0;
             const durationHours = Number(s.durationHours) || 12;
-            // 12h auto-expiry
             if (createdAt > 0 && now - createdAt > durationHours * 3600 * 1000) {
-              return false; // expired!
+              return false; // expired
             }
             return true;
           });
@@ -312,33 +317,13 @@ export function SponsoredStoriesBar() {
       }
     } catch {}
 
-    // Fallback initial stories
-    return [
-      {
-        id: "story_1",
-        name: settings.ad_story1_name || "فالكون جيمينج",
-        image: settings.ad_story1_image || "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?w=200",
-        link: settings.ad_story1_link || defaultBookingLink,
-        createdAt: now,
-      },
-      {
-        id: "story_2",
-        name: settings.ad_story2_name || "تيربو كارز",
-        image: settings.ad_story2_image || "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=200",
-        link: settings.ad_story2_link || defaultBookingLink,
-        createdAt: now,
-      },
-      {
-        id: "story_3",
-        name: settings.ad_story3_name || "سيرفر الأساطير",
-        image: settings.ad_story3_image || "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=200",
-        link: settings.ad_story3_link || defaultBookingLink,
-        createdAt: now,
-      },
-    ];
+    return [];
   };
 
   const stories = getStories();
+
+  // If no stories exist, hide the whole bar completely!
+  if (stories.length === 0) return null;
 
   return (
     <div className="w-full max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 py-2">
@@ -364,7 +349,7 @@ export function SponsoredStoriesBar() {
           </span>
         </a>
 
-        {/* Sponsor Stories */}
+        {/* Real User Stories */}
         {stories.map((story: any) => (
           <a
             key={story.id}
@@ -401,7 +386,7 @@ export function SponsoredStoriesBar() {
 }
 
 /**
- * 4. In-Feed Native Ad Card (بطاقة إعلانية مدمجة بشبكة المنتجات - تدعم أكثر من إعلان)
+ * 4. In-Feed Native Ad Card (بطاقة إعلانية مدمجة بشبكة المنتجات - تظهر فقط عند وجود بطاقات حقيقية)
  */
 export function InFeedGridAdCard() {
   const settings = useSettings();
@@ -410,37 +395,36 @@ export function InFeedGridAdCard() {
   const isEnabled = settings.ad_feed_enabled === "true";
   if (!isEnabled) return null;
 
-  const bookingWhatsapp = settings.ad_booking_whatsapp || "01288212101";
-  const defaultBookingLink = `https://wa.me/20${bookingWhatsapp.replace(/\D/g, "").replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أريد حجز بطاقة إعلانية مدمجة (In-Feed Sponsored Card) في متجر EGY CPM")}`;
-
-  // Parse multi-feed cards
+  // Parse multi-feed cards (NO HARDCODED DUMMIES)
   const getCards = () => {
     try {
-      if (settings.ad_feed_items) {
+      if (settings.ad_feed_items !== undefined) {
         const parsed = JSON.parse(settings.ad_feed_items);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const active = parsed.filter((c: any) => c.enabled !== false && c.image);
-          if (active.length > 0) return active;
+        if (Array.isArray(parsed)) {
+          return parsed.filter((c: any) => c.enabled !== false && c.image);
         }
       }
     } catch {}
 
-    return [
-      {
-        id: "feed_default",
-        image: settings.ad_feed_image || "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=600",
-        title: settings.ad_feed_title || "مساحة إعلانية مدمجة VIP",
-        desc: settings.ad_feed_desc || "أعلن عن منتجاتك أو خدماتك مباشرة أمام المتسوقين.",
-        badge: settings.ad_feed_badge || "راعي معتمد ⭐",
-        link: settings.ad_feed_link || defaultBookingLink,
-        cta: settings.ad_feed_cta || "مشاهدة العرض ↗",
-      },
-    ];
+    if (settings.ad_feed_image) {
+      return [
+        {
+          id: "feed_legacy",
+          image: settings.ad_feed_image,
+          title: settings.ad_feed_title || "",
+          desc: settings.ad_feed_desc || "",
+          badge: settings.ad_feed_badge || "راعي معتمد ⭐",
+          link: settings.ad_feed_link || "",
+          cta: settings.ad_feed_cta || "مشاهدة العرض ↗",
+        },
+      ];
+    }
+
+    return [];
   };
 
   const cards = getCards();
 
-  // Auto-rotate if multiple cards
   useEffect(() => {
     if (cards.length <= 1) return;
     const timer = setInterval(() => {
@@ -455,7 +439,6 @@ export function InFeedGridAdCard() {
 
   return (
     <div className="group relative rounded-2xl overflow-hidden bg-gradient-to-b from-[#181308] to-[#0d1017] border-2 border-amber-500/40 p-3 sm:p-4 flex flex-col justify-between shadow-xl hover:border-amber-500/80 transition text-right">
-      {/* Click whole card if link provided */}
       {card.link && (
         <a
           href={card.link}
@@ -488,9 +471,11 @@ export function InFeedGridAdCard() {
 
       {/* Title & Desc */}
       <div className="space-y-1 mb-3 flex-1 relative z-0">
-        <h4 className="text-xs sm:text-sm font-black text-white truncate group-hover:text-amber-300 transition">
-          {card.title}
-        </h4>
+        {card.title && (
+          <h4 className="text-xs sm:text-sm font-black text-white truncate group-hover:text-amber-300 transition">
+            {card.title}
+          </h4>
+        )}
         {card.desc && (
           <p className="text-[10px] text-gray-400 line-clamp-2 leading-relaxed">
             {card.desc}
@@ -499,16 +484,18 @@ export function InFeedGridAdCard() {
       </div>
 
       {/* Action Button */}
-      <div className="w-full py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs flex items-center justify-center gap-1.5 shadow-md transition relative z-20 pointer-events-none">
-        <span>{card.cta || "مشاهدة العرض ↗"}</span>
-        <ExternalLink className="w-3 h-3" />
-      </div>
+      {card.cta && (
+        <div className="w-full py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs flex items-center justify-center gap-1.5 shadow-md transition relative z-20 pointer-events-none">
+          <span>{card.cta}</span>
+          <ExternalLink className="w-3 h-3" />
+        </div>
+      )}
     </div>
   );
 }
 
 /**
- * 5. Sticky Mobile Bottom Smart Ad Bar (الشريط الإعلاني العائم للموبايل - يدعم أكثر من إعلان)
+ * 5. Sticky Mobile Bottom Smart Ad Bar (الشريط الإعلاني العائم للموبايل - يظهر فقط عند وجود إعلانات)
  */
 export function StickyMobileAdBar() {
   const settings = useSettings();
@@ -523,30 +510,31 @@ export function StickyMobileAdBar() {
   }, []);
 
   const isEnabled = settings.ad_mobile_bar_enabled === "true";
+  if (!isEnabled || isDismissed) return null;
 
-  const bookingWhatsapp = settings.ad_booking_whatsapp || "01288212101";
-  const defaultBookingLink = `https://wa.me/20${bookingWhatsapp.replace(/\D/g, "").replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أريد الاستفسار عن حجز الشريط الإعلاني الذكي للموبايل في متجر EGY CPM")}`;
-
-  // Parse multi mobile bar ads
+  // Parse multi mobile bar ads (NO HARDCODED DUMMIES)
   const getItems = () => {
     try {
-      if (settings.ad_mobile_items) {
+      if (settings.ad_mobile_items !== undefined) {
         const parsed = JSON.parse(settings.ad_mobile_items);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const active = parsed.filter((it: any) => it.enabled !== false && it.text);
-          if (active.length > 0) return active;
+        if (Array.isArray(parsed)) {
+          return parsed.filter((it: any) => it.enabled !== false && it.text);
         }
       }
     } catch {}
 
-    return [
-      {
-        id: "mobile_default",
-        badge: settings.ad_mobile_bar_badge || "عرض خاص 🔥",
-        text: settings.ad_mobile_bar_text || "إعلان مميز: انضم لأقوى عروض السيرفرات والسيارات الآن!",
-        link: settings.ad_mobile_bar_link || defaultBookingLink,
-      },
-    ];
+    if (settings.ad_mobile_bar_text) {
+      return [
+        {
+          id: "mobile_legacy",
+          badge: settings.ad_mobile_bar_badge || "عرض خاص 🔥",
+          text: settings.ad_mobile_bar_text,
+          link: settings.ad_mobile_bar_link || "",
+        },
+      ];
+    }
+
+    return [];
   };
 
   const items = getItems();
@@ -559,24 +547,15 @@ export function StickyMobileAdBar() {
     return () => clearInterval(timer);
   }, [items.length]);
 
-  if (!isEnabled || isDismissed || items.length === 0) return null;
+  if (items.length === 0) return null;
 
   const current = items[currentIndex] || items[0];
-
-  const handleDismiss = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDismissed(true);
-    try {
-      sessionStorage.setItem("cpm_mobile_bar_dismissed", "true");
-    } catch {}
-  };
 
   return (
     <div className="fixed bottom-[60px] inset-x-2 z-40 md:hidden transition-all duration-300">
       <div className="relative flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-black/90 border border-amber-500/50 backdrop-blur-md shadow-2xl text-white">
         <a
-          href={current.link}
+          href={current.link || "#"}
           target={current.link?.startsWith("http") ? "_blank" : undefined}
           rel="noreferrer"
           className="flex-1 min-w-0 flex items-center gap-1.5"
@@ -593,7 +572,12 @@ export function StickyMobileAdBar() {
 
         <button
           type="button"
-          onClick={handleDismiss}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDismissed(true);
+            try { sessionStorage.setItem("cpm_mobile_bar_dismissed", "true"); } catch {}
+          }}
           aria-label="إغلاق"
           className="p-1 rounded-md text-gray-400 hover:text-white shrink-0"
         >

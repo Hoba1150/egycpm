@@ -180,28 +180,31 @@ export default function AdsManagerClient({
   };
 
   /* -------------------------------------------------------------
-   * 1. HERO BILLBOARD ADS (Multi-Ad)
+   * 1. HERO BILLBOARD ADS (Multi-Ad Carousel - Purely Dynamic)
    * ----------------------------------------------------------- */
   const getHeroAds = () => {
     try {
-      if (settings.hero_billboard_ads) {
+      if (settings.hero_billboard_ads !== undefined) {
         const p = JSON.parse(settings.hero_billboard_ads);
-        if (Array.isArray(p) && p.length > 0) return p;
+        if (Array.isArray(p)) return p;
       }
     } catch {}
-    return [
-      {
-        id: "hero_1",
-        image: settings.ad_hero_image || "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=1200",
-        link: settings.ad_hero_link || "",
-        title: settings.ad_hero_title || "",
-        desc: settings.ad_hero_desc || "",
-        badge: settings.ad_hero_badge || "SPONSORED VIP ⭐",
-        sponsor: settings.ad_hero_sponsor || "راعي معتمد",
-        cta: settings.ad_hero_cta || "زيارة العرض ↗",
-        enabled: true,
-      },
-    ];
+    if (settings.ad_hero_image) {
+      return [
+        {
+          id: "hero_legacy",
+          image: settings.ad_hero_image,
+          link: settings.ad_hero_link || "",
+          title: settings.ad_hero_title || "",
+          desc: settings.ad_hero_desc || "",
+          badge: settings.ad_hero_badge || "SPONSORED VIP ⭐",
+          sponsor: settings.ad_hero_sponsor || "راعي معتمد",
+          cta: settings.ad_hero_cta || "زيارة العرض ↗",
+          enabled: true,
+        },
+      ];
+    }
+    return [];
   };
 
   const heroAds = getHeroAds();
@@ -234,37 +237,16 @@ export default function AdsManagerClient({
   };
 
   /* -------------------------------------------------------------
-   * 2. STORIES (Multi-Story, 12H Auto-Expiry)
+   * 2. STORIES (Multi-Story, 12H Auto-Expiry - Purely Dynamic)
    * ----------------------------------------------------------- */
   const getStories = () => {
     try {
-      if (settings.ad_stories_items) {
+      if (settings.ad_stories_items !== undefined) {
         const p = JSON.parse(settings.ad_stories_items);
-        if (Array.isArray(p) && p.length > 0) return p;
+        if (Array.isArray(p)) return p;
       }
     } catch {}
-    return [
-      {
-        id: "story_1",
-        name: settings.ad_story1_name || "راعي VIP",
-        image:
-          settings.ad_story1_image || "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=500",
-        link: settings.ad_story1_link || "",
-        createdAt: Date.now(),
-        durationHours: 12,
-        enabled: true,
-      },
-      {
-        id: "story_2",
-        name: settings.ad_story2_name || "عروض كوينز",
-        image:
-          settings.ad_story2_image || "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=500",
-        link: settings.ad_story2_link || "",
-        createdAt: Date.now(),
-        durationHours: 12,
-        enabled: true,
-      },
-    ];
+    return [];
   };
 
   const stories = getStories();
@@ -293,25 +275,28 @@ export default function AdsManagerClient({
   };
 
   /* -------------------------------------------------------------
-   * 3. TOP PANORAMA ADS (Multi-Ad Carousel)
+   * 3. TOP PANORAMA ADS (Multi-Ad Carousel - Purely Dynamic)
    * ----------------------------------------------------------- */
   const getTopAds = () => {
     try {
-      if (settings.ad_top_items) {
+      if (settings.ad_top_items !== undefined) {
         const p = JSON.parse(settings.ad_top_items);
-        if (Array.isArray(p) && p.length > 0) return p;
+        if (Array.isArray(p)) return p;
       }
     } catch {}
-    return [
-      {
-        id: "top_1",
-        badge: settings.ad_top_badge || "عرض اليوم ⚡",
-        text: settings.ad_top_text || "انضم لسيرفر الديسكورد الرسمي واحصل على سيارات حصرية يومياً مجاناً!",
-        link: settings.ad_top_link || "",
-        cta: settings.ad_top_cta || "انضم للديسكورد ↗",
-        enabled: true,
-      },
-    ];
+    if (settings.ad_top_text) {
+      return [
+        {
+          id: "top_legacy",
+          badge: settings.ad_top_badge || "عرض اليوم ⚡",
+          text: settings.ad_top_text,
+          link: settings.ad_top_link || "",
+          cta: settings.ad_top_cta || "انضم للديسكورد ↗",
+          enabled: true,
+        },
+      ];
+    }
+    return [];
   };
 
   const topAds = getTopAds();
@@ -331,29 +316,29 @@ export default function AdsManagerClient({
   };
 
   /* -------------------------------------------------------------
-   * 4. MID LEADERBOARD ADS (Multi-Ad Carousel)
+   * 4. MID LEADERBOARD ADS (Multi-Ad Carousel - Purely Dynamic)
    * ----------------------------------------------------------- */
   const getMidBanners = () => {
     try {
-      if (settings.ad_mid_items) {
+      if (settings.ad_mid_items !== undefined) {
         const p = JSON.parse(settings.ad_mid_items);
-        if (Array.isArray(p) && p.length > 0) return p;
+        if (Array.isArray(p)) return p;
       }
     } catch {}
-    return [
-      {
-        id: "mid_1",
-        title: settings.ad_mid_title || "مساحة إعلانية مميزة متاحة للرعاة 🌟",
-        desc:
-          settings.ad_mid_desc ||
-          "احصل على آلاف المشاهدات اليومية لمتجرك أو قناتك هنا. اضغط للتواصل المباشر عبر واتساب.",
-        image:
-          settings.ad_mid_image || "https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?w=1200",
-        link: settings.ad_mid_link || "",
-        cta: settings.ad_mid_cta || "حجز مساحة إعلانية 💬",
-        enabled: true,
-      },
-    ];
+    if (settings.ad_mid_image || settings.ad_mid_title) {
+      return [
+        {
+          id: "mid_legacy",
+          title: settings.ad_mid_title || "",
+          desc: settings.ad_mid_desc || "",
+          image: settings.ad_mid_image || "",
+          link: settings.ad_mid_link || "",
+          cta: settings.ad_mid_cta || "حجز مساحة إعلانية 💬",
+          enabled: true,
+        },
+      ];
+    }
+    return [];
   };
 
   const midBanners = getMidBanners();
@@ -374,28 +359,30 @@ export default function AdsManagerClient({
   };
 
   /* -------------------------------------------------------------
-   * 5. IN-FEED PRODUCT CARD ADS (Multi-Ad Carousel)
+   * 5. IN-FEED PRODUCT CARD ADS (Multi-Ad Carousel - Purely Dynamic)
    * ----------------------------------------------------------- */
   const getFeedCards = () => {
     try {
-      if (settings.ad_feed_items) {
+      if (settings.ad_feed_items !== undefined) {
         const p = JSON.parse(settings.ad_feed_items);
-        if (Array.isArray(p) && p.length > 0) return p;
+        if (Array.isArray(p)) return p;
       }
     } catch {}
-    return [
-      {
-        id: "feed_1",
-        badge: settings.ad_feed_badge || "SPONSORED STORE 💎",
-        title: settings.ad_feed_title || "سيرفر ترويجي معتمد",
-        desc: settings.ad_feed_desc || "أقوى مجتمع عربي لسيارات CPM 2، سحوبات أسبوعية، ومسابقات حصرية!",
-        image:
-          settings.ad_feed_image || "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800",
-        link: settings.ad_feed_link || "",
-        cta: settings.ad_feed_cta || "انضم الآن 🚀",
-        enabled: true,
-      },
-    ];
+    if (settings.ad_feed_image) {
+      return [
+        {
+          id: "feed_legacy",
+          badge: settings.ad_feed_badge || "SPONSORED STORE 💎",
+          title: settings.ad_feed_title || "",
+          desc: settings.ad_feed_desc || "",
+          image: settings.ad_feed_image,
+          link: settings.ad_feed_link || "",
+          cta: settings.ad_feed_cta || "انضم الآن 🚀",
+          enabled: true,
+        },
+      ];
+    }
+    return [];
   };
 
   const feedCards = getFeedCards();
@@ -417,24 +404,27 @@ export default function AdsManagerClient({
   };
 
   /* -------------------------------------------------------------
-   * 6. STICKY MOBILE BAR (Multi-Ad Carousel)
+   * 6. STICKY MOBILE BAR (Multi-Ad Carousel - Purely Dynamic)
    * ----------------------------------------------------------- */
   const getMobileAds = () => {
     try {
-      if (settings.ad_mobile_items) {
+      if (settings.ad_mobile_items !== undefined) {
         const p = JSON.parse(settings.ad_mobile_items);
-        if (Array.isArray(p) && p.length > 0) return p;
+        if (Array.isArray(p)) return p;
       }
     } catch {}
-    return [
-      {
-        id: "mobile_1",
-        badge: settings.ad_mobile_bar_badge || "إعلان مميز 🔥",
-        text: settings.ad_mobile_bar_text || "انضم لأكبر قناة تليجرام لسيارات وسيرفرات اللعبة مجاناً!",
-        link: settings.ad_mobile_bar_link || "",
-        enabled: true,
-      },
-    ];
+    if (settings.ad_mobile_bar_text) {
+      return [
+        {
+          id: "mobile_legacy",
+          badge: settings.ad_mobile_bar_badge || "إعلان مميز 🔥",
+          text: settings.ad_mobile_bar_text,
+          link: settings.ad_mobile_bar_link || "",
+          enabled: true,
+        },
+      ];
+    }
+    return [];
   };
 
   const mobileAds = getMobileAds();
@@ -730,8 +720,22 @@ export default function AdsManagerClient({
               </button>
             </div>
 
-            <div className="space-y-4">
-              {heroAds.map((ad: any, idx: number) => (
+            {heroAds.length === 0 ? (
+              <div className="p-8 text-center rounded-2xl bg-[#0a0d13] border border-dashed border-amber-500/30 space-y-3">
+                <p className="text-xs text-amber-200/80 font-bold">لا توجد إعلانات في المساحة الرئيسية حالياً (المساحة مخفية من المتجر تلقائياً).</p>
+                <p className="text-[11px] text-gray-400">عند إضافة إعلان هنا سيبدأ في الظهور والتنقل فوراً على المتجر.</p>
+                <button
+                  type="button"
+                  onClick={addHeroAd}
+                  className="px-4 py-2 rounded-xl bg-amber-500 text-black font-black text-xs inline-flex items-center gap-1.5 shadow-md shadow-amber-500/20"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>إضافة أول إعلان للمساحة الرئيسية</span>
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {heroAds.map((ad: any, idx: number) => (
                 <div
                   key={ad.id || idx}
                   className="p-5 rounded-2xl bg-[#0f1218] border border-amber-500/30 space-y-4 relative"
@@ -983,7 +987,8 @@ export default function AdsManagerClient({
                   </div>
                 </div>
               ))}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1084,8 +1089,22 @@ export default function AdsManagerClient({
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {stories.map((story: any, idx: number) => {
+            {stories.length === 0 ? (
+              <div className="p-8 text-center rounded-2xl bg-[#0a0d13] border border-dashed border-pink-500/30 space-y-3">
+                <p className="text-xs text-pink-200/80 font-bold">لا توجد أي قصص رعاة حالياً (شريط القصص مخفي من المتجر تلقائياً).</p>
+                <p className="text-[11px] text-gray-400">عند إنشاء قصة جديدة ستظهر في المتجر لمدة 12 ساعة وتختفي تلقائياً، أو يمكنك حذفها في أي وقت.</p>
+                <button
+                  type="button"
+                  onClick={addStory}
+                  className="px-4 py-2 rounded-xl bg-pink-600 text-white font-black text-xs inline-flex items-center gap-1.5 shadow-md shadow-pink-600/20"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>إضافة أول قصة راعي الآن (12 ساعة)</span>
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {stories.map((story: any, idx: number) => {
                 const now = Date.now();
                 const createdAt = Number(story.createdAt) || now;
                 const durationHours = Number(story.durationHours) || 12;
@@ -1237,7 +1256,8 @@ export default function AdsManagerClient({
                   </div>
                 );
               })}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1374,10 +1394,7 @@ export default function AdsManagerClient({
                       <button
                         type="button"
                         onClick={() => {
-                          if (topAds.length <= 1) {
-                            toast.warning("يجب الإبقاء على إعلان واحد على الأقل.");
-                            return;
-                          }
+                          
                           setTopAds(topAds.filter((_: any, i: number) => i !== idx));
                           toast.info("تم حذف الإعلان.");
                         }}
@@ -1588,10 +1605,7 @@ export default function AdsManagerClient({
                       <button
                         type="button"
                         onClick={() => {
-                          if (midBanners.length <= 1) {
-                            toast.warning("يجب الإبقاء على إعلان واحد على الأقل.");
-                            return;
-                          }
+                          
                           setMidBanners(midBanners.filter((_: any, i: number) => i !== idx));
                           toast.info("تم حذف البانر.");
                         }}
@@ -1849,10 +1863,7 @@ export default function AdsManagerClient({
                       <button
                         type="button"
                         onClick={() => {
-                          if (feedCards.length <= 1) {
-                            toast.warning("يجب الإبقاء على بطاقة واحدة على الأقل.");
-                            return;
-                          }
+                          
                           setFeedCards(feedCards.filter((_: any, i: number) => i !== idx));
                           toast.info("تم حذف البطاقة.");
                         }}
@@ -2122,10 +2133,7 @@ export default function AdsManagerClient({
                       <button
                         type="button"
                         onClick={() => {
-                          if (mobileAds.length <= 1) {
-                            toast.warning("يجب الإبقاء على إعلان واحد على الأقل.");
-                            return;
-                          }
+                          
                           setMobileAds(mobileAds.filter((_: any, i: number) => i !== idx));
                           toast.info("تم حذف الإعلان.");
                         }}
