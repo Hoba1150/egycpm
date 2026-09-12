@@ -179,41 +179,6 @@ export default function HeroSection({ user: initialUser }: HeroSectionProps) {
   const bookingWhatsapp = settings.ad_booking_whatsapp || "01288212101";
   const advertiseHereLink = `https://wa.me/20${bookingWhatsapp.replace(/\D/g, "").replace(/^0/, "")}?text=${encodeURIComponent("مرحباً، أود حجز مساحة إعلانية في الواجهة الرئيسية لمتجر EGY CPM")}`;
 
-  const quickServices = [
-    {
-      title: settings.srv1_title || "سيارات معدلة 1695HP",
-      desc: "W16 Tuning",
-      icon: Car,
-      href: "/shop?type=MODIFIED_CAR",
-      badge: "محركات خارقة",
-      iconBg: "bg-red-600/15 border-red-500/30 text-red-400",
-    },
-    {
-      title: settings.srv2_title || "سيارات رسم وفينيل",
-      desc: "Custom Livery",
-      icon: Flame,
-      href: "/shop?type=DRAWN_CAR",
-      badge: "تصاميم حصرية",
-      iconBg: "bg-purple-600/15 border-purple-500/30 text-purple-400",
-    },
-    {
-      title: settings.srv3_title || "شحن كاش وكوينز",
-      desc: "Coins & Cash",
-      icon: Zap,
-      href: "/shop?type=SERVICE",
-      badge: "تسليم فوري",
-      iconBg: "bg-emerald-600/15 border-emerald-500/30 text-emerald-400",
-    },
-    {
-      title: settings.srv4_title || "حسابات جاهزة VIP",
-      desc: "VIP Accounts",
-      icon: Key,
-      href: "/shop?type=ACCOUNT",
-      badge: "جاهزة للعب",
-      iconBg: "bg-blue-600/15 border-blue-500/30 text-blue-400",
-    },
-  ];
-
   return (
     <section className="relative pt-2 sm:pt-3 pb-4 sm:pb-6 px-2.5 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto w-full space-y-3 sm:space-y-4">
@@ -424,32 +389,6 @@ export default function HeroSection({ user: initialUser }: HeroSectionProps) {
 
         {/* 3. Sponsored Partner Stories Strip (Horizontal scrolling on mobile) */}
         <SponsoredStoriesBar />
-
-        {/* 4. Quick Services Grid: 2x2 on Mobile, 4 columns on Desktop */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 pt-1">
-          {quickServices.map((srv, idx) => {
-            const Icon = srv.icon;
-            return (
-              <Link
-                key={idx}
-                href={srv.href}
-                className="group p-3 rounded-xl bg-[#0f1218] hover:bg-[#161b24] border border-gray-800 hover:border-gray-700 transition flex items-center gap-2.5 text-right shadow-sm"
-              >
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center border shrink-0 transition-transform group-hover:scale-105 ${srv.iconBg}`}>
-                  <Icon className="w-4 h-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <span className="text-xs font-black text-white block truncate group-hover:text-red-400 transition">
-                    {srv.title}
-                  </span>
-                  <span className="text-[10px] text-gray-400 block truncate font-mono">
-                    {srv.badge}
-                  </span>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
 
       </div>
     </section>
