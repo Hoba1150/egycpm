@@ -48,10 +48,15 @@ export default function RootLayout({
           data-cfasync="false"
           async
         />
-        {/* Monetag In-Page Push Immortal Tag (Zone: 11823951) */}
+        {/* Monetag In-Page Push Zone (Zone: 11823951) - Powered by Verified Domain 5gvci.com */}
+        <script
+          src="https://5gvci.com/act/files/tag.min.js?z=11823951"
+          data-cfasync="false"
+          async
+        />
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(s){s.dataset.zone='11823951',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));`,
+            __html: `(function(s){s.dataset.zone='11823951',s.src='https://5gvci.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));`,
           }}
         />
       </head>
