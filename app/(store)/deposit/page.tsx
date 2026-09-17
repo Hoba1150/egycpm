@@ -1,14 +1,20 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Copy, Check, Upload, ShieldCheck, Zap, Loader2 } from "lucide-react";
+import { Copy, Check, Upload, ShieldCheck, Zap, Loader2, Wallet, ArrowRight, CheckCircle2, PhoneCall } from "lucide-react";
 import { toast } from "sonner";
 import { submitDepositRequest } from "@/lib/actions/wallet";
 import { useRouter } from "next/navigation";
 import AuthModal from "@/components/shared/AuthModal";
+import { formatCurrency } from "@/lib/utils";
+import { useSettings } from "@/lib/context/SettingsContext";
+import Link from "next/link";
+
+const QUICK_AMOUNTS = [50, 100, 200, 350, 500, 1000];
 
 export default function DepositPage() {
   const router = useRouter();
+  const settings = useSettings();
   const [user, setUser] = useState<any>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
@@ -22,7 +28,7 @@ export default function DepositPage() {
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const walletNumber = "01288212101";
+  const walletNumber = settings.vodafone_cash_number || settings.wallet_deposit_number || "01288212101";
 
   const fetchUser = () => {
     fetch("/api/auth/me", { cache: "no-store" })
@@ -33,10 +39,8 @@ export default function DepositPage() {
 
   useEffect(() => {
     fetchUser();
-
     window.addEventListener("cpm_auth_changed", fetchUser);
     window.addEventListener("focus", fetchUser);
-
     return () => {
       window.removeEventListener("cpm_auth_changed", fetchUser);
       window.removeEventListener("focus", fetchUser);
@@ -90,18 +94,13 @@ export default function DepositPage() {
       return;
     }
 
-    if (!screenshotFile) {
+    if (!screenshotPreview) {
       toast.error("يرجى إرفاق صورة إثبات التحويل (Screenshot).");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      if (!screenshotPreview) {
-        toast.error("يرجى اختيار صورة إثبات التحويل أولاً.");
-        return;
-      }
-
       const res = await submitDepositRequest({
         method,
         senderPhone: senderPhone.trim(),
@@ -112,6 +111,10 @@ export default function DepositPage() {
 
       if (res.success) {
         toast.success(`تم استلام طلب الشحن بنجاح! رقم الطلب: ${res.deposit.requestNumber}`);
+        // Notify all app components to refresh user balance
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("cpm_auth_changed"));
+        }
         router.push("/wallet");
       }
     } catch (err: any) {
@@ -121,79 +124,111 @@ export default function DepositPage() {
     }
   };
 
+  const currentBalance = user?.wallet?.totalAvailable ?? 0;
+
   return (
     <>
-      <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-8 text-right space-y-6">
-        {/* Header */}
-        <div className="space-y-1 border-b border-gray-800 pb-4">
-          <span className="text-xs font-mono font-bold text-orange-500 uppercase">
-            Wallet Deposit
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white">شحن رصيد المحفظة</h1>
-          <p className="text-xs sm:text-sm text-gray-400">
-            اشحن محفظتك عبر فودافون كاش، أورنج، اتصالات أو وي باي للشراء الفوري
-          </p>
+      <div className="max-w-4xl mx-auto px-3 sm:px-6 lg:px-8 py-6 text-right space-y-6">
+        {/* Top Breadcrumb & User Balance Strip */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#0f1218] border border-gray-800">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <Link href="/" className="hover:text-white transition">الرئيسية</Link>
+              <span>/</span>
+              <Link href="/wallet" className="hover:text-white transition">المحفظة</Link>
+              <span>/</span>
+              <span className="text-orange-500 font-bold">شحن الرصيد</span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-black text-white">شحن رصيد المحفظة</h1>
+          </div>
+
+          {user && (
+            <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-orange-500/10 border border-orange-500/30">
+              <Wallet className="w-4 h-4 text-orange-500" />
+              <div className="text-right">
+                <span className="text-[10px] text-gray-400 block">رصيدك الحالي:</span>
+                <span className="text-xs font-black text-orange-400 font-mono">
+                  {formatCurrency(currentBalance)}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 3 Step Indicator */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center">
+          <div className="p-2.5 sm:p-3 rounded-xl bg-orange-500/10 border border-orange-500/40 text-orange-400">
+            <span className="w-5 h-5 sm:w-6 sm:h-6 mx-auto rounded-full bg-orange-500 text-black font-black text-[11px] sm:text-xs flex items-center justify-center mb-1">1</span>
+            <span className="text-[11px] sm:text-xs font-bold block">انسخ رقم الكاش</span>
+          </div>
+          <div className="p-2.5 sm:p-3 rounded-xl bg-[#0f1218] border border-gray-800 text-gray-300">
+            <span className="w-5 h-5 sm:w-6 sm:h-6 mx-auto rounded-full bg-gray-800 text-gray-300 font-black text-[11px] sm:text-xs flex items-center justify-center mb-1">2</span>
+            <span className="text-[11px] sm:text-xs font-bold block">حوّل المبلغ</span>
+          </div>
+          <div className="p-2.5 sm:p-3 rounded-xl bg-[#0f1218] border border-gray-800 text-gray-300">
+            <span className="w-5 h-5 sm:w-6 sm:h-6 mx-auto rounded-full bg-gray-800 text-gray-300 font-black text-[11px] sm:text-xs flex items-center justify-center mb-1">3</span>
+            <span className="text-[11px] sm:text-xs font-bold block">أرسل إثبات التحويل</span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Transfer Instruction Card (Right) */}
+          {/* Step 1 & Instructions (Right) */}
           <div className="lg:col-span-5 space-y-4">
-            <div className="p-5 sm:p-6 rounded-2xl bg-[#0f1218] border border-gray-800 shadow-sm space-y-4">
-              <div className="flex items-center gap-2 text-orange-500 font-extrabold text-sm">
-                <Zap className="w-5 h-5" />
+            <div className="p-5 rounded-2xl bg-[#0f1218] border border-gray-800 space-y-4">
+              <div className="flex items-center gap-2 text-orange-500 font-black text-sm">
+                <span className="w-6 h-6 rounded-full bg-orange-500 text-black text-xs font-black flex items-center justify-center">1</span>
                 <span>رقم تحويل الكاش المعتمد</span>
               </div>
 
-              {/* Number with Copy Button */}
-              <div className="p-4 rounded-xl bg-[#161b24] border border-orange-500/30 space-y-2">
-                <span className="text-[11px] text-gray-400 block font-medium">حول المبلغ إلى هذا الرقم:</span>
-                <div className="flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={handleCopyNumber}
-                    className="p-2 rounded-xl bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 transition flex items-center gap-1.5 text-xs font-bold"
-                  >
-                    {isCopied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-                    <span>{isCopied ? "تم النسخ!" : "نسخ الرقم"}</span>
-                  </button>
-                  <span className="font-mono text-xl sm:text-2xl font-black text-orange-500 tracking-widest dir-ltr">
-                    {walletNumber}
-                  </span>
+              {/* Big Copy Card */}
+              <div className="p-4 rounded-xl bg-[#161b24] border border-orange-500/40 space-y-2.5 text-center">
+                <span className="text-xs text-gray-400 block font-medium">حول المبلغ عبر محفظتك إلى الرقم:</span>
+                <div className="font-mono text-2xl sm:text-3xl font-black text-orange-400 tracking-widest dir-ltr">
+                  {walletNumber}
                 </div>
+                <button
+                  type="button"
+                  onClick={handleCopyNumber}
+                  className="w-full py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-black font-black text-xs transition flex items-center justify-center gap-2 shadow-sm active:scale-98"
+                >
+                  {isCopied ? <Check className="w-4 h-4 text-black" /> : <Copy className="w-4 h-4" />}
+                  <span>{isCopied ? "تم نسخ الرقم بنجاح!" : "انقر لنسخ الرقم"}</span>
+                </button>
               </div>
 
               {/* Supported Wallets */}
               <div className="space-y-1.5 text-xs">
-                <span className="text-gray-400 font-bold block">المحافظ المدعومة للتحويل:</span>
+                <span className="text-gray-400 font-bold block">المحافظ المتاحة للإرسال:</span>
                 <div className="grid grid-cols-2 gap-2 text-[11px] text-gray-300">
-                  <div className="p-2 rounded-xl bg-[#161b24] border border-gray-700 text-center font-medium">Vodafone Cash</div>
-                  <div className="p-2 rounded-xl bg-[#161b24] border border-gray-700 text-center font-medium">Orange Cash</div>
-                  <div className="p-2 rounded-xl bg-[#161b24] border border-gray-700 text-center font-medium">Etisalat Cash</div>
-                  <div className="p-2 rounded-xl bg-[#161b24] border border-gray-700 text-center font-medium">WE Pay</div>
+                  <div className="p-2 rounded-xl bg-[#161b24] border border-gray-800 text-center font-bold text-red-400">Vodafone Cash</div>
+                  <div className="p-2 rounded-xl bg-[#161b24] border border-gray-800 text-center font-bold text-orange-400">Orange Cash</div>
+                  <div className="p-2 rounded-xl bg-[#161b24] border border-gray-800 text-center font-bold text-emerald-400">Etisalat Cash</div>
+                  <div className="p-2 rounded-xl bg-[#161b24] border border-gray-800 text-center font-bold text-purple-400">WE Pay</div>
                 </div>
               </div>
 
-              {/* Instructions */}
-              <div className="p-3.5 rounded-xl bg-[#161b24] border border-gray-800 text-[11px] text-gray-300 space-y-1.5 leading-relaxed">
-                <p>1. قم بتحويل المبلغ المطلوب إلى الرقم أعلاه عبر تطبيق المحفظة الخاص بك.</p>
-                <p>2. التقط سكرين شوت (Screenshot) لإثبات التحويل ورسالة الخصم.</p>
-                <p>3. املأ النموذج وسيقوم فريق الإدارة بتأكيد الإيداع وإضافة الرصيد فوراً.</p>
+              <div className="p-3.5 rounded-xl bg-[#161b24] border border-gray-800/80 text-[11px] text-gray-400 space-y-1.5 leading-relaxed">
+                <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>ضمان وصول الرصيد 100%</span>
+                </div>
+                <p>يتم تدقيق ومطابقة التحويلات وإضافة الرصيد إلى حسابك تلقائياً وبسرعة فائقة بعد مراجعة الإدارة.</p>
               </div>
             </div>
           </div>
 
-          {/* Deposit Form (Left) */}
+          {/* Steps 2 & 3: Form (Left) */}
           <div className="lg:col-span-7">
-            <form onSubmit={handleSubmit} className="p-5 sm:p-6 rounded-2xl bg-[#0f1218] border border-gray-800 shadow-sm space-y-4">
-              <h3 className="text-base font-extrabold text-white border-b border-gray-800 pb-3">
-                بيانات إثبات التحويل
-              </h3>
+            <form onSubmit={handleSubmit} className="p-5 sm:p-6 rounded-2xl bg-[#0f1218] border border-gray-800 space-y-5">
+              
+              {/* Step 2: Amount & Method */}
+              <div className="space-y-3 border-b border-gray-800 pb-4">
+                <div className="flex items-center gap-2 text-white font-black text-sm">
+                  <span className="w-6 h-6 rounded-full bg-orange-500 text-black text-xs font-black flex items-center justify-center">2</span>
+                  <span>المبلغ والمحفظة المستخدمة</span>
+                </div>
 
-              {/* Method Picker */}
-              <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1.5">
-                  طريقة التحويل المستخدمة
-                </label>
+                {/* Method Picker */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
                     { key: "VODAFONE_CASH", label: "فودافون كاش" },
@@ -207,91 +242,119 @@ export default function DepositPage() {
                       onClick={() => setMethod(m.key as any)}
                       className={`p-2 rounded-xl text-xs font-bold transition text-center ${
                         method === m.key
-                          ? "bg-orange-500 text-black shadow-sm"
-                          : "bg-[#161b24] bg-[#161b24] text-gray-300 text-gray-300 border border-gray-700 border-gray-700 hover:border-orange-500/50"
+                          ? "bg-orange-500 text-black shadow-sm font-black"
+                          : "bg-[#161b24] text-gray-300 border border-gray-700 hover:border-orange-500/50"
                       }`}
                     >
                       {m.label}
                     </button>
                   ))}
                 </div>
-              </div>
 
-              {/* Sender Phone */}
-              <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1">
-                  رقم الهاتف الذي قمت بالتحويل منه (11 رقم) *
-                </label>
-                <input
-                  type="tel"
-                  required
-                  placeholder="010XXXXXXXX"
-                  value={senderPhone}
-                  onChange={(e) => setSenderPhone(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#161b24] border border-gray-700 rounded-xl text-xs text-white placeholder-gray-500 focus:border-orange-500 text-right dir-ltr font-mono"
-                />
-              </div>
-
-              {/* Sender Name */}
-              <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1">
-                  اسم صاحب المحفظة أو الراسل بالكامل *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="الاسم كما هو مسجل بالتحويل"
-                  value={senderName}
-                  onChange={(e) => setSenderName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#161b24] border border-gray-700 rounded-xl text-xs text-white placeholder-gray-500 focus:border-orange-500 text-right"
-                />
-              </div>
-
-              {/* Amount */}
-              <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1">
-                  المبلغ المحول بالجنيه *
-                </label>
-                <input
-                  type="number"
-                  required
-                  min={1}
-                  step={1}
-                  placeholder="500"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : "")}
-                  className="w-full px-3.5 py-2.5 bg-[#161b24] border border-gray-700 rounded-xl text-xs text-white placeholder-gray-500 focus:border-orange-500 text-right dir-ltr font-mono font-bold"
-                />
-              </div>
-
-              {/* Screenshot Upload */}
-              <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1.5">
-                  صورة إثبات التحويل (Screenshot) *
-                </label>
-                <div className="relative border-2 border-dashed border-gray-700 hover:border-orange-500/60 rounded-xl p-4 text-center cursor-pointer transition bg-[#161b24]/40">
+                {/* Amount Input + Quick Selectors */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1.5">
+                    المبلغ الذي قمت بتحويله (بالجنيه المصري) *
+                  </label>
                   <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    type="number"
+                    required
+                    min={1}
+                    step={1}
+                    placeholder="مثال: 200"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value ? Number(e.target.value) : "")}
+                    className="w-full px-3.5 py-2.5 bg-[#161b24] border border-gray-700 rounded-xl text-sm text-white placeholder-gray-500 focus:border-orange-500 text-right dir-ltr font-mono font-black"
                   />
-                  {screenshotPreview ? (
-                    <div className="space-y-2">
-                      <img
-                        src={screenshotPreview}
-                        alt="Proof Preview"
-                        className="max-h-44 mx-auto rounded-xl object-contain border border-gray-700"
-                      />
-                      <p className="text-[11px] text-emerald-500 font-bold">تم اختيار الصورة بنجاح (انقر للتغيير)</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5 py-3">
-                      <Upload className="w-7 h-7 mx-auto text-gray-400" />
-                      <p className="text-xs text-gray-300 font-medium">انقر هنا لرفع سكرين شوت التحويل</p>
-                      <span className="text-[10px] text-gray-500">PNG, JPG, WebP (الحد الأقصى 5MB)</span>
-                    </div>
-                  )}
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {QUICK_AMOUNTS.map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setAmount(amt)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold font-mono transition ${
+                          amount === amt
+                            ? "bg-orange-500/20 text-orange-400 border border-orange-500/50"
+                            : "bg-[#161b24] text-gray-400 border border-gray-800 hover:text-white"
+                        }`}
+                      >
+                        +{amt} ج.م
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 3: Proof Details */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-white font-black text-sm">
+                  <span className="w-6 h-6 rounded-full bg-orange-500 text-black text-xs font-black flex items-center justify-center">3</span>
+                  <span>بيانات وإثبات التحويل</span>
+                </div>
+
+                {/* Sender Phone */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    رقم الهاتف الذي قمت بالتحويل منه (11 رقم) *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    maxLength={11}
+                    placeholder="010XXXXXXXX"
+                    value={senderPhone}
+                    onChange={(e) => setSenderPhone(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#161b24] border border-gray-700 rounded-xl text-xs text-white placeholder-gray-500 focus:border-orange-500 text-right dir-ltr font-mono font-bold"
+                  />
+                </div>
+
+                {/* Sender Name */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1">
+                    اسم الراسل أو صاحب المحفظة *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="الاسم كما هو مسجل في التحويل"
+                    value={senderName}
+                    onChange={(e) => setSenderName(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-[#161b24] border border-gray-700 rounded-xl text-xs text-white placeholder-gray-500 focus:border-orange-500 text-right"
+                  />
+                </div>
+
+                {/* Screenshot Upload */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1.5">
+                    صورة سكرين شوت لرسالة التحويل *
+                  </label>
+                  <div className="relative border-2 border-dashed border-gray-700 hover:border-orange-500/60 rounded-xl p-4 text-center cursor-pointer transition bg-[#161b24]/40">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    />
+                    {screenshotPreview ? (
+                      <div className="space-y-2">
+                        <img
+                          src={screenshotPreview}
+                          alt="Proof Preview"
+                          className="max-h-40 mx-auto rounded-xl object-contain border border-gray-700"
+                        />
+                        <p className="text-xs text-emerald-400 font-bold flex items-center justify-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>تم إرفاق الصورة بنجاح (انقر لتغييرها)</span>
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5 py-3">
+                        <Upload className="w-6 h-6 mx-auto text-orange-500" />
+                        <p className="text-xs text-gray-200 font-bold">انقر هنا لرفع سكرين شوت التحويل</p>
+                        <span className="text-[10px] text-gray-500">JPG, PNG, WebP (الحد الأقصى 5MB)</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -299,14 +362,17 @@ export default function DepositPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-black font-extrabold text-sm transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+                className="w-full py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-black font-black text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20 disabled:opacity-50 active:scale-98"
               >
                 {isSubmitting ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>جاري إرسال طلب الشحن...</span>
+                  </>
                 ) : (
                   <>
                     <Zap className="w-4 h-4" />
-                    <span>إرسال طلب الشحن للمراجعة</span>
+                    <span>تأكيد وإرسال طلب الشحن</span>
                   </>
                 )}
               </button>
@@ -319,3 +385,4 @@ export default function DepositPage() {
     </>
   );
 }
+

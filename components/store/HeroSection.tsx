@@ -72,15 +72,15 @@ export default function HeroSection({ user: initialUser }: HeroSectionProps) {
   };
 
   useEffect(() => {
-    if (!initialUser) {
-      fetchLiveSession();
-    }
+    fetchLiveSession();
     const handleAuth = () => fetchLiveSession();
     window.addEventListener("cpm_auth_changed", handleAuth);
+    window.addEventListener("focus", handleAuth);
     return () => {
       window.removeEventListener("cpm_auth_changed", handleAuth);
+      window.removeEventListener("focus", handleAuth);
     };
-  }, [initialUser]);
+  }, []);
 
   // Parse multi-ad slides from settings (Purely Dynamic - No Forced Dummies)
   const getAds = (): BillboardAdItem[] => {

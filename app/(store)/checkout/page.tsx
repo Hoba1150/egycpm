@@ -372,6 +372,10 @@ export default function CheckoutPage() {
           });
         } catch {}
 
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("cpm_auth_changed"));
+        }
+
         toast.success(
           isGameAccountOrder
             ? "🎉 تم شراء الحساب بنجاح! تم إرسال بيانات الدخول إلى مركز الإشعارات."
@@ -401,15 +405,49 @@ export default function CheckoutPage() {
 
   return (
     <>
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-right space-y-6">
-        {/* Header */}
-        <div className="space-y-1 border-b border-gray-800 pb-4">
-          <span className="text-xs font-mono font-bold text-orange-500 uppercase">
-            Safe Checkout
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-black text-white">
-            تأكيد الدفع وإنشاء الطلب
-          </h1>
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-6 text-right space-y-6">
+        {/* Top Header & Breadcrumbs */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#0f1218] border border-gray-800">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <Link href="/" className="hover:text-white transition">الرئيسية</Link>
+              <span>/</span>
+              <Link href="/cart" className="hover:text-white transition">السلة</Link>
+              <span>/</span>
+              <span className="text-orange-500 font-bold">إتمام الدفع</span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-black text-white">
+              إتمام الطلب وتأكيد الدفع
+            </h1>
+          </div>
+
+          {user && (
+            <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-orange-500/10 border border-orange-500/30">
+              <Wallet className="w-4 h-4 text-orange-500" />
+              <div className="text-right">
+                <span className="text-[10px] text-gray-400 block">رصيد محفظتك المتاح:</span>
+                <span className="text-xs font-black text-orange-400 font-mono">
+                  {formatCurrency(walletBalance)}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 3 Step Visual Tracker */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center">
+          <div className="p-2.5 sm:p-3 rounded-xl bg-[#0f1218] border border-gray-800 text-gray-300">
+            <span className="w-5 h-5 sm:w-6 sm:h-6 mx-auto rounded-full bg-gray-800 text-gray-300 font-black text-[11px] sm:text-xs flex items-center justify-center mb-1">1</span>
+            <span className="text-[11px] sm:text-xs font-bold block">مراجعة المنتجات</span>
+          </div>
+          <div className="p-2.5 sm:p-3 rounded-xl bg-purple-500/10 border border-purple-500/40 text-purple-300">
+            <span className="w-5 h-5 sm:w-6 sm:h-6 mx-auto rounded-full bg-purple-500 text-black font-black text-[11px] sm:text-xs flex items-center justify-center mb-1">2</span>
+            <span className="text-[11px] sm:text-xs font-bold block">بيانات استلام اللعبة</span>
+          </div>
+          <div className="p-2.5 sm:p-3 rounded-xl bg-orange-500/10 border border-orange-500/40 text-orange-400">
+            <span className="w-5 h-5 sm:w-6 sm:h-6 mx-auto rounded-full bg-orange-500 text-black font-black text-[11px] sm:text-xs flex items-center justify-center mb-1">3</span>
+            <span className="text-[11px] sm:text-xs font-bold block">تأكيد الخصم والدفع</span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -456,8 +494,9 @@ export default function CheckoutPage() {
 
             {/* If Order is a GAME ACCOUNT: Simple Name & Phone form */}
             {isGameAccountOrder ? (
-              <div className="p-6 rounded-2xl bg-[#0f1218] border border-purple-500/40 shadow-sm space-y-4 relative overflow-hidden card-drift-accent">
+              <div className="p-5 sm:p-6 rounded-2xl bg-[#0f1218] border border-purple-500/40 shadow-sm space-y-4 relative overflow-hidden">
                 <div className="flex items-center gap-2 text-white font-black text-sm">
+                  <span className="w-6 h-6 rounded-full bg-purple-500 text-black text-xs font-black flex items-center justify-center">2</span>
                   <Gamepad2 className="w-5 h-5 text-purple-400" />
                   <span>بيانات استلام حساب اللعبة (تسليم فوري 🎮)</span>
                 </div>
@@ -526,8 +565,9 @@ export default function CheckoutPage() {
               </div>
             ) : (
               /* Regular Products Fulfillment Form */
-              <div className="p-6 rounded-2xl bg-[#0f1218] border border-gray-800 shadow-sm space-y-4 relative overflow-hidden card-drift-accent">
+              <div className="p-5 sm:p-6 rounded-2xl bg-[#0f1218] border border-gray-800 shadow-sm space-y-4 relative overflow-hidden">
                 <div className="flex items-center gap-2 text-white font-black text-sm">
+                  <span className="w-6 h-6 rounded-full bg-purple-500 text-black text-xs font-black flex items-center justify-center">2</span>
                   <Gamepad2 className="w-5 h-5 text-orange-500" />
                   <span>طريقة تسليم وتنفيذ الطلب في لعبة Car Parking</span>
                 </div>
@@ -684,7 +724,10 @@ export default function CheckoutPage() {
           <div className="lg:col-span-5 space-y-5">
             {/* Payment Method Selector */}
             <div className="p-5 rounded-2xl bg-[#0f1218] border border-gray-800 shadow-sm space-y-3">
-              <span className="text-xs font-bold text-gray-400 block">اختر طريقة الدفع:</span>
+              <div className="flex items-center gap-2 text-white font-black text-sm">
+                <span className="w-6 h-6 rounded-full bg-orange-500 text-black text-xs font-black flex items-center justify-center">3</span>
+                <span>اختر طريقة الدفع:</span>
+              </div>
 
               <div className={`grid ${isStarsEligible ? "grid-cols-2" : "grid-cols-1"} gap-2.5`}>
                 {/* Method 1: Wallet */}
