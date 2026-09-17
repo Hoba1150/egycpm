@@ -61,7 +61,7 @@ export default function AdsManagerClient({
 
   // Section-specific independent saving handler
   const handleSaveSection = async (
-    section: "hero" | "stories" | "top" | "mid" | "feed" | "mobile" | "whatsapp" | "all"
+    section: "hero" | "stories" | "top" | "mid" | "feed" | "mobile" | "whatsapp" | "monetag" | "all"
   ) => {
     setSavingSection(section);
     try {
@@ -105,11 +105,12 @@ export default function AdsManagerClient({
           "ad_mobile_bar_link",
         ],
         whatsapp: ["ad_booking_whatsapp"],
+        monetag: ["monetag_enabled", "monetag_tag_code", "monetag_zone_id", "monetag_direct_link"],
       };
 
       let targetKeys: string[] = [];
       if (section === "all") {
-        targetKeys = Object.keys(settings).filter((k) => k.startsWith("ad_") || k.startsWith("hero_"));
+        targetKeys = Object.keys(settings).filter((k) => k.startsWith("ad_") || k.startsWith("hero_") || k.startsWith("monetag_"));
         if (settings.ad_booking_whatsapp) targetKeys.push("ad_booking_whatsapp");
       } else {
         targetKeys = keysMap[section] || [];
@@ -125,6 +126,7 @@ export default function AdsManagerClient({
       await updateAdSettings(payload);
 
       const sectionNames: Record<string, string> = {
+        monetag: "🌐 شبكة إعلانات Monetag الذكية (أرباح الدولار)",
         hero: "👑 المساحة الرئيسية (Billboard)",
         stories: "🟣 قصص الرعاة (Stories 12h)",
         top: "🔵 شريط البانوراما العلوي",
@@ -132,7 +134,7 @@ export default function AdsManagerClient({
         feed: "🔴 بطاقة المنتجات المدمجة",
         mobile: "🟠 شريط الموبايل العائم",
         whatsapp: "💬 واتساب حجز الإعلانات",
-        all: "كافة المساحات الإعلانية",
+        all: "كافة المساحات الإعلانية وشبكة Monetag",
       };
 
       toast.success(`تم حفظ ونشر ${sectionNames[section]} بنجاح فائق! 🚀`);
@@ -146,7 +148,7 @@ export default function AdsManagerClient({
   };
 
   const [activeSubTab, setActiveSubTab] = useState<
-    "ALL" | "HERO" | "STORIES" | "TOP" | "MID" | "FEED" | "MOBILE" | "WHATSAPP"
+    "ALL" | "MONETAG" | "HERO" | "STORIES" | "TOP" | "MID" | "FEED" | "MOBILE" | "WHATSAPP"
   >("ALL");
 
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
@@ -480,6 +482,20 @@ export default function AdsManagerClient({
             <span>عرض الكل 📋</span>
           </button>
 
+          {/* Sub-Tab: MONETAG (NEW) */}
+          <button
+            type="button"
+            onClick={() => setActiveSubTab("MONETAG")}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border ${
+              activeSubTab === "MONETAG"
+                ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-black font-black border-emerald-400 shadow-md shadow-emerald-500/20"
+                : "bg-emerald-950/30 text-emerald-400 border-emerald-500/40 hover:bg-emerald-950/50"
+            }`}
+          >
+            <span>🌐 شبكة Monetag الذكية (دولار 💵)</span>
+            <span className={`w-2 h-2 rounded-full ${settings.monetag_enabled !== "false" ? "bg-emerald-400 animate-pulse" : "bg-gray-500"}`} />
+          </button>
+
           {/* Sub-Tab 1: HERO */}
           <button
             type="button"
@@ -590,6 +606,160 @@ export default function AdsManagerClient({
           </button>
         </div>
       </div>
+
+      {/* =============================================================
+          SECTION 0: MONETAG SMART AD NETWORK (EMERALD/TEAL THEME)
+         ============================================================= */}
+      {(activeSubTab === "ALL" || activeSubTab === "MONETAG") && (
+        <div className="p-6 rounded-2xl bg-gradient-to-b from-[#061e18] via-[#0b171f] to-[#0a0f16] border-2 border-emerald-500/60 shadow-2xl space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-500/30 pb-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                  <Flame className="w-5 h-5 animate-pulse text-emerald-400" />
+                </span>
+                <h3 className="text-base font-black text-emerald-300 flex items-center gap-2">
+                  <span>🌐 شبكة Monetag الذكية العالمية (أرباح بالدولار للمتجر)</span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10px] font-mono">
+                    Zone: 11823837 ✓
+                  </span>
+                </h3>
+              </div>
+              <p className="text-xs text-gray-300">
+                تعرض إعلانات MultiTag و In-Page Push والبانرات البينية الخفيفة لزوار المتجر وتحقق أرباحاً بالدولار مع حد أدنى للسحب 5$ فقط عبر USDT/PayPal.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <a
+                href="https://monetag.com/"
+                target="_blank"
+                rel="noreferrer"
+                className="px-3 py-1.5 rounded-xl bg-[#16202c] hover:bg-[#1f2d3d] text-emerald-400 border border-emerald-500/40 text-xs font-bold flex items-center gap-1.5 transition"
+              >
+                <span>لوحة Monetag والأرباح</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+
+              <button
+                type="button"
+                onClick={() => handleSaveSection("monetag")}
+                disabled={savingSection !== null}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-black text-xs shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 transition disabled:opacity-50"
+              >
+                {savingSection === "monetag" ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-black" />
+                ) : (
+                  <Save className="w-3.5 h-3.5 text-black" />
+                )}
+                <span>{savingSection === "monetag" ? "جاري الحفظ..." : "حفظ إعدادات Monetag 💾"}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Monetag Controls Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Enable/Disable Master Switch */}
+            <div className="p-4 rounded-xl bg-black/40 border border-emerald-500/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-white flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>تفعيل إعلانات Monetag في كل صفحات المتجر:</span>
+                </span>
+                <span className={`text-[11px] font-black px-2 py-0.5 rounded-full ${settings.monetag_enabled !== "false" ? "bg-emerald-500/20 text-emerald-300" : "bg-red-500/20 text-red-400"}`}>
+                  {settings.monetag_enabled !== "false" ? "مفعلة وتعمل ✅" : "معطلة ⛔"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleChange("monetag_enabled", "true")}
+                  className={`flex-1 py-2 rounded-lg text-xs font-black transition border ${
+                    settings.monetag_enabled !== "false"
+                      ? "bg-emerald-500 text-black border-emerald-400 shadow-md shadow-emerald-500/20"
+                      : "bg-[#161b24] text-gray-400 border-gray-700 hover:text-white"
+                  }`}
+                >
+                  تشغيل الإعلانات ⚡
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleChange("monetag_enabled", "false")}
+                  className={`flex-1 py-2 rounded-lg text-xs font-black transition border ${
+                    settings.monetag_enabled === "false"
+                      ? "bg-red-600 text-white border-red-500 shadow-md shadow-red-600/20"
+                      : "bg-[#161b24] text-gray-400 border-gray-700 hover:text-white"
+                  }`}
+                >
+                  إيقاف مؤقت ⛔
+                </button>
+              </div>
+              <p className="text-[10px] text-gray-400">
+                * عند التشغيل، تعمل الإعلانات على صفحات المتجر فقط وتستثني تلقائياً لوحة تحكم الأدمن حتى لا تزعجك أثناء العمل.
+              </p>
+            </div>
+
+            {/* Zone ID Info */}
+            <div className="p-4 rounded-xl bg-black/40 border border-emerald-500/30 space-y-2">
+              <label className="text-xs font-black text-white flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>رقم المنطقة الإعلانية (Zone ID):</span>
+              </label>
+              <input
+                type="text"
+                value={settings.monetag_zone_id || "11823837"}
+                onChange={(e) => handleChange("monetag_zone_id", e.target.value)}
+                placeholder="11823837"
+                className="w-full px-3 py-2 rounded-lg bg-[#0c1017] border border-gray-700 text-xs text-emerald-300 font-mono focus:border-emerald-500 focus:outline-none"
+              />
+              <p className="text-[10px] text-gray-400">
+                * تم ربط الموقع برقم المنطقة الافتراضي، ويمكنك تغييره متى شئت.
+              </p>
+            </div>
+          </div>
+
+          {/* Script / Tag Code Input */}
+          <div className="p-4 rounded-xl bg-black/40 border border-emerald-500/30 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-black text-white flex items-center gap-1.5">
+                <Sliders className="w-4 h-4 text-emerald-400" />
+                <span>شفرة الإعلان الإضافية (Monetag MultiTag / In-Page Push Script):</span>
+              </label>
+              <span className="text-[10px] text-emerald-400">اختياري (انسخ كود الـ Zone والصقه هنا)</span>
+            </div>
+            <textarea
+              rows={3}
+              value={settings.monetag_tag_code || ""}
+              onChange={(e) => handleChange("monetag_tag_code", e.target.value)}
+              placeholder='<script src="https://..." async></script> أو رابط الشفرة المباشر'
+              dir="ltr"
+              className="w-full px-3 py-2 rounded-lg bg-[#0c1017] border border-gray-700 text-xs text-emerald-200 font-mono focus:border-emerald-500 focus:outline-none placeholder:text-gray-600"
+            />
+            <p className="text-[10px] text-gray-400">
+              * الصق هنا كود الـ MultiTag أو In-Page Push الذي تنسخه من Monetag، وسيتم تضمينه وتفعيله مباشرة في كل صفحات المتجر.
+            </p>
+          </div>
+
+          {/* SmartLink / Direct Link Input */}
+          <div className="p-4 rounded-xl bg-black/40 border border-emerald-500/30 space-y-2">
+            <label className="text-xs font-black text-white flex items-center gap-1.5">
+              <ExternalLink className="w-4 h-4 text-emerald-400" />
+              <span>رابط الـ SmartLink الإعلاني المباشر (Direct Link):</span>
+            </label>
+            <input
+              type="text"
+              value={settings.monetag_direct_link || ""}
+              onChange={(e) => handleChange("monetag_direct_link", e.target.value)}
+              placeholder="https://..."
+              dir="ltr"
+              className="w-full px-3 py-2 rounded-lg bg-[#0c1017] border border-gray-700 text-xs text-emerald-300 font-mono focus:border-emerald-500 focus:outline-none placeholder:text-gray-600"
+            />
+            <p className="text-[10px] text-gray-400">
+              * يمكنك استخدام هذا الرابط لوضعه خلف أزرار العروض أو الهدايا لكسب أرباح فورية عند كل نقرة.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* =============================================================
           SECTION 1: HERO BILLBOARD (GOLD THEME)

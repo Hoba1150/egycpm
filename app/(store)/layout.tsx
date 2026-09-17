@@ -8,9 +8,9 @@ import { getStoreSettings } from "@/lib/actions/settings";
 import { SettingsProvider } from "@/lib/context/SettingsContext";
 
 import MaintenanceOverlay from "@/components/store/MaintenanceOverlay";
-import { TopPanoramaAdBanner, StickyMobileAdBar } from "@/components/store/AdBanners";
 import VisitorTracker from "@/components/shared/VisitorTracker";
 import PushNotificationPrompt from "@/components/shared/PushNotificationPrompt";
+import MonetagScript from "@/components/shared/MonetagScript";
 
 // High-efficiency Edge CDN caching: Purged on-demand via revalidatePath('/', 'layout') on admin updates.
 // This saves 99% of Vercel Compute execution & Fast Origin Transfer!
@@ -31,15 +31,14 @@ export default async function StoreLayout({
 
   return (
     <SettingsProvider settings={settings}>
+      <MonetagScript />
       <VisitorTracker />
       <PushNotificationPrompt />
       <MaintenanceOverlay />
       <div className="relative min-h-screen flex flex-col justify-between">
         <CyberBackground />
-        <TopPanoramaAdBanner />
         <Header />
         <main className="flex-1 pb-20 md:pb-0">{children}</main>
-        <StickyMobileAdBar />
         <CartDrawer />
         <MobileBottomNav />
         <Footer />

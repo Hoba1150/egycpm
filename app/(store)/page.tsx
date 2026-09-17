@@ -4,7 +4,6 @@ import { getRandomProducts } from "@/lib/actions/product";
 import { getStoreSettings } from "@/lib/actions/settings";
 import HeroSection from "@/components/store/HeroSection";
 import SocialCommunityBanner from "@/components/store/SocialCommunityBanner";
-import { PanoramaAdBanner } from "@/components/store/AdBanners";
 import HomeProductSlider from "@/components/store/HomeProductSlider";
 import WhyChooseUs from "@/components/store/WhyChooseUs";
 import FAQSection from "@/components/store/FAQSection";
@@ -42,9 +41,6 @@ export default async function HomePage() {
 
       {/* 2. Official Social Media & Community Hub (WhatsApp, Facebook, TikTok + CTA) */}
       <SocialCommunityBanner />
-
-      {/* 2.5 Panorama Leaderboard Ad Banner (Sponsor / Advertise With Us) */}
-      <PanoramaAdBanner slotLocation="home" />
 
       {/* 3. Product Showcase Carousel Slider (View Only) */}
       {showcaseProducts.length > 0 && (
