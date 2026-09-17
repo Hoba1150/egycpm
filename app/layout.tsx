@@ -48,17 +48,6 @@ export default function RootLayout({
           data-cfasync="false"
           async
         />
-        {/* Monetag In-Page Push Zone (Zone: 11823951) - Powered by Verified Domain 5gvci.com */}
-        <script
-          src="https://5gvci.com/act/files/tag.min.js?z=11823951"
-          data-cfasync="false"
-          async
-        />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(s){s.dataset.zone='11823951',s.src='https://5gvci.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));`,
-          }}
-        />
       </head>
       <body className="min-h-screen bg-[#08090d] bg-drift-texture text-[#f3f4f6] antialiased selection:bg-orange-500 selection:text-black">
         <ThemeProvider>
