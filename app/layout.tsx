@@ -48,6 +48,12 @@ export default function RootLayout({
           data-cfasync="false"
           async
         />
+        {/* Monetag Vignette (Golden Tag - Zone: 11824318) */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(s){s.dataset.zone='11824318',s.src='https://n6wxm.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));`,
+          }}
+        />
       </head>
       <body className="min-h-screen bg-[#08090d] bg-drift-texture text-[#f3f4f6] antialiased selection:bg-orange-500 selection:text-black">
         <ThemeProvider>
