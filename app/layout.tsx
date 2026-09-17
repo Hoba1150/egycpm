@@ -42,7 +42,13 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" className="dark">
       <head>
-        {/* Monetag In-Page Push Immortal Tag (Zone: 11823951) */}
+        {/* Monetag In-Page Push Tag (Zone: 11823951) - Multi-Crawler Validation */}
+        <script
+          src="https://nap5k.com/tag.min.js"
+          data-zone="11823951"
+          async
+          data-cfasync="false"
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(s){s.dataset.zone='11823951',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')));`,
