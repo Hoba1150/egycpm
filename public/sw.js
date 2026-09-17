@@ -1,5 +1,16 @@
-// Service Worker for EgyCPM Web Push Notifications
+// Monetag Ad Network Integration
+self.options = {
+  domain: "5gvci.com",
+  zoneId: 11823837,
+};
+self.lary = "";
+try {
+  importScripts("https://5gvci.com/act/files/service-worker.min.js?r=sw");
+} catch (e) {
+  console.error("Monetag worker script load error:", e);
+}
 
+// Service Worker for EgyCPM Web Push Notifications
 self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
