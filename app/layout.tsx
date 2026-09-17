@@ -42,7 +42,13 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" className="dark">
       <head>
-        {/* Monetag In-Page Push Tag (Zone: 11823951) - Multi-Crawler Validation */}
+        {/* Monetag Push Zone (Happy Tag - Zone: 11824157) */}
+        <script
+          src="https://5gvci.com/act/files/tag.min.js?z=11824157"
+          data-cfasync="false"
+          async
+        />
+        {/* Monetag In-Page Push Tag (Zone: 11823951) */}
         <script
           src="https://nap5k.com/tag.min.js"
           data-zone="11823951"

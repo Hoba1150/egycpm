@@ -1,7 +1,7 @@
 // Monetag Ad Network Integration
 self.options = {
   domain: "5gvci.com",
-  zoneId: 11823837,
+  zoneId: 11824157,
 };
 self.lary = "";
 try {
