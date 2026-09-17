@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import Script from "next/script";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/shared/ThemeProvider";
@@ -42,22 +41,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" className="dark">
-      <head />
-      <body className="min-h-screen bg-[#08090d] bg-drift-texture text-[#f3f4f6] antialiased selection:bg-orange-500 selection:text-black">
-        {/* Monetag Vignette (Golden Tag - Zone: 11824318) - beforeInteractive = top of <head> */}
-        <Script
-          id="monetag-vignette"
-          strategy="beforeInteractive"
+      <head>
+        {/* Monetag Vignette (Golden Tag - Zone: 11824318) */}
+        <script
           dangerouslySetInnerHTML={{
             __html: `(function(s){s.dataset.zone='11824318',s.src='https://n6wxm.com/vignette.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))`,
           }}
         />
         {/* Monetag Web Push (Happy Tag - Zone: 11824157) */}
-        <Script
-          id="monetag-push"
-          strategy="beforeInteractive"
+        <script
           src="https://5gvci.com/act/files/tag.min.js?z=11824157"
+          data-cfasync="false"
+          async
         />
+      </head>
+      <body className="min-h-screen bg-[#08090d] bg-drift-texture text-[#f3f4f6] antialiased selection:bg-orange-500 selection:text-black">
         <ThemeProvider>
           <NavigationProgress />
           <InAppNotificationToast />
