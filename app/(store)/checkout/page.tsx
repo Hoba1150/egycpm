@@ -710,7 +710,14 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-2.5 text-xs text-emerald-500 mt-4">
+                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-2.5 text-xs text-amber-400 mt-3">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <p className="leading-relaxed text-[11px] text-gray-200 font-bold">
+                    <strong>تنبيه هام:</strong> بعد إرسال الطلب، تأكد من تسجيل الخروج من لعبة Car Parking حتى يتمكن فريق العمل من الدخول وشحن الحساب بنجاح.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-2.5 text-xs text-emerald-500 mt-2">
                   <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                   <p className="leading-relaxed text-[11px] text-gray-300 font-medium">
                     <strong>تأكيد الأمان والسرية التامة:</strong> بيانات حسابك مشفرة بالكامل بتشفير AES-256، وتستخدم آلياً لتنفيذ طلبك فقط ولا يتم مشاركتها مطلقاً.

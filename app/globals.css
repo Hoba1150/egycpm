@@ -100,6 +100,14 @@ body {
   border-color: rgba(255,255,255,0.15);
 }
 
+/* ── Utility: Glass Panel ──────────────────── */
+.cpm-glass {
+  background: rgba(15, 16, 22, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
 /* ── Utility: Input ────────────────────────── */
 .cpm-input {
   background: rgba(255,255,255,0.03);
@@ -130,7 +138,7 @@ body {
   );
 }
 
-/* ── Product Name: bigger & bolder override ─ */
+/* ── Product Name & Price Typography ──────── */
 .product-name-lg {
   font-size: clamp(0.85rem, 2vw, 1rem);
   font-weight: 800;
@@ -143,6 +151,31 @@ body {
   letter-spacing: -0.02em;
   color: var(--red-hi);
   font-variant-numeric: tabular-nums;
+}
+
+/* ── Badge & Tag Components ────────────────── */
+.cpm-badge-red {
+  background: rgba(192, 18, 26, 0.15);
+  border: 1px solid rgba(192, 18, 26, 0.35);
+  color: #ff5252;
+}
+.cpm-badge-gold {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+}
+.cpm-badge-purple {
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  color: #c084fc;
+}
+
+/* ── Mobile Touch & Tap Highlights ─────────── */
+@media (max-width: 768px) {
+  button, a {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
 /* ── Reduced Motion ────────────────────────── */
