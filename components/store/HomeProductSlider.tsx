@@ -13,8 +13,9 @@ export default function HomeProductSlider({ products }: HomeProductSliderProps) 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
 
-  // Auto-scroll loop effect
+  // Auto-scroll loop effect (Desktop only to keep mobile touch 100% smooth)
   useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) return;
     if (!products || products.length <= 1 || isPaused) return;
 
     const interval = setInterval(() => {
@@ -31,7 +32,7 @@ export default function HomeProductSlider({ products }: HomeProductSliderProps) 
           scrollRef.current.scrollBy({ left: -220, behavior: "smooth" });
         }
       }
-    }, 3000);
+    }, 3500);
 
     return () => clearInterval(interval);
   }, [products, isPaused]);
@@ -115,9 +116,14 @@ export default function HomeProductSlider({ products }: HomeProductSliderProps) 
               images = [product.images];
             }
           }
-          const primaryImage =
+          const rawPrimaryImage =
             images[0] ||
             "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800";
+
+          const primaryImage =
+            rawPrimaryImage.includes("res.cloudinary.com") && rawPrimaryImage.includes("/upload/")
+              ? rawPrimaryImage.replace("/upload/", "/upload/w_400,c_limit,f_auto,q_auto/")
+              : rawPrimaryImage;
 
           return (
             <Link
@@ -132,14 +138,14 @@ export default function HomeProductSlider({ products }: HomeProductSliderProps) 
                   alt={product.name}
                   loading="lazy"
                   decoding="async"
-                  className="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-500 ease-out"
+                  className="w-full h-full object-cover group-hover:scale-[1.05] transition-transform duration-300 ease-out"
                 />
 
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
 
                 {/* Discount Badge */}
                 {product.discountPercent && product.discountPercent > 0 && (
-                  <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-md bg-[var(--red)] text-white text-[9px] font-black font-mono shadow-md z-10">
+                  <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-[var(--red-core)] text-white text-[9px] font-black font-mono shadow-[0_0_8px_var(--red-core)] z-10">
                     %{product.discountPercent}-
                   </span>
                 )}

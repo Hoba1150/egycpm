@@ -35,29 +35,19 @@ function LogoEmblem() {
   const customLogoUrl = settings.store_logo_url;
 
   return (
-    <div className="flex items-center gap-2.5 select-none">
-      {/* Icon / Image */}
+    <div className="flex items-center select-none py-0.5">
+      {/* Enlarged Logo Image occupying full slot */}
       {customLogoUrl ? (
         <img
           src={customLogoUrl}
           alt={storeName}
-          className="h-8 sm:h-9 w-auto max-w-[110px] object-contain"
+          className="h-10 sm:h-12 w-auto max-w-[150px] sm:max-w-[180px] object-contain drop-shadow-[0_0_12px_rgba(255,42,53,0.35)] transition-transform group-hover:scale-105"
         />
       ) : (
-        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gradient-to-br from-[var(--red-hi)] to-[var(--red)] flex items-center justify-center border border-white/10 shadow-[0_0_12px_rgba(192,18,26,0.5)] shrink-0 group-hover:shadow-[0_0_18px_rgba(192,18,26,0.7)] transition-shadow">
-          <Car className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-[var(--red-core)] to-[#0c0e15] flex items-center justify-center border border-white/10 shadow-[0_0_15px_rgba(255,42,53,0.5)] shrink-0 group-hover:shadow-[0_0_20px_rgba(255,42,53,0.8)] transition-all">
+          <Car className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
         </div>
       )}
-
-      {/* Name */}
-      <div className="text-right leading-none">
-        <span className="text-sm sm:text-base font-black text-white tracking-tight block group-hover:text-[var(--red-hi)] transition-colors">
-          {storeName}
-        </span>
-        <span className="text-[9px] font-mono text-[var(--red-hi)] uppercase tracking-[0.1em] block mt-0.5 font-bold opacity-90 truncate max-w-[140px]">
-          {settings.store_slogan || "Car Parking"}
-        </span>
-      </div>
     </div>
   );
 }

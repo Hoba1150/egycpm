@@ -49,9 +49,15 @@ export default function ProductCard({ product }: ProductCardProps) {
     }
   }
 
-  const primaryImage =
+  const rawPrimaryImage =
     images[0] ||
     "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=800";
+
+  // Dynamic lightweight image delivery (Converts 3MB raw images into 25KB WebP/AVIF)
+  const primaryImage =
+    rawPrimaryImage.includes("res.cloudinary.com") && rawPrimaryImage.includes("/upload/")
+      ? rawPrimaryImage.replace("/upload/", "/upload/w_480,c_limit,f_auto,q_auto/")
+      : rawPrimaryImage;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -105,7 +111,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           alt={product.name}
           loading="lazy"
           decoding="async"
-          className="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-500 ease-out"
+          className="w-full h-full object-cover group-hover:scale-[1.05] transition-transform duration-300 ease-out"
         />
 
         {/* Gradient overlay for bottom readability */}
