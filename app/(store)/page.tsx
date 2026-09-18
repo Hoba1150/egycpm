@@ -3,7 +3,6 @@ import { getCurrentUser } from "@/lib/auth";
 import { getRandomProducts } from "@/lib/actions/product";
 import { getStoreSettings } from "@/lib/actions/settings";
 import HeroSection from "@/components/store/HeroSection";
-import QuickCategories from "@/components/store/QuickCategories";
 import SocialCommunityBanner from "@/components/store/SocialCommunityBanner";
 import HomeProductSlider from "@/components/store/HomeProductSlider";
 import WhyChooseUs from "@/components/store/WhyChooseUs";
@@ -40,10 +39,7 @@ export default async function HomePage() {
       {/* 1. Top Section: Wallet Balance + Hero + Image Slideshow */}
       <HeroSection user={user} initialSettings={settings} />
 
-      {/* 2. Quick Categories (2027 Fast Navigation Grid) */}
-      <QuickCategories />
-
-      {/* 3. Official Social Media & Community Hub (WhatsApp, Facebook, TikTok + CTA) */}
+      {/* 2. Official Social Media & Community Hub (WhatsApp, Facebook, TikTok + CTA) */}
       <SocialCommunityBanner />
 
       {/* 3. Product Showcase Carousel Slider (View Only) */}

@@ -294,68 +294,6 @@ export default function HeroSection({ user: initialUser }: HeroSectionProps) {
                   </div>
                 );
               })}
-
-              {/* Top Overlays: Story Progress Bars + Quick Booking Trigger */}
-              <div className="absolute top-2.5 sm:top-4 inset-x-2.5 sm:inset-x-5 z-30 flex items-center justify-between gap-3 pointer-events-none">
-                {/* Story-Style Progress Bars */}
-                {ads.length > 1 && (
-                  <div className="flex-1 flex items-center gap-1.5 max-w-xs sm:max-w-md pointer-events-auto">
-                    {ads.map((_, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setActiveSlide(idx)}
-                        aria-label={`الانتقال للإعلان ${idx + 1}`}
-                        className="h-1 flex-1 rounded-full bg-white/30 overflow-hidden transition-all"
-                      >
-                        <div
-                          className={`h-full transition-all duration-300 ${
-                            activeSlide === idx
-                              ? "w-full bg-gradient-to-r from-amber-400 to-orange-500 shadow-sm"
-                              : idx < activeSlide
-                              ? "w-full bg-white/70"
-                              : "w-0"
-                          }`}
-                        />
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Direct Booking Trigger: "أعلن هنا 💎" */}
-                <a
-                  href={advertiseHereLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="pointer-events-auto px-2.5 sm:px-3 py-1 rounded-full bg-black/80 hover:bg-amber-500 hover:text-black text-amber-300 border border-amber-400/50 backdrop-blur-md text-[10px] sm:text-xs font-black flex items-center gap-1 shadow-lg transition active:scale-95 shrink-0 ml-auto"
-                  title="احجز مساحة إعلانية في هذه الواجهة"
-                >
-                  <Megaphone className="w-3 h-3 text-amber-400" />
-                  <span>أعلن هنا 💎</span>
-                </a>
-              </div>
-
-              {/* Navigation Arrows */}
-              {ads.length > 1 && (
-                <>
-                  <button
-                    type="button"
-                    onClick={prevSlide}
-                    aria-label="السابق"
-                    className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 z-30 w-8 h-8 rounded-full bg-black/60 hover:bg-black text-white border border-white/20 items-center justify-center transition opacity-0 group-hover:opacity-100"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={nextSlide}
-                    aria-label="التالي"
-                    className="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 z-30 w-8 h-8 rounded-full bg-black/60 hover:bg-black text-white border border-white/20 items-center justify-center transition opacity-0 group-hover:opacity-100"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                </>
-              )}
             </div>
           </div>
         )}
