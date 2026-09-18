@@ -154,198 +154,197 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-[var(--border)] bg-[#07080c]/95 backdrop-blur-md">
-        {/* Main Navbar */}
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between h-14 sm:h-16 gap-0">
+      <header className="sticky top-2 sm:top-3 z-40 w-full px-2.5 sm:px-4 transition-all">
+        {/* Floating Glass Island Navbar */}
+        <div className="max-w-7xl mx-auto glass-nav rounded-2xl sm:rounded-full px-2.5 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between gap-2 sm:gap-4 relative overflow-visible">
+          
+          {/* Subtle Ambient Red Underglow beneath the island */}
+          <div className="absolute -bottom-2 inset-x-8 h-3 bg-[var(--red-ambient)] blur-xl pointer-events-none rounded-full opacity-70" />
 
-            {/* ── Logo Slot: flush embedded rectangle ── */}
-            {/* Sits flush top & bottom with the bar, side borders only, inset shadow = carved-in feel */}
-            <div className="flex items-center h-full">
-              {/* Mobile hamburger — separate, before logo slot */}
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="lg:hidden h-full px-3 text-gray-400 hover:text-white hover:bg-white/[0.04] border-r border-[var(--border)] transition"
-                aria-label="القائمة الجانبية"
-              >
-                {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-              </button>
+          {/* Right: Logo Slot & Mobile Menu Trigger */}
+          <div className="flex items-center gap-2">
+            {/* Mobile hamburger button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="lg:hidden w-8 h-8 rounded-full glass-pill flex items-center justify-center text-gray-300 hover:text-white transition active:scale-95"
+              aria-label="القائمة الجانبية"
+            >
+              {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            </button>
 
-              {/* Logo Slot — flush, no radius, part of the bar */}
-              <Link
-                href="/"
-                className="flex items-center h-full px-4 sm:px-5 border-r border-[var(--border)] bg-[var(--surface)] hover:bg-[#0c0d12] transition-colors group relative"
-                style={{ boxShadow: "inset -1px 0 0 rgba(192,18,26,0.18), inset 1px 0 0 rgba(192,18,26,0.08)" }}
-              >
-                {/* Subtle top accent line — red hairline */}
-                <span className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--red)] to-transparent opacity-70" />
+            {/* Logo Link */}
+            <Link
+              href="/"
+              className="flex items-center gap-2 px-2 sm:px-3 py-1 rounded-full hover:bg-white/[0.04] transition group"
+            >
+              <LogoEmblem />
+            </Link>
+          </div>
 
-                <LogoEmblem />
-              </Link>
-            </div>
-
-            {/* Desktop Navigation Links */}
-            <nav className="hidden lg:flex items-center gap-1 flex-1 px-4">
-              {navLinks.map((link) => {
-                const isActive = pathname === link.href;
-                if (link.isSpecial) {
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className={`relative px-3 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-1.5 ${
-                        isActive
-                          ? "text-purple-300 bg-purple-950/70 border border-purple-500 shadow-[0_0_12px_rgba(168,85,247,0.4)]"
-                          : "text-purple-400 hover:text-white bg-purple-950/30 hover:bg-purple-900/40 border border-purple-500/30"
-                      }`}
-                    >
-                      <Zap className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
-                      <span>{link.name}</span>
-                      <span className="px-1 py-0.2 rounded text-[8px] bg-purple-500 text-white font-mono font-black">NEW</span>
-                    </Link>
-                  );
-                }
+          {/* Center: Desktop iOS Glass Navigation Pills */}
+          <nav className="hidden lg:flex items-center gap-1.5">
+            {navLinks.map((link) => {
+              const isActive = pathname === link.href;
+              if (link.isSpecial) {
                 return (
                   <Link
                     key={link.href}
                     href={link.href}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                    className={`relative px-3.5 py-1.5 rounded-full text-xs font-black transition flex items-center gap-1.5 ${
                       isActive
-                        ? "text-[var(--red-hi)] bg-[var(--red-soft)] border border-[var(--red)]/25"
-                        : "text-gray-300 hover:text-white hover:bg-white/[0.05]"
+                        ? "text-purple-300 bg-purple-950/70 border border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.45)]"
+                        : "text-purple-400 hover:text-white bg-purple-950/30 hover:bg-purple-900/40 border border-purple-500/30"
                     }`}
                   >
-                    {link.name}
+                    <Zap className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
+                    <span>{link.name}</span>
+                    <span className="px-1 py-0.2 rounded-full text-[8px] bg-purple-500 text-white font-mono font-black">NEW</span>
                   </Link>
                 );
-              })}
-            </nav>
+              }
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`relative px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 ${
+                    isActive
+                      ? "glass-pill-active text-white font-black"
+                      : "text-gray-300 hover:text-white hover:bg-white/[0.06]"
+                  }`}
+                >
+                  {isActive && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--red-core)] shadow-[0_0_8px_var(--red-core)]" />
+                  )}
+                  <span>{link.name}</span>
+                </Link>
+              );
+            })}
+          </nav>
 
-            {/* Left: Actions */}
-            <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4">
-              {/* Search Form (Desktop) */}
-              <form onSubmit={handleSearch} className="hidden md:flex relative items-center">
-                <input
-                  type="text"
-                  placeholder="ابحث عن سيارة أو خدمة..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-36 lg:w-44 pl-3 pr-7 py-1.5 rounded-lg bg-[var(--card-hi)] border border-[var(--border)] focus:border-[var(--red)] focus:outline-none text-xs text-white placeholder-gray-500 text-right transition cpm-input"
-                />
-                <button type="submit" className="absolute right-2 text-gray-400 hover:text-[var(--red-hi)] transition" aria-label="بحث">
-                  <Search className="w-3 h-3" />
-                </button>
-              </form>
-
-              {/* Shopping Cart Button */}
-              <button
-                onClick={() => setCartOpen(true)}
-                className="relative h-8 sm:h-9 px-2.5 rounded-lg bg-[var(--card-hi)] border border-[var(--border)] text-gray-300 hover:text-[var(--red-hi)] transition flex items-center justify-center shrink-0"
-                aria-label="سلة المشتريات"
-              >
-                <ShoppingCart className="w-4 h-4" />
-                {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-3.5 px-0.5 rounded-full bg-[var(--red-hi)] text-white text-[8px] sm:text-[9px] font-black font-mono shadow-sm">
-                    {itemCount}
-                  </span>
-                )}
+          {/* Left: Actions (Search, Cart, User/Auth) */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Search Form (Desktop Glass Pill) */}
+            <form onSubmit={handleSearch} className="hidden md:flex relative items-center">
+              <input
+                type="text"
+                placeholder="ابحث عن سيارة أو خدمة..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-36 lg:w-44 pl-3 pr-7 py-1.5 rounded-full bg-black/40 border border-white/10 focus:border-[var(--red-core)] focus:outline-none text-xs text-white placeholder-gray-500 text-right transition"
+              />
+              <button type="submit" className="absolute right-2.5 text-gray-400 hover:text-[var(--red-core)] transition" aria-label="بحث">
+                <Search className="w-3.5 h-3.5" />
               </button>
+            </form>
 
-              {/* Notifications Dropdown */}
-              {user && <NotificationsDropdown />}
+            {/* Shopping Cart Glass Button */}
+            <button
+              onClick={() => setCartOpen(true)}
+              className="relative h-8 sm:h-9 px-3 rounded-full glass-pill text-gray-300 hover:text-white hover:border-[var(--red-core)] transition flex items-center justify-center shrink-0 active:scale-95"
+              aria-label="سلة المشتريات"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              {itemCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[17px] h-4 px-1 rounded-full bg-[var(--red-core)] text-white text-[9px] font-black font-mono shadow-[0_0_10px_var(--red-core)]">
+                  {itemCount}
+                </span>
+              )}
+            </button>
 
-              {/* User Account / Login State - Static fixed height to prevent any bar shift */}
-              <div className="h-8 sm:h-9 flex items-center shrink-0">
-                {user ? (
-                  <div className="relative h-full flex items-center">
-                    <button
-                      onClick={() => setUserDropdown(!userDropdown)}
-                      className="h-full flex items-center gap-1.5 px-2 sm:px-3 rounded-lg bg-[var(--card-hi)] border border-[var(--border-hi)] text-right hover:border-[var(--red)] transition"
-                    >
-                      <div className="flex flex-col text-right leading-none justify-center">
-                        <span className="text-[10px] sm:text-[11px] font-bold text-white max-w-[70px] sm:max-w-[85px] truncate">
-                          {user.name || "الحساب"}
-                        </span>
-                        <span className="text-[9px] sm:text-[10px] text-[var(--red-hi)] font-mono font-black mt-0.5">
-                          {formatCurrency(user.wallet?.totalAvailable || 0)}
-                        </span>
-                      </div>
-                      <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${userDropdown ? "rotate-180" : ""}`} />
-                    </button>
+            {/* Notifications Dropdown */}
+            {user && <NotificationsDropdown />}
 
-                    {/* Dropdown Menu — Properly anchored below */}
-                    {userDropdown && (
-                      <>
-                        {/* Backdrop to close on outside click */}
-                        <div
-                          className="fixed inset-0 z-[45]"
-                          onClick={() => setUserDropdown(false)}
-                        />
-                        <div
-                          className="absolute top-full right-0 mt-2 w-52 sm:w-56 rounded-xl bg-[#0f1218] border border-gray-800 shadow-2xl p-2 z-[46] text-right space-y-1"
-                          onClick={() => setUserDropdown(false)}
-                        >
-                          <div className="p-2 border-b border-gray-800 mb-1">
-                            <p className="text-xs font-bold text-white truncate">{user.name}</p>
-                            <p className="text-[10px] text-orange-500 font-mono font-bold">
-                              {formatCurrency(user.wallet?.totalAvailable || 0)}
-                            </p>
-                          </div>
-
-                          <Link
-                            href="/wallet"
-                            className="flex items-center gap-2 p-2 rounded-lg text-xs text-gray-300 hover:bg-gray-800/40 hover:text-orange-500 transition"
-                          >
-                            <Wallet className="w-3.5 h-3.5 text-orange-500 shrink-0" />
-                            <span>محفظتي وشحن الرصيد</span>
-                          </Link>
-
-                          <Link
-                            href="/orders"
-                            className="flex items-center gap-2 p-2 rounded-lg text-xs text-gray-300 hover:bg-gray-800/40 hover:text-orange-500 transition"
-                          >
-                            <Car className="w-3.5 h-3.5 text-orange-500 shrink-0" />
-                            <span>طلباتي ومشترياتي</span>
-                          </Link>
-
-                          {isAdmin && (
-                            <Link
-                              href="/admin"
-                              className="flex items-center gap-2 p-2 rounded-lg text-xs text-orange-400 bg-orange-500/10 border border-orange-500/30 transition"
-                            >
-                              <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
-                              <span>لوحة التحكم الإدارية</span>
-                            </Link>
-                          )}
-
-                          <button
-                            onClick={handleLogout}
-                            className="w-full flex items-center gap-2 p-2 rounded-lg text-xs text-red-400 hover:bg-red-500/10 transition"
-                          >
-                            <LogOut className="w-3.5 h-3.5 shrink-0" />
-                            <span>تسجيل الخروج</span>
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ) : (
+            {/* User Account / Login State */}
+            <div className="h-8 sm:h-9 flex items-center shrink-0">
+              {user ? (
+                <div className="relative h-full flex items-center">
                   <button
-                    onClick={() => setIsAuthOpen(true)}
-                    className="h-full flex items-center gap-1.5 px-3 rounded-lg cpm-btn-red text-[11px] sm:text-xs tracking-wide shrink-0"
+                    onClick={() => setUserDropdown(!userDropdown)}
+                    className="h-full flex items-center gap-1.5 px-3 rounded-full glass-pill border-white/10 hover:border-[var(--red-core)] transition active:scale-95"
                   >
-                    <User className="w-3.5 h-3.5" />
-                    <span>دخول</span>
+                    <div className="flex flex-col text-right leading-none justify-center">
+                      <span className="text-[10px] sm:text-[11px] font-bold text-white max-w-[70px] sm:max-w-[85px] truncate">
+                        {user.name || "الحساب"}
+                      </span>
+                      <span className="text-[9px] sm:text-[10px] text-[var(--red-core)] font-mono font-black mt-0.5">
+                        {formatCurrency(user.wallet?.totalAvailable || 0)}
+                      </span>
+                    </div>
+                    <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${userDropdown ? "rotate-180" : ""}`} />
                   </button>
-                )}
-              </div>
+
+                  {/* Dropdown Menu — Glass Modal */}
+                  {userDropdown && (
+                    <>
+                      {/* Backdrop to close on outside click */}
+                      <div
+                        className="fixed inset-0 z-[45]"
+                        onClick={() => setUserDropdown(false)}
+                      />
+                      <div
+                        className="absolute top-full left-0 mt-2 w-52 sm:w-56 rounded-2xl glass-panel p-2 z-[46] text-right space-y-1 shadow-2xl border border-white/10"
+                        onClick={() => setUserDropdown(false)}
+                      >
+                        <div className="p-2 border-b border-white/10 mb-1">
+                          <p className="text-xs font-bold text-white truncate">{user.name}</p>
+                          <p className="text-[10px] text-[var(--red-core)] font-mono font-bold">
+                            {formatCurrency(user.wallet?.totalAvailable || 0)}
+                          </p>
+                        </div>
+
+                        <Link
+                          href="/wallet"
+                          className="flex items-center gap-2 p-2 rounded-xl text-xs text-gray-300 hover:bg-white/[0.06] hover:text-white transition"
+                        >
+                          <Wallet className="w-3.5 h-3.5 text-[var(--red-core)] shrink-0" />
+                          <span>محفظتي وشحن الرصيد</span>
+                        </Link>
+
+                        <Link
+                          href="/orders"
+                          className="flex items-center gap-2 p-2 rounded-xl text-xs text-gray-300 hover:bg-white/[0.06] hover:text-white transition"
+                        >
+                          <Car className="w-3.5 h-3.5 text-[var(--red-core)] shrink-0" />
+                          <span>طلباتي ومشترياتي</span>
+                        </Link>
+
+                        {isAdmin && (
+                          <Link
+                            href="/admin"
+                            className="flex items-center gap-2 p-2 rounded-xl text-xs text-red-300 bg-red-950/40 border border-red-500/30 transition"
+                          >
+                            <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
+                            <span>لوحة التحكم الإدارية</span>
+                          </Link>
+                        )}
+
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-2 p-2 rounded-xl text-xs text-red-400 hover:bg-red-500/10 transition"
+                        >
+                          <LogOut className="w-3.5 h-3.5 shrink-0" />
+                          <span>تسجيل الخروج</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsAuthOpen(true)}
+                  className="h-full flex items-center gap-1.5 px-3.5 rounded-full cpm-btn-red text-[11px] sm:text-xs tracking-wide shrink-0"
+                >
+                  <User className="w-3.5 h-3.5" />
+                  <span>دخول</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Mobile Slide-Out Drawer Menu */}
+        {/* Mobile Slide-Out Glass Island Menu */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden fixed inset-x-0 top-[calc(100%+1px)] bg-[#0c0f15] border-b border-gray-800 shadow-2xl p-3 z-50 text-right space-y-3">
+          <div className="lg:hidden mt-2 max-w-7xl mx-auto rounded-2xl glass-panel p-3 shadow-2xl text-right space-y-3 border border-white/10 animate-in fade-in slide-in-from-top-2 duration-200">
             {/* Search Input in Mobile Drawer */}
             <form onSubmit={handleSearch} className="relative">
               <input
@@ -353,13 +352,13 @@ export default function Header() {
                 placeholder="ابحث عن سيارة أو خدمة..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-3 pr-8 py-2 rounded-lg bg-[#161b24] border border-gray-700 text-xs text-white placeholder-gray-400 text-right"
+                className="w-full pl-3 pr-8 py-2 rounded-xl bg-black/50 border border-white/10 focus:border-[var(--red-core)] focus:outline-none text-xs text-white placeholder-gray-400 text-right"
               />
               <Search className="w-3.5 h-3.5 absolute right-2.5 top-2.5 text-gray-400" />
             </form>
 
             {/* Quick Links List */}
-            <div className="grid grid-cols-1 divide-y divide-gray-800">
+            <div className="grid grid-cols-1 gap-1">
               {navLinks.map((link) => {
                 const Icon = link.icon;
                 const isActive = pathname === link.href;
@@ -368,14 +367,19 @@ export default function Header() {
                     key={link.href}
                     href={link.href}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className={`flex items-center justify-between py-2.5 px-2 text-xs font-bold transition ${
-                      isActive ? "text-orange-500 bg-orange-500/10 rounded-lg" : "text-gray-200 hover:text-orange-500"
+                    className={`flex items-center justify-between py-2 px-3 text-xs font-bold rounded-xl transition ${
+                      isActive
+                        ? "glass-pill-active text-white"
+                        : "text-gray-300 hover:bg-white/[0.05] hover:text-white"
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <Icon className={`w-4 h-4 ${isActive ? "text-orange-500" : "text-gray-400"}`} />
+                      <Icon className={`w-4 h-4 ${isActive ? "text-[var(--red-core)]" : "text-gray-400"}`} />
                       <span>{link.name}</span>
                     </div>
+                    {isActive && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--red-core)] shadow-[0_0_6px_var(--red-core)]" />
+                    )}
                   </Link>
                 );
               })}

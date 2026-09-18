@@ -50,8 +50,9 @@ export default function MobileBottomNav() {
 
   return (
     <>
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-[#07080c]/95 backdrop-blur-xl border-t border-white/[0.08] px-1 py-1.5 shadow-[0_-10px_25px_rgba(0,0,0,0.7)]">
-        <div className="grid grid-cols-6 gap-0.5 max-w-md mx-auto">
+      {/* Floating iOS Glass Island Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-3 inset-x-3 max-w-md mx-auto z-40 glass-nav rounded-full px-2 py-1.5 shadow-[0_12px_35px_rgba(0,0,0,0.85),_0_0_22px_rgba(255,42,53,0.18)] border border-white/10">
+        <div className="grid grid-cols-6 gap-0.5 items-center">
           {items.map((item, idx) => {
             const Icon = item.icon;
             const isActive = item.href ? pathname === item.href : false;
@@ -61,12 +62,12 @@ export default function MobileBottomNav() {
                 <button
                   key={idx}
                   onClick={item.onClick}
-                  className="flex flex-col items-center justify-center py-1 relative text-gray-400 hover:text-white transition active:scale-95"
+                  className="flex flex-col items-center justify-center py-1 relative text-gray-400 hover:text-white transition active:scale-90"
                 >
                   <div className="relative">
                     <Icon className="w-4 h-4" />
                     {Boolean(item.badge && item.badge > 0) && (
-                      <span className="absolute -top-1.5 -right-2 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--red-hi)] text-[8px] font-black text-white font-mono shadow-sm">
+                      <span className="absolute -top-1.5 -right-2 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--red-core)] text-[8px] font-black text-white font-mono shadow-[0_0_8px_var(--red-core)]">
                         {item.badge}
                       </span>
                     )}
@@ -80,22 +81,22 @@ export default function MobileBottomNav() {
               <Link
                 key={idx}
                 href={item.href!}
-                className={`flex flex-col items-center justify-center py-1 relative transition active:scale-95 ${
+                className={`flex flex-col items-center justify-center py-1 relative transition active:scale-90 ${
                   isActive
                     ? item.isSpecial
-                      ? "text-purple-400 font-black"
-                      : "text-[var(--red-hi)] font-black"
+                      ? "text-purple-300 font-black"
+                      : "text-white font-black"
                     : item.isSpecial
                     ? "text-purple-400/80 hover:text-purple-300"
                     : "text-gray-400 hover:text-gray-200"
                 }`}
               >
                 <div className="relative">
-                  <Icon className={`w-4 h-4 ${isActive ? (item.isSpecial ? "text-purple-400" : "text-[var(--red-hi)]") : ""}`} />
+                  <Icon className={`w-4 h-4 ${isActive ? (item.isSpecial ? "text-purple-400" : "text-[var(--red-core)]") : ""}`} />
                 </div>
                 <span className="text-[9px] mt-0.5 font-bold truncate max-w-full">{item.name}</span>
                 {isActive && (
-                  <span className={`absolute -bottom-1 w-4 h-0.5 rounded-full shadow-[0_0_8px_var(--red-hi)] ${item.isSpecial ? "bg-purple-500" : "bg-[var(--red-hi)]"}`} />
+                  <span className={`absolute -bottom-1 w-3.5 h-1 rounded-full ${item.isSpecial ? "bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.8)]" : "bg-[var(--red-core)] shadow-[0_0_8px_var(--red-core)]"}`} />
                 )}
               </Link>
             );

@@ -2,175 +2,250 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Space+Grotesk:wght@500;700;800&display=swap');
 
-/* ═══════════════════════════════════════════════
-   EGY CPM — PREMIUM BLACK × DEEP RED THEME
-   Obsidian surfaces · Carbon cards · Action Red
-═══════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════
+   EGY CPM v2.0.0 — iOS 27 INSPIRED GLASS AUTOMOTIVE THEME
+   Obsidian Darkroom · Translucent Glass · Ambient Red LED Illumination
+   ═══════════════════════════════════════════════════════════════════ */
 
 :root {
-  --red:       #c0121a;
-  --red-hi:    #e8161f;
-  --red-glow:  rgba(192, 18, 26, 0.35);
-  --red-soft:  rgba(192, 18, 26, 0.12);
-  --bg:        #050507;
-  --surface:   #0b0c10;
-  --card:      #0f1016;
-  --card-hi:   #141519;
-  --border:    rgba(255,255,255,0.06);
-  --border-hi: rgba(192, 18, 26, 0.45);
-  --text:      #eeeef2;
-  --text-dim:  #7a7b8a;
-  --font-body: 'Tajawal', system-ui, sans-serif;
+  --red-core:      #ff2a35;
+  --red-ambient:   rgba(255, 42, 53, 0.28);
+  --red-glow-soft: rgba(255, 42, 53, 0.12);
+  --red-led-strip: rgba(255, 42, 53, 0.65);
+  
+  --bg-deep:       #040507;
+  --bg-carbon:     #08090d;
+  --glass-base:    rgba(14, 16, 23, 0.62);
+  --glass-card:    rgba(17, 19, 28, 0.58);
+  --glass-border:  rgba(255, 255, 255, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.14);
+  
+  --text-main:     #f4f5f8;
+  --text-muted:    #828494;
+  --font-body:     'Tajawal', system-ui, -apple-system, sans-serif;
+  --font-mono:     'Space Grotesk', monospace;
 }
 
-* { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
-::selection { background: var(--red); color: #fff; }
+::selection {
+  background: var(--red-core);
+  color: #fff;
+}
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+}
 
 body {
-  background-color: var(--bg);
-  color: var(--text);
+  background-color: var(--bg-deep);
+  color: var(--text-main);
   font-family: var(--font-body);
   overflow-x: hidden;
-  /* subtle ambient radial glow from top — gives depth without weight */
+  min-height: 100vh;
+  /* Ambient Red LED lighting: soft top aura + dual quarter-panel automotive glow */
   background-image:
-    radial-gradient(ellipse 110% 50% at 50% -8%, rgba(192,18,26,0.10) 0%, transparent 65%),
-    radial-gradient(ellipse 50% 35% at 92% 55%,  rgba(192,18,26,0.04) 0%, transparent 60%);
+    radial-gradient(ellipse 90% 40% at 50% -5%, rgba(255, 42, 53, 0.14) 0%, transparent 65%),
+    radial-gradient(ellipse 55% 45% at 95% 45%, rgba(255, 42, 53, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 55% 45% at 5% 75%, rgba(255, 42, 53, 0.05) 0%, transparent 60%);
   background-attachment: fixed;
 }
 
-/* ── Scrollbar ──────────────────────────────── */
-::-webkit-scrollbar         { width: 4px; height: 4px; }
-::-webkit-scrollbar-track   { background: transparent; }
-::-webkit-scrollbar-thumb   { background: rgba(255,255,255,0.10); border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: var(--red); }
+/* ── Custom Sleek Glass Scrollbar ─────────── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--red-core);
+  box-shadow: 0 0 10px var(--red-core);
+}
 
-/* ── Base surface overrides (keep dark hex refs consistent) ── */
-.bg-\[\#08090d\]  { background-color: var(--surface) !important; }
-.bg-\[\#0f1218\]  { background-color: var(--card)    !important; }
-.bg-\[\#161b24\]  { background-color: var(--card-hi) !important; }
-.bg-\[\#12161f\]  { background-color: var(--card)    !important; }
-.bg-\[\#121620\]  { background-color: var(--card-hi) !important; }
-.border-gray-800  { border-color: var(--border)      !important; }
-.border-gray-700  { border-color: rgba(255,255,255,0.09) !important; }
+/* ── Base surface overrides for backwards compatibility ── */
+.bg-\[\#08090d\] { background-color: var(--bg-carbon) !important; }
+.bg-\[\#0f1218\] { background-color: var(--glass-card) !important; backdrop-filter: blur(16px); }
+.bg-\[\#161b24\] { background-color: rgba(24, 27, 38, 0.5) !important; backdrop-filter: blur(12px); }
+.bg-\[\#12161f\] { background-color: var(--glass-card) !important; }
+.bg-\[\#121620\] { background-color: rgba(24, 27, 38, 0.5) !important; }
+.border-gray-800 { border-color: var(--glass-border) !important; }
+.border-gray-700 { border-color: rgba(255, 255, 255, 0.1) !important; }
 
-/* ── Utility: Premium Card ────────────────── */
+/* ── iOS 27 Glass Panel Utilities ─────────── */
+.glass-panel {
+  background: var(--glass-base);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 var(--glass-highlight);
+}
+
+.glass-nav {
+  background: rgba(10, 12, 18, 0.72);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 
+    0 12px 40px -5px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 0 24px -6px rgba(255, 42, 53, 0.2);
+}
+
+.glass-card {
+  background: var(--glass-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-card:hover {
+  border-color: rgba(255, 42, 53, 0.45);
+  box-shadow: 
+    0 16px 44px -8px rgba(0, 0, 0, 0.85),
+    0 0 28px -4px rgba(255, 42, 53, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transform: translateY(-3px);
+}
+
+/* ── iOS Glass Pills ───────────────────────── */
+.glass-pill {
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--glass-border);
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.glass-pill-active {
+  background: rgba(255, 42, 53, 0.14) !important;
+  border-color: rgba(255, 42, 53, 0.55) !important;
+  color: #fff !important;
+  box-shadow: 
+    0 0 18px -2px rgba(255, 42, 53, 0.5),
+    inset 0 0 14px rgba(255, 42, 53, 0.22);
+}
+
+/* ── Ambient Red LED Lighting Language ─────── */
+.led-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--red-core);
+  box-shadow: 0 0 8px var(--red-core), 0 0 16px var(--red-core);
+  display: inline-block;
+}
+
+.led-strip-red {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--red-core), transparent);
+  box-shadow: 0 0 12px var(--red-core);
+}
+
+.led-halo {
+  box-shadow: 0 0 35px -5px var(--red-ambient);
+}
+
+/* ── Backward-Compatible .cpm-card ────────── */
 .cpm-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  transition: border-color .22s ease, box-shadow .22s ease, transform .22s ease;
+  background: var(--glass-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 .cpm-card:hover {
-  border-color: var(--border-hi);
-  box-shadow: 0 0 28px -6px var(--red-glow), 0 8px 24px -8px rgba(0,0,0,0.7);
-  transform: translateY(-2px);
+  border-color: rgba(255, 42, 53, 0.45);
+  box-shadow: 0 16px 45px -8px rgba(0,0,0,0.85), 0 0 30px -4px var(--red-ambient);
+  transform: translateY(-3px);
 }
 
-/* ── Utility: Premium Button (Red) ─────────── */
+/* ── Primary Pill CTA (Dark Base + Red Illuminated Edge) ── */
 .cpm-btn-red {
-  background: linear-gradient(135deg, var(--red-hi) 0%, var(--red) 100%);
-  color: #fff;
+  background: linear-gradient(180deg, rgba(28, 30, 40, 0.95), rgba(14, 15, 22, 0.98));
+  color: #ffffff;
   font-weight: 800;
-  border: 1px solid rgba(255,255,255,0.14);
-  box-shadow: 0 4px 18px -4px var(--red-glow), inset 0 1px 0 rgba(255,255,255,0.22);
-  transition: filter .18s ease, transform .18s ease, box-shadow .18s ease;
+  border: 1px solid rgba(255, 42, 53, 0.5);
+  border-radius: 9999px;
+  box-shadow: 
+    0 4px 20px -3px rgba(255, 42, 53, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 0 12px rgba(255, 42, 53, 0.15);
+  transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .cpm-btn-red:hover {
-  filter: brightness(1.12);
-  box-shadow: 0 6px 28px -4px var(--red-glow);
-  transform: translateY(-1px) scale(1.01);
+  border-color: var(--red-core);
+  box-shadow: 
+    0 6px 30px -2px rgba(255, 42, 53, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 0 18px rgba(255, 42, 53, 0.28);
+  transform: translateY(-1px) scale(1.02);
 }
-.cpm-btn-red:active { transform: scale(.97); }
+.cpm-btn-red:active {
+  transform: scale(0.97);
+}
 
-/* ── Utility: Ghost Button ─────────────────── */
+/* ── Ghost Pill Button ─────────────────────── */
 .cpm-btn-ghost {
-  background: rgba(255,255,255,0.04);
-  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  color: var(--text-main);
   font-weight: 700;
-  border: 1px solid var(--border);
-  transition: background .18s ease, border-color .18s ease;
+  border: 1px solid var(--glass-border);
+  border-radius: 9999px;
+  transition: all .2s ease;
 }
 .cpm-btn-ghost:hover {
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.15);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* ── Utility: Glass Panel ──────────────────── */
-.cpm-glass {
-  background: rgba(15, 16, 22, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-}
-
-/* ── Utility: Input ────────────────────────── */
+/* ── Modern Glass Input ────────────────────── */
 .cpm-input {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--border);
-  color: var(--text);
-  transition: border-color .18s, background .18s;
+  background: rgba(255, 255, 255, 0.035);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  color: var(--text-main);
+  transition: border-color .2s, box-shadow .2s, background .2s;
 }
 .cpm-input:focus {
   outline: none;
-  border-color: var(--red);
-  background: rgba(255,255,255,0.055);
-  box-shadow: 0 0 0 3px rgba(192,18,26,0.15);
+  border-color: var(--red-core);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 3px rgba(255, 42, 53, 0.2), 0 0 15px rgba(255, 42, 53, 0.25);
 }
 
-/* ── Utility: Red Accent Text / Line ─────── */
-.cpm-accent          { color: var(--red-hi); }
-.cpm-accent-dim      { color: #e87070; }
-.cpm-divider-red     { border-color: var(--red); opacity: .6; }
-
-/* ── Hero Slider: Cinematic Vignette ──────── */
+/* ── Hero Slider Cinematic Vignette ───────── */
 .hero-vignette {
   background: linear-gradient(
     to top,
-    rgba(5,5,7,.98)    0%,
-    rgba(5,5,7,.75)   35%,
-    rgba(5,5,7,.25)   70%,
-    transparent       100%
+    rgba(4, 5, 7, 0.98) 0%,
+    rgba(4, 5, 7, 0.65) 40%,
+    rgba(4, 5, 7, 0.2) 75%,
+    transparent 100%
   );
 }
 
-/* ── Product Name & Price Typography ──────── */
-.product-name-lg {
-  font-size: clamp(0.85rem, 2vw, 1rem);
-  font-weight: 800;
-  line-height: 1.3;
-  letter-spacing: -0.01em;
-}
-.product-price-lg {
-  font-size: clamp(1.05rem, 2.5vw, 1.25rem);
-  font-weight: 900;
-  letter-spacing: -0.02em;
-  color: var(--red-hi);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ── Badge & Tag Components ────────────────── */
-.cpm-badge-red {
-  background: rgba(192, 18, 26, 0.15);
-  border: 1px solid rgba(192, 18, 26, 0.35);
-  color: #ff5252;
-}
-.cpm-badge-gold {
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  color: #fbbf24;
-}
-.cpm-badge-purple {
-  background: rgba(168, 85, 247, 0.15);
-  border: 1px solid rgba(168, 85, 247, 0.35);
-  color: #c084fc;
-}
-
-/* ── Mobile Touch & Tap Highlights ─────────── */
+/* ── Mobile Touch Optimizations ────────────── */
 @media (max-width: 768px) {
   button, a {
     touch-action: manipulation;
@@ -178,7 +253,7 @@ body {
   }
 }
 
-/* ── Reduced Motion ────────────────────────── */
+/* ── Reduced Motion Support ────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
     animation-duration: 0.01ms !important;

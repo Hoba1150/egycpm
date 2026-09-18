@@ -156,38 +156,43 @@ export default function HeroSection({ user: initialUser }: HeroSectionProps) {
     <section className="relative pt-2 sm:pt-3 pb-4 sm:pb-6 px-2.5 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto w-full space-y-3 sm:space-y-4">
 
-        {/* 1. Wallet Balance / Top Hub */}
-        <div className="rounded-2xl bg-[#0f1218] border border-gray-800 p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-right shadow-md">
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-red-600/15 text-red-500 border border-red-500/30 flex items-center justify-center shrink-0">
-              <Wallet className="w-5 h-5" />
+        {/* 1. Wallet Balance / Top Cockpit HUD */}
+        <div className="relative rounded-2xl sm:rounded-3xl glass-panel p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-right shadow-[0_12px_35px_rgba(0,0,0,0.7)] border border-white/10 overflow-hidden group">
+          {/* Top Red LED Horizon Line */}
+          <div className="absolute top-0 inset-x-8 h-[1.5px] bg-gradient-to-r from-transparent via-[var(--red-core)] to-transparent opacity-80" />
+          <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-64 h-16 bg-[var(--red-ambient)] blur-2xl pointer-events-none opacity-40 group-hover:opacity-70 transition-opacity" />
+
+          <div className="flex items-center gap-3 w-full sm:w-auto relative z-10">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-black/40 border border-white/10 text-white flex items-center justify-center shrink-0 shadow-inner group-hover:border-[var(--red-core)] transition-colors">
+              <Wallet className="w-5 h-5 text-[var(--red-core)] drop-shadow-[0_0_8px_rgba(255,42,53,0.8)]" />
             </div>
             <div>
               <span className="text-[11px] text-gray-400 block font-medium">
                 {currentUser ? `مرحباً بك، ${currentUser.name}` : "رصيد المحفظة المتاح للشراء"}
               </span>
               <div className="flex items-baseline gap-2">
-                <span className="text-xl sm:text-2xl font-black text-white font-mono">
+                <span className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight">
                   {formatCurrency(walletTotal)}
                 </span>
-                <span className="text-[10px] text-gray-500 hidden sm:inline">
-                  جاهز للاستخدام
+                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full hidden sm:inline-flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>جاهز للاستخدام</span>
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end relative z-10">
             <Link
               href="/deposit"
-              className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-red-600/20"
+              className="flex-1 sm:flex-initial px-5 py-2.5 rounded-full cpm-btn-red text-xs flex items-center justify-center gap-1.5 active:scale-95"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{settings.hero_cta1_text ?? "شحن المحفظة"}</span>
             </Link>
             <Link
               href="/shop"
-              className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-[#161b24] hover:bg-[#1e2430] border border-gray-700 text-gray-200 font-bold text-xs text-center transition"
+              className="flex-1 sm:flex-initial px-5 py-2.5 rounded-full cpm-btn-ghost text-xs text-center active:scale-95"
             >
               {settings.hero_cta2_text ?? "تصفح المتجر"}
             </Link>
@@ -196,13 +201,17 @@ export default function HeroSection({ user: initialUser }: HeroSectionProps) {
 
         {/* 2. Main Featured Ad Billboard (المساحة الإعلانية الرئيسية المميزة) */}
         {settings.ad_hero_enabled !== "false" && ads.length > 0 && (
-          <div
-            className="relative group rounded-2xl sm:rounded-3xl overflow-hidden border border-amber-500/30 bg-[#090b0f] shadow-2xl transition hover:border-amber-500/60"
-            onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => setIsPaused(false)}
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-          >
+          <div className="relative group">
+            {/* Ambient Red Halo Behind Billboard */}
+            <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-red-600/10 via-[var(--red-ambient)] to-red-600/10 blur-xl opacity-60 group-hover:opacity-90 transition-opacity pointer-events-none" />
+
+            <div
+              className="relative rounded-2xl sm:rounded-3xl overflow-hidden border border-white/10 bg-[#090b0f] shadow-[0_16px_50px_rgba(0,0,0,0.85)] transition hover:border-[var(--red-core)]/50"
+              onMouseEnter={() => setIsPaused(true)}
+              onMouseLeave={() => setIsPaused(false)}
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+            >
             {/* Billboard Container */}
             <div className="relative w-full h-[200px] xs:h-[230px] sm:h-[310px] md:h-[380px] lg:h-[430px] overflow-hidden bg-black">
               {/* Slides */}
@@ -296,6 +305,7 @@ export default function HeroSection({ user: initialUser }: HeroSectionProps) {
               })}
             </div>
           </div>
+        </div>
         )}
 
         {/* 3. Sponsored Partner Stories Strip (Horizontal scrolling on mobile) */}
